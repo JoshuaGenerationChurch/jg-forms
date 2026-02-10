@@ -38,7 +38,7 @@ export default function Login({
                     <>
                         <div className="grid gap-6">
                             <div className="grid gap-2">
-                                <Label htmlFor="email">Email address</Label>
+                                <Label htmlFor="email" className="text-white/90 text-sm font-medium">Email address</Label>
                                 <Input
                                     id="email"
                                     type="email"
@@ -48,17 +48,18 @@ export default function Login({
                                     tabIndex={1}
                                     autoComplete="email"
                                     placeholder="email@example.com"
+                                    className="bg-white/40 backdrop-blur-sm border-white/30 text-white placeholder:text-white/60 focus-visible:border-white/50 focus-visible:ring-white/20"
                                 />
                                 <InputError message={errors.email} />
                             </div>
 
                             <div className="grid gap-2">
                                 <div className="flex items-center">
-                                    <Label htmlFor="password">Password</Label>
+                                    <Label htmlFor="password" className="text-white/90 text-sm font-medium">Password</Label>
                                     {canResetPassword && (
                                         <TextLink
                                             href={request()}
-                                            className="ml-auto text-sm"
+                                            className="ml-auto text-sm text-white/80 hover:text-white"
                                             tabIndex={5}
                                         >
                                             Forgot password?
@@ -73,22 +74,26 @@ export default function Login({
                                     tabIndex={2}
                                     autoComplete="current-password"
                                     placeholder="Password"
+                                    className="bg-white/40 backdrop-blur-sm border-white/30 text-white placeholder:text-white/60 focus-visible:border-white/50 focus-visible:ring-white/20"
                                 />
                                 <InputError message={errors.password} />
                             </div>
 
-                            <div className="flex items-center space-x-3">
-                                <Checkbox
-                                    id="remember"
-                                    name="remember"
-                                    tabIndex={3}
-                                />
-                                <Label htmlFor="remember">Remember me</Label>
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-2">
+                                    <Checkbox
+                                        id="remember"
+                                        name="remember"
+                                        tabIndex={3}
+                                        className="border-white/30 bg-white/20 data-[state=checked]:bg-white data-[state=checked]:text-sage-700"
+                                    />
+                                    <Label htmlFor="remember" className="text-white/90 text-sm">Remember me</Label>
+                                </div>
                             </div>
 
                             <Button
                                 type="submit"
-                                className="mt-4 w-full"
+                                className="mt-2 w-full bg-gradient-to-r from-sage-600 to-sage-700 hover:from-sage-700 hover:to-sage-800 text-white shadow-lg hover:shadow-xl transition-all duration-200"
                                 tabIndex={4}
                                 disabled={processing}
                                 data-test="login-button"
@@ -99,9 +104,9 @@ export default function Login({
                         </div>
 
                         {canRegister && (
-                            <div className="text-center text-sm text-muted-foreground">
+                            <div className="text-center text-sm text-white/80">
                                 Don't have an account?{' '}
-                                <TextLink href={register()} tabIndex={5}>
+                                <TextLink href={register()} tabIndex={5} className="text-white font-semibold hover:text-white/90">
                                     Sign up
                                 </TextLink>
                             </div>

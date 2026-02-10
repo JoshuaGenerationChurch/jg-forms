@@ -26,7 +26,7 @@ export default function Register() {
                     <>
                         <div className="grid gap-6">
                             <div className="grid gap-2">
-                                <Label htmlFor="name">Name</Label>
+                                <Label htmlFor="name" className="text-white/90 text-sm font-medium">Name</Label>
                                 <Input
                                     id="name"
                                     type="text"
@@ -36,6 +36,7 @@ export default function Register() {
                                     autoComplete="name"
                                     name="name"
                                     placeholder="Full name"
+                                    className="bg-white/40 backdrop-blur-sm border-white/30 text-white placeholder:text-white/60 focus-visible:border-white/50 focus-visible:ring-white/20"
                                 />
                                 <InputError
                                     message={errors.name}
@@ -44,7 +45,7 @@ export default function Register() {
                             </div>
 
                             <div className="grid gap-2">
-                                <Label htmlFor="email">Email address</Label>
+                                <Label htmlFor="email" className="text-white/90 text-sm font-medium">Email address</Label>
                                 <Input
                                     id="email"
                                     type="email"
@@ -53,12 +54,13 @@ export default function Register() {
                                     autoComplete="email"
                                     name="email"
                                     placeholder="email@example.com"
+                                    className="bg-white/40 backdrop-blur-sm border-white/30 text-white placeholder:text-white/60 focus-visible:border-white/50 focus-visible:ring-white/20"
                                 />
                                 <InputError message={errors.email} />
                             </div>
 
                             <div className="grid gap-2">
-                                <Label htmlFor="password">Password</Label>
+                                <Label htmlFor="password" className="text-white/90 text-sm font-medium">Password</Label>
                                 <Input
                                     id="password"
                                     type="password"
@@ -67,12 +69,13 @@ export default function Register() {
                                     autoComplete="new-password"
                                     name="password"
                                     placeholder="Password"
+                                    className="bg-white/40 backdrop-blur-sm border-white/30 text-white placeholder:text-white/60 focus-visible:border-white/50 focus-visible:ring-white/20"
                                 />
                                 <InputError message={errors.password} />
                             </div>
 
                             <div className="grid gap-2">
-                                <Label htmlFor="password_confirmation">
+                                <Label htmlFor="password_confirmation" className="text-white/90 text-sm font-medium">
                                     Confirm password
                                 </Label>
                                 <Input
@@ -83,6 +86,7 @@ export default function Register() {
                                     autoComplete="new-password"
                                     name="password_confirmation"
                                     placeholder="Confirm password"
+                                    className="bg-white/40 backdrop-blur-sm border-white/30 text-white placeholder:text-white/60 focus-visible:border-white/50 focus-visible:ring-white/20"
                                 />
                                 <InputError
                                     message={errors.password_confirmation}
@@ -91,7 +95,7 @@ export default function Register() {
 
                             <Button
                                 type="submit"
-                                className="mt-2 w-full"
+                                className="mt-2 w-full bg-gradient-to-r from-sage-600 to-sage-700 hover:from-sage-700 hover:to-sage-800 text-white shadow-lg hover:shadow-xl transition-all duration-200"
                                 tabIndex={5}
                                 data-test="register-user-button"
                             >
@@ -100,9 +104,9 @@ export default function Register() {
                             </Button>
                         </div>
 
-                        <div className="text-center text-sm text-muted-foreground">
+                        <div className="text-center text-sm text-white/80">
                             Already have an account?{' '}
-                            <TextLink href={login()} tabIndex={6}>
+                            <TextLink href={login()} tabIndex={6} className="text-white font-semibold hover:text-white/90">
                                 Log in
                             </TextLink>
                         </div>

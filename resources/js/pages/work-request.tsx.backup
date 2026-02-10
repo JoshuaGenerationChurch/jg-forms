@@ -1,0 +1,942 @@
+import { Head } from '@inertiajs/react';
+import { Minus, Plus, Save } from 'lucide-react';
+import { useCallback, useMemo, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import AppLayout from '@/layouts/app-layout';
+import type { BreadcrumbItem } from '@/types';
+
+// Type definitions
+type NatureOfRequest =
+    | 'We are running an EVENT'
+    | 'We need SIGNAGE Only'
+    | 'We need DIGITAL MEDIA'
+    | 'We want to place a PRINT MEDIA order'
+    | 'We need a VIDEO/FILM Project Only'
+    | '';
+
+interface FormData {
+    // Page 1: Nature of Request
+    natureOfRequest: NatureOfRequest;
+
+    // Page 2: Contact Details
+    firstName: string;
+    lastName: string;
+    cellphone: string;
+    email: string;
+    roleInChurch: string;
+    congregation: string;
+    requestSummary: string;
+    theme: string;
+
+    // Page 3: Event Details
+    eventName: string;
+    eventOrganiser: string;
+    eventStartDate: string;
+    eventEndDate: string;
+    venue: string;
+    eventReach: string;
+    hubs: string[];
+    needRegistrationForm: string;
+    needGraphics: string;
+    needSignage: string;
+    needFilmVideo: string;
+    needRecording: string;
+    childMinding: string;
+
+    // Page 4: Quicket Registration
+    quicketDescription: string;
+    ticketType: string;
+    ticketPrice: string;
+    maxTickets: string;
+    registrantInfo: string;
+    allowDonations: string;
+    registrationClosingDate: string;
+
+    // Page 5: Video/Film Project
+    filmMedium: string;
+    projectDescription: string;
+    distribution: string;
+    intendedAudience: string;
+    videoContent: string;
+    companionDocuments: string;
+    dateNeeded: string;
+
+    // Page 6: Graphics
+    graphicsWhatsApp: boolean;
+    graphicsInstagram: boolean;
+    graphicsAVSlide: boolean;
+    graphicsOther: string;
+
+    // Page 7: Digital Media
+    digitalScope: string;
+    digitalWhatsApp: boolean;
+    digitalInstagram: boolean;
+    digitalOther: string;
+
+    // Page 8: Signage
+    signageScope: string;
+    signageTypes: string[];
+    sharkfinQty: string;
+    fenceBannerQty: string;
+    directionalSignsQty: string;
+    buildingSignsQty: string;
+    otherSignage: string;
+    otherSignageQty: string;
+
+    // Page 9: Print Media
+    printTypes: string[];
+    printOther: string;
+    printOtherQty: string;
+    printA5Qty: string;
+    printA6Qty: string;
+    printA3Qty: string;
+    printA4Qty: string;
+    printCardsQty: string;
+    termsAccepted: boolean;
+}
+
+const breadcrumbs: BreadcrumbItem[] = [
+    {
+        title: 'Dashboard',
+        href: '/dashboard',
+    },
+    {
+        title: 'Work Request',
+        href: '/work-request',
+    },
+];
+
+const roleOptions = ['Pastor', 'Elder', 'Church Staff', 'Ministry Leader', 'Volunteer', 'Congregant'];
+
+const hubOptions = [
+    'JoshGen Pretoria',
+    'JoshGen Joburg',
+    'JoshGen Rustenburg',
+    'JoshGen Polokwane',
+    'JoshGen Nelspruit',
+    'JoshGen Bloemfontein',
+    'JoshGen Durban',
+    'JoshGen PE',
+    'JoshGen EL',
+];
+
+const congregationOptions = [
+    'Bethlehem',
+    'Bloemfontein',
+    'Bonnievale',
+    'Bredasdorp',
+    'City Bowl AM',
+    'De Doorns',
+    'Dunoon',
+    'Durbanville AM',
+    'Durbanville Central',
+    'Durbanville PM',
+    'Edgemead 08:30',
+    'Edgemead 11 AM',
+    'Edgemead PM',
+    'George AM',
+    'George PM',
+    'Gordons Bay',
+    'Grabouw',
+    'Hartbees',
+    'Hermanus',
+    'Khayelitsha',
+    'Kimberley',
+    'Langebaan',
+    'Malmesbury',
+    'Melkbosstrand',
+    'Milnerton',
+    'Montagu',
+    'Mossel Bay AM',
+    'Mossel Bay PM',
+    'Muizenberg',
+    'Oudtshoorn',
+    'Paarl',
+    'Pinehurst PM',
+    'Potchefstroom',
+    'Robertson',
+    'Sea Point',
+    'Somerset West',
+    'Sonskyn Vallei',
+    'Stellenbosch AM',
+    'Stellenbosch Central',
+    'Stellenbosch PM',
+    'Stilbaai',
+    'Sunningdale 11AM',
+    'Sunningdale 8:30AM',
+    'Sunningdale PM',
+    'Swellendam',
+    'Wellington AM',
+    'Wellington PM',
+    'Willowmore',
+    'Woodstock PM',
+    'Worcester',
+    'Wynberg',
+    'Yzerfontein',
+    'Zim - Harare - CBD',
+    'Zim - Tafara',
+];
+
+const quicketInfoOptions = [
+    'Name',
+    'Last Name',
+    'Email',
+    'Cellphone',
+    'Congregation',
+    'Function in Church',
+    'Allergies',
+    'Other',
+];
+
+const ticketTypes = [
+    'Adults (18+)',
+    'Adults (13+)',
+    'Children 4–12 years',
+    'Children 0–3 years',
+    'Other',
+];
+
+const selectBase =
+    'mt-2 h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm shadow-xs transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]';
+const textareaBase =
+    'mt-2 min-h-[120px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs transition-[color,box-shadow] focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]';
+
+function Required() {
+    return <span className="ml-1 text-xs font-normal text-red-500">(Required)</span>;
+}
+
+function SectionHeader({ title }: { title: string }) {
+    return (
+        <div>
+            <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
+            <div className="mt-2 h-px w-full bg-slate-200" />
+        </div>
+    );
+}
+
+function RadioGroup({
+    name,
+    options,
+    columns = 1,
+}: {
+    name: string;
+    options: string[];
+    columns?: 1 | 2 | 3;
+}) {
+    return (
+        <div
+            className={`mt-2 grid gap-2 text-sm text-slate-700 ${
+                columns === 2 ? 'grid-cols-2' : columns === 3 ? 'grid-cols-3' : 'grid-cols-1'
+            }`}
+        >
+            {options.map((option) => (
+                <label key={option} className="flex items-center gap-2">
+                    <input
+                        type="radio"
+                        name={name}
+                        className="h-4 w-4 rounded-full border-slate-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span>{option}</span>
+                </label>
+            ))}
+        </div>
+    );
+}
+
+function TimeInputs({ idPrefix }: { idPrefix: string }) {
+    return (
+        <div className="mt-2 flex items-center gap-2">
+            <Input id={`${idPrefix}-hh`} className="w-16" placeholder="HH" />
+            <Input id={`${idPrefix}-mm`} className="w-16" placeholder="MM" />
+        </div>
+    );
+}
+
+export default function WorkRequest() {
+    const [stepIndex, setStepIndex] = useState(0);
+    const [formData, setFormData] = useState<FormData>({
+        natureOfRequest: '',
+        firstName: '',
+        lastName: '',
+        cellphone: '',
+        email: '',
+        roleInChurch: '',
+        congregation: '',
+        requestSummary: '',
+        theme: '',
+        eventName: '',
+        eventOrganiser: '',
+        eventStartDate: '',
+        eventEndDate: '',
+        venue: '',
+        eventReach: '',
+        hubs: [],
+        needRegistrationForm: '',
+        needGraphics: '',
+        needSignage: '',
+        needFilmVideo: '',
+        needRecording: '',
+        childMinding: '',
+        quicketDescription: '',
+        ticketType: '',
+        ticketPrice: '',
+        maxTickets: '',
+        registrantInfo: '',
+        allowDonations: '',
+        registrationClosingDate: '',
+        filmMedium: '',
+        projectDescription: '',
+        distribution: '',
+        intendedAudience: '',
+        videoContent: '',
+        companionDocuments: '',
+        dateNeeded: '',
+        graphicsWhatsApp: false,
+        graphicsInstagram: false,
+        graphicsAVSlide: false,
+        graphicsOther: '',
+        digitalScope: '',
+        digitalWhatsApp: false,
+        digitalInstagram: false,
+        digitalOther: '',
+        signageScope: '',
+        signageTypes: [],
+        sharkfinQty: '',
+        fenceBannerQty: '',
+        directionalSignsQty: '',
+        buildingSignsQty: '',
+        otherSignage: '',
+        otherSignageQty: '',
+        printTypes: [],
+        printOther: '',
+        printOtherQty: '',
+        printA5Qty: '',
+        printA6Qty: '',
+        printA3Qty: '',
+        printA4Qty: '',
+        printCardsQty: '',
+        termsAccepted: false,
+    });
+
+    const updateFormData = useCallback(<K extends keyof FormData>(key: K, value: FormData[K]) => {
+        setFormData((prev) => ({ ...prev, [key]: value }));
+    }, []);
+
+    // Determine which pages should be visible based on form data
+    const getVisiblePages = useCallback(() => {
+        const pages: string[] = ['nature', 'contact'];
+
+        if (formData.natureOfRequest === 'We are running an EVENT') {
+            pages.push('event');
+            if (formData.needRegistrationForm === 'Yes') {
+                pages.push('quicket');
+            }
+            if (formData.needFilmVideo === 'Yes') {
+                pages.push('film');
+            }
+            if (formData.needGraphics === 'Yes') {
+                pages.push('graphics');
+            }
+            if (formData.needSignage === 'Yes') {
+                pages.push('signage');
+            }
+        } else if (formData.natureOfRequest === 'We need SIGNAGE Only') {
+            pages.push('signage');
+        } else if (formData.natureOfRequest === 'We need DIGITAL MEDIA') {
+            pages.push('digital');
+        } else if (formData.natureOfRequest === 'We want to place a PRINT MEDIA order') {
+            pages.push('print');
+        } else if (formData.natureOfRequest === 'We need a VIDEO/FILM Project Only') {
+            pages.push('film');
+        }
+
+        return pages;
+    }, [formData]);
+
+    const steps = useMemo(
+        () => [
+            {
+                id: 'step-1-6',
+                title: 'Nature of Your Request',
+                current: 1,
+                total: 6,
+                primaryLabel: 'Next',
+                content: (
+                    <div className="space-y-6">
+                        <SectionHeader title="Nature of Your Request" />
+                        <div>
+                            <Label
+                                htmlFor="request-nature"
+                                className="text-sm font-medium text-slate-700"
+                            >
+                                What is the Nature of Your Request?
+                                <Required />
+                            </Label>
+                            <select id="request-nature" className={selectBase}>
+                                <option>We are running an EVENT</option>
+                                <option>We need SIGNAGE Only</option>
+                                <option>We need DIGITAL MEDIA</option>
+                                <option>We want to place a PRINT MEDIA order</option>
+                                <option>We need a VIDEO/FILM Project Only</option>
+                            </select>
+                        </div>
+                    </div>
+                ),
+                showPrevious: false,
+            },
+            {
+                id: 'step-2-6',
+                title: 'Contact Details',
+                current: 2,
+                total: 6,
+                primaryLabel: 'Next',
+                content: (
+                    <div className="space-y-6">
+                        <SectionHeader title="Contact Details" />
+                        <div className="grid gap-6 md:grid-cols-2">
+                            <div>
+                                <Label htmlFor="first-name" className="text-sm font-medium text-slate-700">
+                                    Name <Required />
+                                </Label>
+                                <Input id="first-name" className="mt-2" />
+                            </div>
+                            <div>
+                                <Label htmlFor="last-name" className="text-sm font-medium text-slate-700">
+                                    Last Name <Required />
+                                </Label>
+                                <Input id="last-name" className="mt-2" />
+                            </div>
+                            <div>
+                                <Label htmlFor="cellphone" className="text-sm font-medium text-slate-700">
+                                    Cellphone <Required />
+                                </Label>
+                                <Input id="cellphone" className="mt-2" placeholder="+1 (___) ___-____" />
+                            </div>
+                            <div>
+                                <Label htmlFor="email" className="text-sm font-medium text-slate-700">
+                                    Email <Required />
+                                </Label>
+                                <Input id="email" className="mt-2" placeholder="name@example.com" />
+                            </div>
+                            <div>
+                                <Label
+                                    htmlFor="role-in-church"
+                                    className="text-sm font-medium text-slate-700"
+                                >
+                                    Your role in the Church <Required />
+                                </Label>
+                                <select id="role-in-church" className={selectBase}>
+                                    <option>Deacon</option>
+                                    <option>Elder</option>
+                                    <option>Member</option>
+                                </select>
+                            </div>
+                            <div>
+                                <Label
+                                    htmlFor="congregation"
+                                    className="text-sm font-medium text-slate-700"
+                                >
+                                    Your Congregation <Required />
+                                </Label>
+                                <select id="congregation" className={selectBase}>
+                                    <option>City Bowl AM</option>
+                                    <option>Durbanville Central</option>
+                                    <option>Stellenbosch AM</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <Label
+                                htmlFor="request-summary"
+                                className="text-sm font-medium text-slate-700"
+                            >
+                                Short Description/Summary of Request <Required />
+                            </Label>
+                            <textarea id="request-summary" className={textareaBase} />
+                        </div>
+                        <div>
+                            <Label
+                                htmlFor="request-theme"
+                                className="text-sm font-medium text-slate-700"
+                            >
+                                Do you have a specific theme in mind for your design/event? Please
+                                give some guidance to what you have in mind.
+                                <Required />
+                            </Label>
+                            <textarea id="request-theme" className={textareaBase} />
+                        </div>
+                    </div>
+                ),
+                showPrevious: true,
+            },
+            {
+                id: 'step-3-6',
+                title: 'Event Details',
+                current: 3,
+                total: 6,
+                primaryLabel: 'Next',
+                content: (
+                    <div className="space-y-6">
+                        <SectionHeader title="Event Details" />
+                        <div>
+                            <Label htmlFor="event-name" className="text-sm font-medium text-slate-700">
+                                Name of Event <Required />
+                            </Label>
+                            <Input id="event-name" className="mt-2" />
+                        </div>
+                        <div className="grid gap-6 md:grid-cols-2">
+                            <div>
+                                <Label
+                                    htmlFor="event-organiser"
+                                    className="text-sm font-medium text-slate-700"
+                                >
+                                    Event Organiser <Required />
+                                </Label>
+                                <Input id="event-organiser" className="mt-2" />
+                            </div>
+                            <div>
+                                <Label
+                                    htmlFor="event-organiser-email"
+                                    className="text-sm font-medium text-slate-700"
+                                >
+                                    Event Organiser Email <Required />
+                                </Label>
+                                <Input id="event-organiser-email" className="mt-2" />
+                            </div>
+                            <div>
+                                <Label className="text-sm font-medium text-slate-700">
+                                    Event Duration <Required />
+                                </Label>
+                                <RadioGroup
+                                    name="event-duration-basic"
+                                    options={['One Day Event', 'Multiple Day Event']}
+                                />
+                            </div>
+                            <div>
+                                <Label
+                                    htmlFor="announcement-date"
+                                    className="text-sm font-medium text-slate-700"
+                                >
+                                    Announcement Date <Required />
+                                </Label>
+                                <Input id="announcement-date" className="mt-2" placeholder="mm/dd/yyyy" />
+                                <p className="mt-1 text-xs text-slate-500">
+                                    On what date would you like to announce this event in your congregation for the first time?
+                                </p>
+                            </div>
+                        </div>
+                        <div className="grid gap-6 md:grid-cols-3">
+                            <div>
+                                <Label htmlFor="start-date" className="text-sm font-medium text-slate-700">
+                                    Start Date <Required />
+                                </Label>
+                                <Input id="start-date" className="mt-2" placeholder="dd/mm/yyyy" />
+                            </div>
+                            <div>
+                                <Label className="text-sm font-medium text-slate-700">
+                                    Start Time <Required />
+                                </Label>
+                                <TimeInputs idPrefix="start-time" />
+                            </div>
+                            <div>
+                                <Label className="text-sm font-medium text-slate-700">
+                                    End Time <Required />
+                                </Label>
+                                <TimeInputs idPrefix="end-time" />
+                            </div>
+                        </div>
+                        <div className="grid gap-6 md:grid-cols-2">
+                            <div>
+                                <Label htmlFor="venue-name" className="text-sm font-medium text-slate-700">
+                                    Venue Name <Required />
+                                </Label>
+                                <Input id="venue-name" className="mt-2" />
+                            </div>
+                            <div>
+                                <Label
+                                    htmlFor="venue-address"
+                                    className="text-sm font-medium text-slate-700"
+                                >
+                                    Venue Address <Required />
+                                </Label>
+                                <textarea id="venue-address" className={textareaBase} />
+                            </div>
+                        </div>
+                        <div className="grid gap-6 md:grid-cols-2">
+                            <div>
+                                <Label htmlFor="event-reach" className="text-sm font-medium text-slate-700">
+                                    Event Reach <Required />
+                                </Label>
+                                <select id="event-reach" className={selectBase}>
+                                    <option>Select an Option</option>
+                                    <option>Congregation(s)</option>
+                                    <option>Region</option>
+                                </select>
+                            </div>
+                            <div>
+                                <Label className="text-sm font-medium text-slate-700">
+                                    Do you require a registration form <Required />
+                                </Label>
+                                <RadioGroup name="registration-form-basic" options={['Yes', 'No']} />
+                            </div>
+                        </div>
+                        <div className="grid gap-6 md:grid-cols-2">
+                            <div>
+                                <Label className="text-sm font-medium text-slate-700">
+                                    Do you require graphics? <Required />
+                                </Label>
+                                <RadioGroup name="require-graphics-basic" options={['Yes', 'No']} />
+                            </div>
+                            <div>
+                                <Label className="text-sm font-medium text-slate-700">
+                                    Do you require event specific signage? <Required />
+                                </Label>
+                                <RadioGroup name="event-signage-basic" options={['Yes', 'No']} />
+                            </div>
+                        </div>
+                        <div className="grid gap-6 md:grid-cols-2">
+                            <div>
+                                <Label className="text-sm font-medium text-slate-700">
+                                    Does this event require a film element? <Required />
+                                </Label>
+                                <RadioGroup name="film-element-basic" options={['Yes', 'No']} />
+                            </div>
+                            <div>
+                                <Label className="text-sm font-medium text-slate-700">
+                                    Do you require this event to be recorded? <Required />
+                                </Label>
+                                <RadioGroup name="event-recorded-basic" options={['Yes', 'No']} />
+                            </div>
+                        </div>
+                        <div>
+                            <Label className="text-sm font-medium text-slate-700">
+                                Will your event offer child minding? <Required />
+                            </Label>
+                            <RadioGroup
+                                name="child-minding-basic"
+                                options={['Yes', 'No', 'Not Applicable']}
+                            />
+                        </div>
+                    </div>
+                ),
+                showPrevious: true,
+            },
+            {
+                id: 'step-4-6',
+                title: 'Quicket Registration Form',
+                current: 4,
+                total: 6,
+                primaryLabel: 'Next',
+                content: (
+                    <div className="space-y-6">
+                        <SectionHeader title="Quicket Registration Form" />
+                        <div>
+                            <Label
+                                htmlFor="quicket-description"
+                                className="text-sm font-medium text-slate-700"
+                            >
+                                Description for Quicket Form <Required />
+                            </Label>
+                            <textarea id="quicket-description" className={textareaBase} />
+                        </div>
+                        <div>
+                            <Label className="text-sm font-medium text-slate-700">
+                                Ticket Types <Required />
+                            </Label>
+                            <div className="mt-2 grid gap-2 text-sm text-slate-700">
+                                {ticketTypes.map((type) => (
+                                    <label key={type} className="flex items-center gap-2">
+                                        <Checkbox />
+                                        <span>{type}</span>
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="grid gap-6 md:grid-cols-4">
+                            <div>
+                                <Label className="text-sm font-medium text-slate-700">
+                                    Estimated Price 18+ <Required />
+                                </Label>
+                                <select className={selectBase}>
+                                    <option>150</option>
+                                    <option>200</option>
+                                    <option>250</option>
+                                </select>
+                            </div>
+                            <div>
+                                <Label className="text-sm font-medium text-slate-700">
+                                    Estimated Price 13+ <Required />
+                                </Label>
+                                <select className={selectBase}>
+                                    <option>100</option>
+                                    <option>150</option>
+                                    <option>200</option>
+                                </select>
+                            </div>
+                            <div>
+                                <Label className="text-sm font-medium text-slate-700">
+                                    Quantity Tickets 18+ <Required />
+                                </Label>
+                                <Input className="mt-2" />
+                            </div>
+                            <div>
+                                <Label className="text-sm font-medium text-slate-700">
+                                    Quantity Tickets 13+ <Required />
+                                </Label>
+                                <Input className="mt-2" />
+                            </div>
+                        </div>
+                        <div>
+                            <Label className="text-sm font-medium text-slate-700">
+                                Do your ticket prices already include the Quicket fees? <Required />
+                            </Label>
+                            <RadioGroup name="quicket-fees" options={['Yes', 'No']} />
+                        </div>
+                        <div className="grid gap-6 lg:grid-cols-2">
+                            <div>
+                                <Label className="text-sm font-medium text-slate-700">
+                                    Info to be collected (Select all that apply) <Required />
+                                </Label>
+                                <div className="mt-2 grid gap-2 text-sm text-slate-700">
+                                    {quicketInfoOptions.map((option) => (
+                                        <label key={option} className="flex items-center gap-2">
+                                            <Checkbox />
+                                            <span>{option}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+                            <div>
+                                <Label className="text-sm font-medium text-slate-700">
+                                    Other info to be collected (Please indicate options that are not listed above)
+                                    <Required />
+                                </Label>
+                                <div className="mt-2 space-y-2">
+                                    {[0, 1, 2].map((row) => (
+                                        <div key={row} className="flex items-center gap-2">
+                                            <Input className="flex-1" />
+                                            <Button variant="outline" size="icon" type="button">
+                                                <Plus className="size-4 text-blue-600" />
+                                            </Button>
+                                            <Button variant="outline" size="icon" type="button">
+                                                <Minus className="size-4 text-red-600" />
+                                            </Button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <Label className="text-sm font-medium text-slate-700">
+                                Do you require an option for Donations <Required />
+                            </Label>
+                            <RadioGroup name="donations-option" options={['Yes', 'No']} />
+                        </div>
+                        <div>
+                            <Label htmlFor="registration-closing-date" className="text-sm font-medium text-slate-700">
+                                Registration Closing Date <Required />
+                            </Label>
+                            <Input id="registration-closing-date" className="mt-2" placeholder="dd/mm/yyyy" />
+                        </div>
+                    </div>
+                ),
+                showPrevious: true,
+            },
+            {
+                id: 'step-5-6',
+                title: 'Graphics',
+                current: 5,
+                total: 6,
+                primaryLabel: 'Next',
+                content: (
+                    <div className="space-y-6">
+                        <SectionHeader title="Graphics" />
+                        <div className="grid gap-6 md:grid-cols-2">
+                            <div>
+                                <Label className="text-sm font-medium text-slate-700">
+                                    DIGITAL – Whatsapp Graphic
+                                </Label>
+                                <div className="mt-2 space-y-2 text-sm text-slate-700">
+                                    <label className="flex items-center gap-2">
+                                        <Checkbox />
+                                        <span>Whatsapp Graphic (1080x1080px)</span>
+                                    </label>
+                                </div>
+                            </div>
+                            <div>
+                                <Label className="text-sm font-medium text-slate-700">
+                                    Instagram Graphic
+                                </Label>
+                                <div className="mt-2 space-y-2 text-sm text-slate-700">
+                                    <label className="flex items-center gap-2">
+                                        <Checkbox />
+                                        <span>Instagram Graphic</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div>
+                            <Label className="text-sm font-medium text-slate-700">
+                                AV Slide (1920x1080px)
+                            </Label>
+                            <div className="mt-2 space-y-2 text-sm text-slate-700">
+                                <label className="flex items-center gap-2">
+                                    <Checkbox />
+                                    <span>AV Slide (1920x1080px)</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div>
+                            <Label htmlFor="other-graphics" className="text-sm font-medium text-slate-700">
+                                Other (Please Specify)
+                            </Label>
+                            <textarea id="other-graphics" className={textareaBase} />
+                        </div>
+                    </div>
+                ),
+                showPrevious: true,
+            },
+            {
+                id: 'step-6-6',
+                title: 'SIGNAGE',
+                current: 6,
+                total: 6,
+                primaryLabel: 'Completed',
+                content: (
+                    <div className="space-y-6">
+                        <SectionHeader title="SIGNAGE" />
+                        <div>
+                            <Label className="text-sm font-medium text-slate-700">
+                                Signage
+                            </Label>
+                            <div className="mt-2 space-y-2 text-sm text-slate-700">
+                                <label className="flex items-center gap-2">
+                                    <Checkbox />
+                                    <span>Sharkfin Banners (3m)</span>
+                                </label>
+                                <label className="flex items-center gap-2">
+                                    <Checkbox />
+                                    <span>Temporary Fence Banner (2x1m)</span>
+                                </label>
+                                <label className="flex items-center gap-2">
+                                    <Checkbox />
+                                    <span>Internal Directional Signs (Laminated A3, landscape)</span>
+                                </label>
+                                <label className="flex items-center gap-2">
+                                    <Checkbox />
+                                    <span>Permanent External Building Signs</span>
+                                </label>
+                                <label className="flex items-center gap-2">
+                                    <Checkbox />
+                                    <span>Other</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div className="grid gap-6 md:grid-cols-2">
+                            <div>
+                                <Label htmlFor="sharkfin-quantity" className="text-sm font-medium text-slate-700">
+                                    Sharkfin Banners: Quantity <Required />
+                                </Label>
+                                <Input id="sharkfin-quantity" className="mt-2" type="number" />
+                            </div>
+                            <div>
+                                <Label htmlFor="fence-banner-quantity" className="text-sm font-medium text-slate-700">
+                                    Temporary Fence Banner: Quantify <Required />
+                                </Label>
+                                <Input id="fence-banner-quantity" className="mt-2" type="number" />
+                            </div>
+                        </div>
+                        <div>
+                            <Label htmlFor="directional-signs-quantity" className="text-sm font-medium text-slate-700">
+                                Internal Directional Signs: Quantity <Required />
+                            </Label>
+                            <Input id="directional-signs-quantity" className="mt-2" type="number" />
+                        </div>
+                        <div className="grid gap-6 md:grid-cols-2">
+                            <div>
+                                <Label htmlFor="building-signs-quantity" className="text-sm font-medium text-slate-700">
+                                    Permanent External Building Signs: Quantity <Required />
+                                </Label>
+                                <Input id="building-signs-quantity" className="mt-2" type="number" />
+                            </div>
+                            <div>
+                                <Label htmlFor="other-signage" className="text-sm font-medium text-slate-700">
+                                    Other Signage (Please specify) <Required />
+                                </Label>
+                                <Input id="other-signage" className="mt-2" />
+                            </div>
+                        </div>
+                        <div>
+                            <Label htmlFor="other-signage-quantity" className="text-sm font-medium text-slate-700">
+                                Other Signage: Quantity <Required />
+                            </Label>
+                            <Input id="other-signage-quantity" className="mt-2" type="number" />
+                        </div>
+                    </div>
+                ),
+                showPrevious: true,
+            },
+        ],
+        [],
+    );
+
+    const step = steps[stepIndex];
+    const progress = Math.round((step.current / step.total) * 100);
+
+    return (
+        <AppLayout breadcrumbs={breadcrumbs}>
+            <Head title="Work Request" />
+            <div className="min-h-screen bg-[#f3f5f7]">
+                <div className="mx-auto w-full max-w-6xl px-6 py-8">
+                    <div className="rounded-md border border-slate-200 bg-white p-8 shadow-sm">
+                        <div className="space-y-2">
+                            <h1 className="text-2xl font-semibold text-slate-900">Work Request Form</h1>
+                            <p className="text-sm text-slate-500">
+                                Step {step.current} of {step.total}
+                            </p>
+                            <div className="h-2 w-full rounded-full bg-slate-200">
+                                <div
+                                    className="h-2 rounded-full bg-blue-600"
+                                    style={{ width: `${progress}%` }}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="mt-8">{step.content}</div>
+
+                        <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
+                            <div>
+                                {step.showPrevious && (
+                                    <Button
+                                        variant="outline"
+                                        type="button"
+                                        onClick={() => setStepIndex((index) => Math.max(0, index - 1))}
+                                    >
+                                        Previous
+                                    </Button>
+                                )}
+                            </div>
+                            <div className="flex flex-wrap items-center gap-3">
+                                <Button
+                                    type="button"
+                                    onClick={() =>
+                                        setStepIndex((index) => Math.min(steps.length - 1, index + 1))
+                                    }
+                                >
+                                    {step.primaryLabel}
+                                </Button>
+                                <Button variant="outline" type="button">
+                                    <Save className="size-4" />
+                                    Save and Continue Later
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </AppLayout>
+    );
+}

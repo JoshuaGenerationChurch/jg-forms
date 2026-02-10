@@ -13,5 +13,8 @@ Route::get('/', function () {
 Route::get('dashboard', function () {
     return Inertia::render('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
+Route::get('work-request', function () {
+    return Inertia::render('work-request');
+})->middleware(['auth', 'verified'])->name('work-request');
 
 require __DIR__.'/settings.php';
