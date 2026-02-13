@@ -6,7 +6,6 @@ use App\Http\Controllers\WorkRequest\WorkRequestEntryController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
-use LaravelWebauthn\Http\Controllers\WebauthnController;
 
 Route::get('/', function () {
     return Inertia::render('welcome', [
@@ -43,12 +42,12 @@ Route::get('work-request/digital-media-options', DigitalMediaOptionsController::
     ->name('work-request.digital-media-options');
 
 // WebAuthn guest routes (for login)
-Route::middleware(['web', 'guest'])->group(function () {
-    Route::post('/webauthn/login/options', [WebauthnController::class, 'loginOptions'])
-        ->name('webauthn.login.options');
-    Route::post('/webauthn/login', [WebauthnController::class, 'login'])
-        ->name('webauthn.login');
-});
+// Route::middleware(['web', 'guest'])->group(function () {
+//     Route::post('/webauthn/login/options', [WebauthnController::class, 'loginOptions'])
+//         ->name('webauthn.login.options');
+//     Route::post('/webauthn/login', [WebauthnController::class, 'login'])
+//         ->name('webauthn.login');
+// });
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', function () {
@@ -62,21 +61,21 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('work-request.entries.show');
 
     // WebAuthn authenticated routes (for registration and management)
-    Route::post('/webauthn/register/options', [WebauthnController::class, 'registerOptions'])
-        ->name('webauthn.register.options');
-    Route::post('/webauthn/register', [WebauthnController::class, 'register'])
-        ->name('webauthn.register');
-    Route::get('/webauthn/keys', [WebauthnController::class, 'index'])
-        ->name('webauthn.index');
-    Route::delete('/webauthn/{id}', [WebauthnController::class, 'destroy'])
-        ->name('webauthn.destroy');
+    // Route::post('/webauthn/register/options', [WebauthnController::class, 'registerOptions'])
+    //     ->name('webauthn.register.options');
+    // Route::post('/webauthn/register', [WebauthnController::class, 'register'])
+    //     ->name('webauthn.register');
+    // Route::get('/webauthn/keys', [WebauthnController::class, 'index'])
+    //     ->name('webauthn.index');
+    // Route::delete('/webauthn/{id}', [WebauthnController::class, 'destroy'])
+    //     ->name('webauthn.destroy');
 
-    // Passkey settings page
-    Route::get('/settings/passkeys', function () {
-        return Inertia::render('settings/passkeys', [
-            'credentials' => auth()->user()->webauthnKeys()->get()
-        ]);
-    })->name('settings.passkeys');
+    // // Passkey settings page
+    // Route::get('/settings/passkeys', function () {
+    //     return Inertia::render('settings/passkeys', [
+    //         'credentials' => auth()->user()->webauthnKeys()->get()
+    //     ]);
+    // })->name('settings.passkeys');
 });
 
 Route::middleware(['auth', 'verified', 'workforms.admin'])->group(function () {
