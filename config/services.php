@@ -35,4 +35,12 @@ return [
         ],
     ],
 
+    'jg' => [
+        'base_url' => env('JG_API_BASE_URL'),
+        'token' => env('JG_API_TOKEN'),
+        'hubs_endpoint' => env('JG_API_HUBS_ENDPOINT', '/hubs'),
+        'congregations_endpoint' => env('JG_API_CONGREGATIONS_ENDPOINT', '/congregations'),
+        'timeout' => (int) env('JG_API_TIMEOUT', 10),
+    ],
+
 ];

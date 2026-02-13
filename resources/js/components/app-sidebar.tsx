@@ -1,5 +1,10 @@
-import { Link } from '@inertiajs/react';
-import { BookOpen, FileText, Folder, LayoutGrid } from 'lucide-react';
+import { Link, usePage } from '@inertiajs/react';
+import {
+    BookOpen,
+    Folder,
+    LayoutGrid,
+    List,
+} from 'lucide-react';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
 import { NavUser } from '@/components/nav-user';
@@ -13,21 +18,8 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
-import type { NavItem } from '@/types';
+import type { NavItem, SharedData } from '@/types';
 import AppLogo from './app-logo';
-
-const mainNavItems: NavItem[] = [
-    {
-        title: 'Dashboard',
-        href: dashboard(),
-        icon: LayoutGrid,
-    },
-    {
-        title: 'Work Request',
-        href: '/work-request',
-        icon: FileText,
-    },
-];
 
 const footerNavItems: NavItem[] = [
     {
@@ -43,14 +35,44 @@ const footerNavItems: NavItem[] = [
 ];
 
 export function AppSidebar() {
+    const { props } = usePage<SharedData>();
+    const isWorkFormsAdmin = Boolean(props.workForms?.isAdmin);
+
+    const mainNavItems: NavItem[] = [
+        {
+            title: 'Dashboard',
+            href: dashboard(),
+            icon: LayoutGrid,
+        },
+    ];
+
+    if (isWorkFormsAdmin) {
+        mainNavItems.push(
+            {
+                title: 'Forms',
+                href: '/admin/forms',
+                icon: List,
+            },
+            {
+                title: 'Forms Entries',
+                href: '/admin/forms/entries',
+                icon: List,
+            },
+        );
+    }
+
     return (
         <Sidebar collapsible="icon" variant="inset">
             <SidebarHeader>
                 <SidebarMenu>
                     <SidebarMenuItem>
-                        <SidebarMenuButton size="lg" asChild>
+                        <SidebarMenuButton
+                            size="lg"
+                            asChild
+                            className="h-auto p-0 hover:bg-transparent data-[active=true]:bg-transparent"
+                        >
                             <Link href={dashboard()} prefetch>
-                                <AppLogo />
+                                <AppLogo expand />
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>

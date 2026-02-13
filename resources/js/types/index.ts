@@ -8,5 +8,8 @@ export type SharedData = {
     name: string;
     auth: Auth;
     sidebarOpen: boolean;
+    workForms?: {
+        isAdmin?: boolean;
+    };
     [key: string]: unknown;
 };

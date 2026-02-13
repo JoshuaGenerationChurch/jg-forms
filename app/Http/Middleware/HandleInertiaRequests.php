@@ -35,13 +35,28 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $user = $request->user();
+        $isWorkFormsAdmin = false;
+
+        if ($user) {
+            $adminEmails = config('workforms.admin_emails', []);
+            if (is_array($adminEmails) && count($adminEmails) === 0) {
+                $isWorkFormsAdmin = true;
+            } elseif (is_array($adminEmails)) {
+                $isWorkFormsAdmin = in_array(strtolower((string) $user->email), $adminEmails, true);
+            }
+        }
+
         return [
             ...parent::share($request),
             'name' => config('app.name'),
             'auth' => [
-                'user' => $request->user(),
+                'user' => $user,
             ],
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
+            'workForms' => [
+                'isAdmin' => $isWorkFormsAdmin,
+            ],
         ];
     }
 }
