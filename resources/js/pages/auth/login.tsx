@@ -50,16 +50,13 @@ export default function Login({
 
         try {
             // Get challenge from server
-            const optionsResponse = await fetch(
-                WebauthnController.loginOptions.form().url,
-                {
-                    method: WebauthnController.loginOptions.form().method,
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest',
-                    },
+            const optionsResponse = await fetch(webauthnApi.loginOptions.url, {
+                method: webauthnApi.loginOptions.method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
                 },
-            );
+            });
 
             if (!optionsResponse.ok) {
                 throw new Error('Failed to get authentication options');
@@ -71,8 +68,8 @@ export default function Login({
             const credential = await authenticateWithPasskey(options);
 
             // Send credential to server
-            const response = await fetch(WebauthnController.login.form().url, {
-                method: WebauthnController.login.form().method,
+            const response = await fetch(webauthnApi.login.url, {
+                method: webauthnApi.login.method,
                 headers: {
                     'Content-Type': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest',

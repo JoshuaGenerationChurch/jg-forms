@@ -4,12 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
-import * as WebauthnController from '@/actions/LaravelWebauthn/Http/Controllers/WebauthnController';
 import {
     isWebAuthnSupported,
     isPlatformAuthenticatorAvailable,
     registerPasskey,
 } from '@/lib/webauthn';
+import { webauthnApi } from '@/lib/webauthn-api';
 import { Fingerprint, Check, X } from 'lucide-react';
 
 type Props = {
@@ -50,7 +50,7 @@ export default function PasskeyRegistration({ onSuccess }: Props) {
                         'Content-Type': 'application/json',
                         'X-Requested-With': 'XMLHttpRequest',
                     },
-                }
+                },
             );
 
             if (!optionsResponse.ok) {
@@ -75,7 +75,7 @@ export default function PasskeyRegistration({ onSuccess }: Props) {
                         ...credential,
                         name: deviceName || 'My Device',
                     }),
-                }
+                },
             );
 
             if (response.ok) {
@@ -95,7 +95,7 @@ export default function PasskeyRegistration({ onSuccess }: Props) {
             setError(
                 error instanceof Error
                     ? error.message
-                    : 'Failed to register passkey'
+                    : 'Failed to register passkey',
             );
         } finally {
             setLoading(false);
