@@ -25,7 +25,9 @@ function RequestCard({
         <div
             className={cn(
                 'rounded-xl border p-4 transition-colors',
-                checked ? 'border-blue-300 bg-blue-50/30' : 'border-slate-200 bg-white hover:border-slate-300',
+                checked
+                    ? 'border-blue-300 bg-blue-50/30'
+                    : 'border-slate-200 bg-white hover:border-slate-300',
                 disabled && 'cursor-not-allowed opacity-80',
             )}
         >
@@ -37,20 +39,37 @@ function RequestCard({
                     onCheckedChange={(next) => onCheckedChange(Boolean(next))}
                     className="mt-1"
                 />
-                <label htmlFor={id} className={cn('flex-1', disabled ? 'cursor-not-allowed' : 'cursor-pointer')}>
-                    <p className="text-sm font-medium text-slate-800">{title}</p>
+                <label
+                    htmlFor={id}
+                    className={cn(
+                        'flex-1',
+                        disabled ? 'cursor-not-allowed' : 'cursor-pointer',
+                    )}
+                >
+                    <p className="text-sm font-medium text-slate-800">
+                        {title}
+                    </p>
                     <p className="mt-1 text-sm text-slate-600">{description}</p>
                 </label>
             </div>
 
-            {checked && children ? <div className="mt-3 border-t border-blue-100 pt-3">{children}</div> : null}
+            {checked && children ? (
+                <div className="mt-3 border-t border-blue-100 pt-3">
+                    {children}
+                </div>
+            ) : null}
         </div>
     );
 }
 
-export function NatureOfRequest({ formData, updateFormData, errors = {} }: FormPageProps) {
+export function NatureOfRequest({
+    formData,
+    updateFormData,
+    errors = {},
+}: FormPageProps) {
     const selectedRequests: string[] = [];
-    const isDigitalRequired = formData.includesDatesVenue || formData.includesRegistration;
+    const isDigitalRequired =
+        formData.includesDatesVenue || formData.includesRegistration;
 
     if (formData.includesDatesVenue) {
         selectedRequests.push(
@@ -69,7 +88,9 @@ export function NatureOfRequest({ formData, updateFormData, errors = {} }: FormP
             .join(' + ');
 
         selectedRequests.push(
-            graphicsSelections ? `Graphics (${graphicsSelections})` : 'Graphics',
+            graphicsSelections
+                ? `Graphics (${graphicsSelections})`
+                : 'Graphics',
         );
     }
 
@@ -86,7 +107,9 @@ export function NatureOfRequest({ formData, updateFormData, errors = {} }: FormP
             </div>
 
             <div>
-                <p className="mb-2 text-sm font-medium text-slate-700">Select all that apply:</p>
+                <p className="mb-2 text-sm font-medium text-slate-700">
+                    Select all that apply:
+                </p>
                 <p className="mb-4 text-xs text-slate-500">
                     Your choices here control which sections appear next.
                 </p>
@@ -110,7 +133,7 @@ export function NatureOfRequest({ formData, updateFormData, errors = {} }: FormP
                         }}
                     >
                         <div className="rounded-lg bg-white p-3">
-                            <p className="mb-2 text-xs font-medium uppercase tracking-wide text-slate-500">
+                            <p className="mb-2 text-xs font-medium tracking-wide text-slate-500 uppercase">
                                 Optional Add-on
                             </p>
                             <div className="flex items-start gap-3">
@@ -119,15 +142,27 @@ export function NatureOfRequest({ formData, updateFormData, errors = {} }: FormP
                                     checked={formData.includesRegistration}
                                     onCheckedChange={(checked) => {
                                         const nextChecked = Boolean(checked);
-                                        updateFormData('includesRegistration', nextChecked);
+                                        updateFormData(
+                                            'includesRegistration',
+                                            nextChecked,
+                                        );
                                         if (nextChecked) {
-                                            updateFormData('includesGraphics', true);
-                                            updateFormData('includesGraphicsDigital', true);
+                                            updateFormData(
+                                                'includesGraphics',
+                                                true,
+                                            );
+                                            updateFormData(
+                                                'includesGraphicsDigital',
+                                                true,
+                                            );
                                         }
                                     }}
                                     className="mt-0.5"
                                 />
-                                <label htmlFor="registration" className="cursor-pointer text-sm text-slate-700">
+                                <label
+                                    htmlFor="registration"
+                                    className="cursor-pointer text-sm text-slate-700"
+                                >
                                     Includes a Registration Form
                                 </label>
                             </div>
@@ -146,35 +181,53 @@ export function NatureOfRequest({ formData, updateFormData, errors = {} }: FormP
                             }
                             updateFormData('includesGraphics', checked);
                             if (!checked) {
-                                updateFormData('includesGraphicsDigital', false);
+                                updateFormData(
+                                    'includesGraphicsDigital',
+                                    false,
+                                );
                                 updateFormData('includesGraphicsPrint', false);
                             }
                         }}
                     >
                         <div className="space-y-2">
-                            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">
+                            <p className="text-xs font-medium tracking-wide text-slate-500 uppercase">
                                 Select Graphic Types
                             </p>
                             <div className="grid gap-2 md:grid-cols-2">
                                 <label className="flex items-start gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
                                     <Checkbox
                                         id="graphics-digital"
-                                        checked={formData.includesGraphicsDigital}
+                                        checked={
+                                            formData.includesGraphicsDigital
+                                        }
                                         disabled={isDigitalRequired}
                                         onCheckedChange={(checked) => {
                                             if (isDigitalRequired) return;
-                                            updateFormData('includesGraphicsDigital', Boolean(checked));
+                                            updateFormData(
+                                                'includesGraphicsDigital',
+                                                Boolean(checked),
+                                            );
                                         }}
                                         className="mt-0.5"
                                     />
-                                    <span className={cn(isDigitalRequired && 'text-slate-500')}>Digital</span>
+                                    <span
+                                        className={cn(
+                                            isDigitalRequired &&
+                                                'text-slate-500',
+                                        )}
+                                    >
+                                        Digital
+                                    </span>
                                 </label>
                                 <label className="flex items-start gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
                                     <Checkbox
                                         id="graphics-print"
                                         checked={formData.includesGraphicsPrint}
                                         onCheckedChange={(checked) =>
-                                            updateFormData('includesGraphicsPrint', Boolean(checked))
+                                            updateFormData(
+                                                'includesGraphicsPrint',
+                                                Boolean(checked),
+                                            )
                                         }
                                         className="mt-0.5"
                                     />
@@ -183,7 +236,8 @@ export function NatureOfRequest({ formData, updateFormData, errors = {} }: FormP
                             </div>
                             {isDigitalRequired ? (
                                 <p className="text-xs text-slate-500">
-                                    Digital is required when Event Logistics or Registration Form is selected.
+                                    Digital is required when Event Logistics or
+                                    Registration Form is selected.
                                 </p>
                             ) : null}
                             <FieldError error={errors.graphicsType} />
@@ -195,15 +249,18 @@ export function NatureOfRequest({ formData, updateFormData, errors = {} }: FormP
                         checked={formData.includesSignage}
                         title="Signage"
                         description="Includes banners, sharkfins and related signage."
-                        onCheckedChange={(checked) => updateFormData('includesSignage', checked)}
+                        onCheckedChange={(checked) =>
+                            updateFormData('includesSignage', checked)
+                        }
                     />
-
                 </div>
             </div>
 
             {selectedRequests.length > 0 && (
                 <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                    <p className="mb-3 text-sm font-medium text-slate-700">Selected requests</p>
+                    <p className="mb-3 text-sm font-medium text-slate-700">
+                        Selected requests
+                    </p>
                     <div className="flex flex-wrap gap-2">
                         {selectedRequests.map((request) => (
                             <span

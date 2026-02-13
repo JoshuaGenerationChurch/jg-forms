@@ -43,7 +43,9 @@ export function ChristmasServiceTimesForm() {
         });
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const todayIsoDate = new Date(today.getTime() - today.getTimezoneOffset() * 60000)
+    const todayIsoDate = new Date(
+        today.getTime() - today.getTimezoneOffset() * 60000,
+    )
         .toISOString()
         .slice(0, 10);
 

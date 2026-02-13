@@ -24,7 +24,10 @@ function isBeforeToday(value: string): boolean {
     return date < todayIsoDate();
 }
 
-function isEndMonthBeforeStartMonth(startDateTime: string, endDateTime: string): boolean {
+function isEndMonthBeforeStartMonth(
+    startDateTime: string,
+    endDateTime: string,
+): boolean {
     const startDate = datePart(startDateTime);
     const endDate = datePart(endDateTime);
 
@@ -63,7 +66,8 @@ export function validateContactDetails(formData: FormData): ValidationErrors {
 // Validate nature of request page
 export function validateNatureOfRequest(formData: FormData): ValidationErrors {
     const errors: ValidationErrors = {};
-    const requiresDigital = formData.includesDatesVenue || formData.includesRegistration;
+    const requiresDigital =
+        formData.includesDatesVenue || formData.includesRegistration;
 
     // At least one option must be selected
     const hasSelection =
@@ -72,16 +76,22 @@ export function validateNatureOfRequest(formData: FormData): ValidationErrors {
         formData.includesSignage;
 
     if (!hasSelection) {
-        errors.natureOfRequest = 'Please select at least one option for your request';
+        errors.natureOfRequest =
+            'Please select at least one option for your request';
     }
 
     // If graphics is selected, at least one sub-option must be selected
-    if (formData.includesGraphics && !formData.includesGraphicsDigital && !formData.includesGraphicsPrint) {
+    if (
+        formData.includesGraphics &&
+        !formData.includesGraphicsDigital &&
+        !formData.includesGraphicsPrint
+    ) {
         errors.graphicsType = 'Please select Digital, Print, or both';
     }
 
     if (requiresDigital && !formData.includesGraphicsDigital) {
-        errors.graphicsType = 'Digital is required when Event Logistics or Registration Form is selected';
+        errors.graphicsType =
+            'Digital is required when Event Logistics or Registration Form is selected';
     }
 
     return errors;
@@ -95,7 +105,8 @@ export function validateEventDetails(formData: FormData): ValidationErrors {
         errors.eventName = 'Event name is required';
     }
     if (!formData.isUserOrganiser) {
-        errors.isUserOrganiser = 'Please indicate if you are the event organiser';
+        errors.isUserOrganiser =
+            'Please indicate if you are the event organiser';
     }
     if (formData.isUserOrganiser === 'No') {
         if (!formData.organiserFirstName.trim()) {
@@ -121,16 +132,26 @@ export function validateEventDetails(formData: FormData): ValidationErrors {
             errors.eventStartDate = 'Event date cannot be in the past';
         }
 
-        if (isEndMonthBeforeStartMonth(formData.eventStartDate, formData.eventEndDate)) {
-            errors.eventStartDate = 'End date must be in the same month or later than the start date';
+        if (
+            isEndMonthBeforeStartMonth(
+                formData.eventStartDate,
+                formData.eventEndDate,
+            )
+        ) {
+            errors.eventStartDate =
+                'End date must be in the same month or later than the start date';
         }
     }
     if (formData.eventDuration === 'Multiple Day Event') {
         if (formData.eventDates.length === 0) {
             errors.eventDates = 'Please add at least one event date';
         } else {
-            const hasEmptyDate = formData.eventDates.some((d) => !d.date || !d.startTime || !d.endTime);
-            const hasPastDate = formData.eventDates.some((d) => isBeforeToday(d.date));
+            const hasEmptyDate = formData.eventDates.some(
+                (d) => !d.date || !d.startTime || !d.endTime,
+            );
+            const hasPastDate = formData.eventDates.some((d) =>
+                isBeforeToday(d.date),
+            );
             if (hasEmptyDate) {
                 errors.eventDates = 'Please complete all date and time fields';
             } else if (hasPastDate) {
@@ -160,21 +181,32 @@ export function validateEventDetails(formData: FormData): ValidationErrors {
     if (!formData.eventReach) {
         errors.eventReach = 'Please select event reach';
     }
-    if ((formData.eventReach === 'Hubs' || formData.eventReach === 'Congregations') && formData.hubs.length === 0) {
+    if (
+        (formData.eventReach === 'Hubs' ||
+            formData.eventReach === 'Congregations') &&
+        formData.hubs.length === 0
+    ) {
         errors.hubs = 'Please select at least one option';
     }
     if (!formData.childMinding) {
-        errors.childMinding = 'Please indicate if child-minding will be offered';
+        errors.childMinding =
+            'Please indicate if child-minding will be offered';
     }
-    if (formData.childMinding === 'Yes' && !formData.childMindingDescription.trim()) {
-        errors.childMindingDescription = 'Please describe the child-minding offered';
+    if (
+        formData.childMinding === 'Yes' &&
+        !formData.childMindingDescription.trim()
+    ) {
+        errors.childMindingDescription =
+            'Please describe the child-minding offered';
     }
 
     return errors;
 }
 
 // Validate event registration page
-export function validateEventRegistration(formData: FormData): ValidationErrors {
+export function validateEventRegistration(
+    formData: FormData,
+): ValidationErrors {
     const errors: ValidationErrors = {};
 
     if (!formData.quicketDescription.trim()) {
@@ -196,34 +228,43 @@ export function validateEventRegistration(formData: FormData): ValidationErrors 
     // Validate prices and quantities for selected ticket types
     if (formData.ticketTypes.adults18Plus) {
         if (!formData.ticketPrices.adults18Plus)
-            errors['ticketPrices.adults18Plus'] = 'Adults (18+) ticket price is required';
+            errors['ticketPrices.adults18Plus'] =
+                'Adults (18+) ticket price is required';
         if (!formData.ticketQuantities.adults18Plus)
-            errors['ticketQuantities.adults18Plus'] = 'Adults (18+) ticket quantity is required';
+            errors['ticketQuantities.adults18Plus'] =
+                'Adults (18+) ticket quantity is required';
     }
     if (formData.ticketTypes.adults13Plus) {
         if (!formData.ticketPrices.adults13Plus)
-            errors['ticketPrices.adults13Plus'] = 'Adults (13+) ticket price is required';
+            errors['ticketPrices.adults13Plus'] =
+                'Adults (13+) ticket price is required';
         if (!formData.ticketQuantities.adults13Plus)
-            errors['ticketQuantities.adults13Plus'] = 'Adults (13+) ticket quantity is required';
+            errors['ticketQuantities.adults13Plus'] =
+                'Adults (13+) ticket quantity is required';
     }
     if (formData.ticketTypes.children4to12) {
         if (!formData.ticketPrices.children4to12)
-            errors['ticketPrices.children4to12'] = 'Children (4-12) ticket price is required';
+            errors['ticketPrices.children4to12'] =
+                'Children (4-12) ticket price is required';
         if (!formData.ticketQuantities.children4to12)
-            errors['ticketQuantities.children4to12'] = 'Children (4-12) ticket quantity is required';
+            errors['ticketQuantities.children4to12'] =
+                'Children (4-12) ticket quantity is required';
     }
     if (formData.ticketTypes.children0to3) {
         if (!formData.ticketPrices.children0to3)
-            errors['ticketPrices.children0to3'] = 'Children (0-3) ticket price is required';
+            errors['ticketPrices.children0to3'] =
+                'Children (0-3) ticket price is required';
         if (!formData.ticketQuantities.children0to3)
-            errors['ticketQuantities.children0to3'] = 'Children (0-3) ticket quantity is required';
+            errors['ticketQuantities.children0to3'] =
+                'Children (0-3) ticket quantity is required';
     }
     if (formData.ticketTypes.other && formData.otherTickets.length === 0) {
         errors.otherTickets = 'Please add at least one custom ticket type';
     }
 
     if (!formData.ticketPriceIncludesFee) {
-        errors.ticketPriceIncludesFee = 'Please indicate if prices include platform fee';
+        errors.ticketPriceIncludesFee =
+            'Please indicate if prices include platform fee';
     }
 
     // Check if at least one info field is selected
@@ -233,12 +274,15 @@ export function validateEventRegistration(formData: FormData): ValidationErrors 
     }
 
     if (!formData.allowDonations) {
-        errors.allowDonations = 'Please indicate if donations should be allowed';
+        errors.allowDonations =
+            'Please indicate if donations should be allowed';
     }
     if (!formData.registrationClosingDate) {
-        errors.registrationClosingDate = 'Registration closing date is required';
+        errors.registrationClosingDate =
+            'Registration closing date is required';
     } else if (isBeforeToday(formData.registrationClosingDate)) {
-        errors.registrationClosingDate = 'Registration closing date cannot be in the past';
+        errors.registrationClosingDate =
+            'Registration closing date cannot be in the past';
     }
 
     return errors;
@@ -267,17 +311,28 @@ export function validateDigitalMedia(formData: FormData): ValidationErrors {
         }
     }
 
-    if (formData.digitalGraphicType === 'Other' && !formData.digitalOtherGraphicDescription.trim()) {
-        errors.digitalOtherGraphicDescription = 'Please describe the graphic you want';
+    if (
+        formData.digitalGraphicType === 'Other' &&
+        !formData.digitalOtherGraphicDescription.trim()
+    ) {
+        errors.digitalOtherGraphicDescription =
+            'Please describe the graphic you want';
     }
 
-    const hasFormat = formData.digitalFormatWhatsapp || formData.digitalFormatAVSlide || formData.digitalFormatOther;
+    const hasFormat =
+        formData.digitalFormatWhatsapp ||
+        formData.digitalFormatAVSlide ||
+        formData.digitalFormatOther;
     if (!hasFormat) {
         errors.digitalFormats = 'Please select at least one format';
     }
 
-    if (formData.digitalFormatOther && !formData.digitalOtherFormatDescription.trim()) {
-        errors.digitalOtherFormatDescription = 'Please specify the other format';
+    if (
+        formData.digitalFormatOther &&
+        !formData.digitalOtherFormatDescription.trim()
+    ) {
+        errors.digitalOtherFormatDescription =
+            'Please specify the other format';
     }
 
     return errors;
@@ -286,7 +341,8 @@ export function validateDigitalMedia(formData: FormData): ValidationErrors {
 // Validate signage page
 export function validateSignage(formData: FormData): ValidationErrors {
     const errors: ValidationErrors = {};
-    const hasDirectionQty = (values: string[]): boolean => values.some((value) => value.trim().length > 0);
+    const hasDirectionQty = (values: string[]): boolean =>
+        values.some((value) => value.trim().length > 0);
 
     const hasSelection =
         formData.sharkfinJgBranded ||
@@ -321,30 +377,46 @@ export function validateSignage(formData: FormData): ValidationErrors {
         formData.otherSignage;
 
     if (!hasSelection) {
-        errors.signageSelection = 'Please select at least one signage request item';
+        errors.signageSelection =
+            'Please select at least one signage request item';
     }
 
     if (formData.sharkfinJgBranded && !formData.sharkfinJgBrandedQty.trim()) {
         errors.sharkfinJgBrandedQty = 'Quantity is required';
     }
 
-    if (formData.sharkfinJgKidsBranded && !formData.sharkfinJgKidsBrandedQty.trim()) {
+    if (
+        formData.sharkfinJgKidsBranded &&
+        !formData.sharkfinJgKidsBrandedQty.trim()
+    ) {
         errors.sharkfinJgKidsBrandedQty = 'Quantity is required';
     }
 
-    if (formData.temporaryFenceStandard2x1 && !formData.temporaryFenceStandard2x1Qty.trim()) {
+    if (
+        formData.temporaryFenceStandard2x1 &&
+        !formData.temporaryFenceStandard2x1Qty.trim()
+    ) {
         errors.temporaryFenceStandard2x1Qty = 'Quantity is required';
     }
 
-    if (formData.temporaryFenceCustom3x1 && !formData.temporaryFenceCustom3x1Qty.trim()) {
+    if (
+        formData.temporaryFenceCustom3x1 &&
+        !formData.temporaryFenceCustom3x1Qty.trim()
+    ) {
         errors.temporaryFenceCustom3x1Qty = 'Quantity is required';
     }
 
-    if (formData.temporaryFenceCustom4x1 && !formData.temporaryFenceCustom4x1Qty.trim()) {
+    if (
+        formData.temporaryFenceCustom4x1 &&
+        !formData.temporaryFenceCustom4x1Qty.trim()
+    ) {
         errors.temporaryFenceCustom4x1Qty = 'Quantity is required';
     }
 
-    if (formData.temporaryFenceCustom5x1 && !formData.temporaryFenceCustom5x1Qty.trim()) {
+    if (
+        formData.temporaryFenceCustom5x1 &&
+        !formData.temporaryFenceCustom5x1Qty.trim()
+    ) {
         errors.temporaryFenceCustom5x1Qty = 'Quantity is required';
     }
 
@@ -357,7 +429,8 @@ export function validateSignage(formData: FormData): ValidationErrors {
                 formData.toiletsArrowsMaleWordRightQty,
             ])
         ) {
-            errors.toiletsArrowsMaleWord = 'Please add at least one direction quantity';
+            errors.toiletsArrowsMaleWord =
+                'Please add at least one direction quantity';
         }
     }
 
@@ -370,7 +443,8 @@ export function validateSignage(formData: FormData): ValidationErrors {
                 formData.toiletsArrowsFemaleWordRightQty,
             ])
         ) {
-            errors.toiletsArrowsFemaleWord = 'Please add at least one direction quantity';
+            errors.toiletsArrowsFemaleWord =
+                'Please add at least one direction quantity';
         }
     }
 
@@ -383,7 +457,8 @@ export function validateSignage(formData: FormData): ValidationErrors {
                 formData.toiletsArrowsMaleFemaleWordRightQty,
             ])
         ) {
-            errors.toiletsArrowsMaleFemaleWord = 'Please add at least one direction quantity';
+            errors.toiletsArrowsMaleFemaleWord =
+                'Please add at least one direction quantity';
         }
     }
 
@@ -414,7 +489,8 @@ export function validateSignage(formData: FormData): ValidationErrors {
                 formData.momsNursingWithArrowsRightQty,
             ])
         ) {
-            errors.momsNursingWithArrows = 'Please add at least one direction quantity';
+            errors.momsNursingWithArrows =
+                'Please add at least one direction quantity';
         }
     }
 
@@ -433,7 +509,8 @@ export function validateSignage(formData: FormData): ValidationErrors {
                 formData.momsWithBabiesWithArrowsRightQty,
             ])
         ) {
-            errors.momsWithBabiesWithArrows = 'Please add at least one direction quantity';
+            errors.momsWithBabiesWithArrows =
+                'Please add at least one direction quantity';
         }
     }
 
@@ -450,7 +527,8 @@ export function validateSignage(formData: FormData): ValidationErrors {
                 formData.toddlersArrowsRightQty,
             ])
         ) {
-            errors.toddlersArrows = 'Please add at least one toddlers room arrow direction quantity';
+            errors.toddlersArrows =
+                'Please add at least one toddlers room arrow direction quantity';
         }
     }
 
@@ -467,13 +545,15 @@ export function validateSignage(formData: FormData): ValidationErrors {
                 formData.firstAidSignWithArrowsRightQty,
             ])
         ) {
-            errors.firstAidSignWithArrows = 'Please add at least one first aid arrow direction quantity';
+            errors.firstAidSignWithArrows =
+                'Please add at least one first aid arrow direction quantity';
         }
     }
 
     if (formData.internalOther) {
         if (!formData.internalOtherDescription.trim()) {
-            errors.internalOtherDescription = 'Please add a detailed description';
+            errors.internalOtherDescription =
+                'Please add a detailed description';
         }
 
         if (!formData.internalOtherQty.trim()) {
@@ -485,11 +565,17 @@ export function validateSignage(formData: FormData): ValidationErrors {
         errors.externalNoParkingQty = 'Quantity is required';
     }
 
-    if (formData.externalDisabledParking && !formData.externalDisabledParkingQty.trim()) {
+    if (
+        formData.externalDisabledParking &&
+        !formData.externalDisabledParkingQty.trim()
+    ) {
         errors.externalDisabledParkingQty = 'Quantity is required';
     }
 
-    if (formData.externalAmbulanceBay && !formData.externalAmbulanceBayQty.trim()) {
+    if (
+        formData.externalAmbulanceBay &&
+        !formData.externalAmbulanceBayQty.trim()
+    ) {
         errors.externalAmbulanceBayQty = 'Quantity is required';
     }
 
@@ -510,13 +596,15 @@ export function validateSignage(formData: FormData): ValidationErrors {
                 formData.externalJoshGenArrowRightQty,
             ])
         ) {
-            errors.externalJoshGenArrows = 'Please add at least one JoshGen arrow direction quantity';
+            errors.externalJoshGenArrows =
+                'Please add at least one JoshGen arrow direction quantity';
         }
     }
 
     if (formData.sandwichBoards) {
         if (!formData.sandwichBoardsDescription.trim()) {
-            errors.sandwichBoardsDescription = 'Please add a detailed description';
+            errors.sandwichBoardsDescription =
+                'Please add a detailed description';
         }
 
         if (!formData.sandwichBoardsQty.trim()) {
@@ -526,7 +614,8 @@ export function validateSignage(formData: FormData): ValidationErrors {
 
     if (formData.permanentExternalBuildingSigns) {
         if (!formData.permanentExternalBuildingSignsDescription.trim()) {
-            errors.permanentExternalBuildingSignsDescription = 'Please add a detailed description';
+            errors.permanentExternalBuildingSignsDescription =
+                'Please add a detailed description';
         }
 
         if (!formData.permanentExternalBuildingSignsQty.trim()) {
@@ -536,7 +625,8 @@ export function validateSignage(formData: FormData): ValidationErrors {
 
     if (formData.otherSignage) {
         if (!formData.otherSignageDescription.trim()) {
-            errors.otherSignageDescription = 'Please add a detailed description';
+            errors.otherSignageDescription =
+                'Please add a detailed description';
         }
 
         if (!formData.otherSignageQty.trim()) {
@@ -559,7 +649,10 @@ export function validatePrintMedia(formData: FormData): ValidationErrors {
         errors.printHubs = 'Please select at least one hub';
     }
 
-    if (formData.printScope === 'Congregations' && formData.printCongregations.length === 0) {
+    if (
+        formData.printScope === 'Congregations' &&
+        formData.printCongregations.length === 0
+    ) {
         errors.printCongregations = 'Please select at least one congregation';
     }
 
@@ -568,26 +661,55 @@ export function validatePrintMedia(formData: FormData): ValidationErrors {
     }
 
     // Validate quantities for selected types
-    if (formData.printTypes.includes('Congregational Flyer Handouts (A5: 148 x 210 mm)') && !formData.printA5Qty) {
+    if (
+        formData.printTypes.includes(
+            'Congregational Flyer Handouts (A5: 148 x 210 mm)',
+        ) &&
+        !formData.printA5Qty
+    ) {
         errors.printA5Qty = 'A5 flyer quantity is required';
     }
-    if (formData.printTypes.includes('Congregational Flyer Handouts (A6: 105 x 148 mm)') && !formData.printA6Qty) {
+    if (
+        formData.printTypes.includes(
+            'Congregational Flyer Handouts (A6: 105 x 148 mm)',
+        ) &&
+        !formData.printA6Qty
+    ) {
         errors.printA6Qty = 'A6 flyer quantity is required';
     }
-    if (formData.printTypes.includes('Posters (A3: 297 x 420 mm)') && !formData.printA3Qty) {
+    if (
+        formData.printTypes.includes('Posters (A3: 297 x 420 mm)') &&
+        !formData.printA3Qty
+    ) {
         errors.printA3Qty = 'A3 poster quantity is required';
     }
-    if (formData.printTypes.includes('Posters (A4: 210 x 297 mm)') && !formData.printA4Qty) {
+    if (
+        formData.printTypes.includes('Posters (A4: 210 x 297 mm)') &&
+        !formData.printA4Qty
+    ) {
         errors.printA4Qty = 'A4 poster quantity is required';
     }
-    if (formData.printTypes.includes('Invite/ Evangelism Cards (business card size)') && !formData.printCardsQty) {
+    if (
+        formData.printTypes.includes(
+            'Invite/ Evangelism Cards (business card size)',
+        ) &&
+        !formData.printCardsQty
+    ) {
         errors.printCardsQty = 'Invite/Evangelism cards quantity is required';
     }
-    if (formData.printTypes.includes('Coffee Cup Sleeves (One size)') && !formData.printCoffeeCupSleevesQty) {
-        errors.printCoffeeCupSleevesQty = 'Coffee cup sleeves quantity is required';
+    if (
+        formData.printTypes.includes('Coffee Cup Sleeves (One size)') &&
+        !formData.printCoffeeCupSleevesQty
+    ) {
+        errors.printCoffeeCupSleevesQty =
+            'Coffee cup sleeves quantity is required';
     }
-    if (formData.printTypes.includes('Visitor Coffee Voucher Card') && !formData.printVisitorCoffeeVoucherCardQty) {
-        errors.printVisitorCoffeeVoucherCardQty = 'Visitor coffee voucher card quantity is required';
+    if (
+        formData.printTypes.includes('Visitor Coffee Voucher Card') &&
+        !formData.printVisitorCoffeeVoucherCardQty
+    ) {
+        errors.printVisitorCoffeeVoucherCardQty =
+            'Visitor coffee voucher card quantity is required';
     }
     if (formData.printTypes.includes('Other')) {
         if (!formData.printOther.trim()) {
@@ -606,7 +728,10 @@ export function validatePrintMedia(formData: FormData): ValidationErrors {
 }
 
 // Main validation function that validates a specific page
-export function validatePage(pageId: string, formData: FormData): ValidationErrors {
+export function validatePage(
+    pageId: string,
+    formData: FormData,
+): ValidationErrors {
     switch (pageId) {
         case 'contact':
             return validateContactDetails(formData);

@@ -10,13 +10,24 @@ import {
     Required,
     SectionHeader,
 } from './form-components';
-import { congregationOptions, dateInputBase, hubOptions, selectBase } from './types';
+import {
+    congregationOptions,
+    dateInputBase,
+    hubOptions,
+    selectBase,
+} from './types';
 import type { FormPageProps } from './types';
 
-export function EventDetails({ formData, updateFormData, errors = {} }: FormPageProps) {
+export function EventDetails({
+    formData,
+    updateFormData,
+    errors = {},
+}: FormPageProps) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const todayIsoDate = new Date(today.getTime() - today.getTimezoneOffset() * 60000)
+    const todayIsoDate = new Date(
+        today.getTime() - today.getTimezoneOffset() * 60000,
+    )
         .toISOString()
         .slice(0, 10);
 
@@ -27,7 +38,8 @@ export function EventDetails({ formData, updateFormData, errors = {} }: FormPage
             {/* Event Name/Title */}
             <div>
                 <p className="text-xs text-slate-500">
-                    This will be the official title for your event on all platforms.
+                    This will be the official title for your event on all
+                    platforms.
                 </p>
                 <div className="mt-2">
                     <FloatingLabelInput
@@ -35,7 +47,9 @@ export function EventDetails({ formData, updateFormData, errors = {} }: FormPage
                         label="Event Name/Title"
                         required
                         value={formData.eventName}
-                        onChange={(e) => updateFormData('eventName', e.target.value)}
+                        onChange={(e) =>
+                            updateFormData('eventName', e.target.value)
+                        }
                         error={errors.eventName}
                     />
                 </div>
@@ -55,8 +69,14 @@ export function EventDetails({ formData, updateFormData, errors = {} }: FormPage
                         updateFormData('isUserOrganiser', value);
                         // Auto-populate if Yes
                         if (value === 'Yes') {
-                            updateFormData('organiserFirstName', formData.firstName);
-                            updateFormData('organiserLastName', formData.lastName);
+                            updateFormData(
+                                'organiserFirstName',
+                                formData.firstName,
+                            );
+                            updateFormData(
+                                'organiserLastName',
+                                formData.lastName,
+                            );
                             updateFormData('organiserEmail', formData.email);
                             updateFormData('organiserCell', formData.cellphone);
                         }
@@ -68,14 +88,21 @@ export function EventDetails({ formData, updateFormData, errors = {} }: FormPage
             {/* Organiser Details - Show if No */}
             {formData.isUserOrganiser === 'No' && (
                 <div className="space-y-4 rounded-lg border border-slate-200 bg-slate-50 p-4">
-                    <p className="text-sm font-medium text-slate-700">Event Organiser Details</p>
+                    <p className="text-sm font-medium text-slate-700">
+                        Event Organiser Details
+                    </p>
                     <div className="grid gap-4 md:grid-cols-2">
                         <FloatingLabelInput
                             id="organiser-first-name"
                             label="Event Organiser First Name"
                             required
                             value={formData.organiserFirstName}
-                            onChange={(e) => updateFormData('organiserFirstName', e.target.value)}
+                            onChange={(e) =>
+                                updateFormData(
+                                    'organiserFirstName',
+                                    e.target.value,
+                                )
+                            }
                             error={errors.organiserFirstName}
                             labelBackgroundClassName="bg-slate-50"
                         />
@@ -85,7 +112,12 @@ export function EventDetails({ formData, updateFormData, errors = {} }: FormPage
                             label="Event Organiser Last Name"
                             required
                             value={formData.organiserLastName}
-                            onChange={(e) => updateFormData('organiserLastName', e.target.value)}
+                            onChange={(e) =>
+                                updateFormData(
+                                    'organiserLastName',
+                                    e.target.value,
+                                )
+                            }
                             error={errors.organiserLastName}
                             labelBackgroundClassName="bg-slate-50"
                         />
@@ -96,7 +128,9 @@ export function EventDetails({ formData, updateFormData, errors = {} }: FormPage
                             required
                             type="email"
                             value={formData.organiserEmail}
-                            onChange={(e) => updateFormData('organiserEmail', e.target.value)}
+                            onChange={(e) =>
+                                updateFormData('organiserEmail', e.target.value)
+                            }
                             error={errors.organiserEmail}
                             labelBackgroundClassName="bg-slate-50"
                         />
@@ -108,7 +142,9 @@ export function EventDetails({ formData, updateFormData, errors = {} }: FormPage
                             type="tel"
                             inputMode="tel"
                             value={formData.organiserCell}
-                            onChange={(e) => updateFormData('organiserCell', e.target.value)}
+                            onChange={(e) =>
+                                updateFormData('organiserCell', e.target.value)
+                            }
                             error={errors.organiserCell}
                             labelBackgroundClassName="bg-slate-50"
                         />
@@ -119,16 +155,21 @@ export function EventDetails({ formData, updateFormData, errors = {} }: FormPage
             {/* Organiser Details - Show if Yes (read-only display) */}
             {formData.isUserOrganiser === 'Yes' && (
                 <div className="space-y-2 rounded-lg border border-sage-200 bg-sage-50 p-4">
-                    <p className="text-sm font-medium text-slate-700">Event Organiser Details</p>
+                    <p className="text-sm font-medium text-slate-700">
+                        Event Organiser Details
+                    </p>
                     <div className="grid gap-2 text-sm text-slate-600 md:grid-cols-2">
                         <div>
-                            <span className="font-medium">Name:</span> {formData.firstName} {formData.lastName}
+                            <span className="font-medium">Name:</span>{' '}
+                            {formData.firstName} {formData.lastName}
                         </div>
                         <div>
-                            <span className="font-medium">Email:</span> {formData.email}
+                            <span className="font-medium">Email:</span>{' '}
+                            {formData.email}
                         </div>
                         <div>
-                            <span className="font-medium">Cell:</span> {formData.cellphone}
+                            <span className="font-medium">Cell:</span>{' '}
+                            {formData.cellphone}
                         </div>
                     </div>
                     <FieldError error={errors.eventStartDate} />
@@ -158,7 +199,9 @@ export function EventDetails({ formData, updateFormData, errors = {} }: FormPage
                     </Label>
                     <div className="mt-2 flex gap-4">
                         <div className="flex-1">
-                            <Label className="text-xs text-slate-600">Date</Label>
+                            <Label className="text-xs text-slate-600">
+                                Date
+                            </Label>
                             <input
                                 type="date"
                                 min={todayIsoDate}
@@ -168,38 +211,71 @@ export function EventDetails({ formData, updateFormData, errors = {} }: FormPage
                                         ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500'
                                         : ''
                                 }`}
-                                value={formData.eventStartDate?.split('T')[0] || ''}
+                                value={
+                                    formData.eventStartDate?.split('T')[0] || ''
+                                }
                                 onChange={(e) => {
-                                    const startTime = formData.eventStartDate?.split('T')[1] || '09:00';
-                                    const endTime = formData.eventEndDate?.split('T')[1] || '17:00';
-                                    updateFormData('eventStartDate', `${e.target.value}T${startTime}`);
-                                    updateFormData('eventEndDate', `${e.target.value}T${endTime}`);
+                                    const startTime =
+                                        formData.eventStartDate?.split(
+                                            'T',
+                                        )[1] || '09:00';
+                                    const endTime =
+                                        formData.eventEndDate?.split('T')[1] ||
+                                        '17:00';
+                                    updateFormData(
+                                        'eventStartDate',
+                                        `${e.target.value}T${startTime}`,
+                                    );
+                                    updateFormData(
+                                        'eventEndDate',
+                                        `${e.target.value}T${endTime}`,
+                                    );
                                 }}
                             />
                         </div>
                         <div className="flex-1">
-                            <Label className="text-xs text-slate-600">Start Time</Label>
+                            <Label className="text-xs text-slate-600">
+                                Start Time
+                            </Label>
                             <input
                                 id="start-time"
                                 type="time"
                                 className={dateInputBase}
-                                value={formData.eventStartDate?.split('T')[1] || ''}
+                                value={
+                                    formData.eventStartDate?.split('T')[1] || ''
+                                }
                                 onChange={(e) => {
-                                    const date = formData.eventStartDate?.split('T')[0] || '';
-                                    updateFormData('eventStartDate', `${date}T${e.target.value}`);
+                                    const date =
+                                        formData.eventStartDate?.split(
+                                            'T',
+                                        )[0] || '';
+                                    updateFormData(
+                                        'eventStartDate',
+                                        `${date}T${e.target.value}`,
+                                    );
                                 }}
                             />
                         </div>
                         <div className="flex-1">
-                            <Label className="text-xs text-slate-600">End Time</Label>
+                            <Label className="text-xs text-slate-600">
+                                End Time
+                            </Label>
                             <input
                                 id="end-time"
                                 type="time"
                                 className={dateInputBase}
-                                value={formData.eventEndDate?.split('T')[1] || ''}
+                                value={
+                                    formData.eventEndDate?.split('T')[1] || ''
+                                }
                                 onChange={(e) => {
-                                    const date = formData.eventStartDate?.split('T')[0] || '';
-                                    updateFormData('eventEndDate', `${date}T${e.target.value}`);
+                                    const date =
+                                        formData.eventStartDate?.split(
+                                            'T',
+                                        )[0] || '';
+                                    updateFormData(
+                                        'eventEndDate',
+                                        `${date}T${e.target.value}`,
+                                    );
                                 }}
                             />
                         </div>
@@ -217,42 +293,66 @@ export function EventDetails({ formData, updateFormData, errors = {} }: FormPage
                         {formData.eventDates.map((dateEntry, index) => (
                             <div key={index} className="flex items-end gap-4">
                                 <div className="flex-1">
-                                    <Label className="text-xs text-slate-600">Date</Label>
+                                    <Label className="text-xs text-slate-600">
+                                        Date
+                                    </Label>
                                     <input
                                         type="date"
                                         min={todayIsoDate}
                                         className={dateInputBase}
                                         value={dateEntry.date}
                                         onChange={(e) => {
-                                            const newDates = [...formData.eventDates];
-                                            newDates[index].date = e.target.value;
-                                            updateFormData('eventDates', newDates);
+                                            const newDates = [
+                                                ...formData.eventDates,
+                                            ];
+                                            newDates[index].date =
+                                                e.target.value;
+                                            updateFormData(
+                                                'eventDates',
+                                                newDates,
+                                            );
                                         }}
                                     />
                                 </div>
                                 <div className="flex-1">
-                                    <Label className="text-xs text-slate-600">Start Time</Label>
+                                    <Label className="text-xs text-slate-600">
+                                        Start Time
+                                    </Label>
                                     <input
                                         type="time"
                                         className={dateInputBase}
                                         value={dateEntry.startTime}
                                         onChange={(e) => {
-                                            const newDates = [...formData.eventDates];
-                                            newDates[index].startTime = e.target.value;
-                                            updateFormData('eventDates', newDates);
+                                            const newDates = [
+                                                ...formData.eventDates,
+                                            ];
+                                            newDates[index].startTime =
+                                                e.target.value;
+                                            updateFormData(
+                                                'eventDates',
+                                                newDates,
+                                            );
                                         }}
                                     />
                                 </div>
                                 <div className="flex-1">
-                                    <Label className="text-xs text-slate-600">End Time</Label>
+                                    <Label className="text-xs text-slate-600">
+                                        End Time
+                                    </Label>
                                     <input
                                         type="time"
                                         className={dateInputBase}
                                         value={dateEntry.endTime}
                                         onChange={(e) => {
-                                            const newDates = [...formData.eventDates];
-                                            newDates[index].endTime = e.target.value;
-                                            updateFormData('eventDates', newDates);
+                                            const newDates = [
+                                                ...formData.eventDates,
+                                            ];
+                                            newDates[index].endTime =
+                                                e.target.value;
+                                            updateFormData(
+                                                'eventDates',
+                                                newDates,
+                                            );
                                         }}
                                     />
                                 </div>
@@ -261,7 +361,10 @@ export function EventDetails({ formData, updateFormData, errors = {} }: FormPage
                                     size="icon"
                                     type="button"
                                     onClick={() => {
-                                        const newDates = formData.eventDates.filter((_, i) => i !== index);
+                                        const newDates =
+                                            formData.eventDates.filter(
+                                                (_, i) => i !== index,
+                                            );
                                         updateFormData('eventDates', newDates);
                                     }}
                                 >
@@ -290,10 +393,15 @@ export function EventDetails({ formData, updateFormData, errors = {} }: FormPage
 
             {/* Announcement Date */}
             <div>
-                <Label htmlFor="announcement-date" className="text-sm font-medium text-slate-700">
+                <Label
+                    htmlFor="announcement-date"
+                    className="text-sm font-medium text-slate-700"
+                >
                     Announcement Date <Required />
                 </Label>
-                <p className="mt-1 text-xs text-slate-500">Must be at least 1 week before the event start date</p>
+                <p className="mt-1 text-xs text-slate-500">
+                    Must be at least 1 week before the event start date
+                </p>
                 <input
                     id="announcement-date"
                     type="date"
@@ -305,7 +413,9 @@ export function EventDetails({ formData, updateFormData, errors = {} }: FormPage
                             : ''
                     }`}
                     value={formData.announcementDate}
-                    onChange={(e) => updateFormData('announcementDate', e.target.value)}
+                    onChange={(e) =>
+                        updateFormData('announcementDate', e.target.value)
+                    }
                 />
                 <FieldError error={errors.announcementDate} />
             </div>
@@ -328,17 +438,24 @@ export function EventDetails({ formData, updateFormData, errors = {} }: FormPage
             {/* JG Venue Dropdown */}
             {formData.venueType === 'JG Venue' && (
                 <div>
-                    <Label htmlFor="jg-venue" className="text-sm font-medium text-slate-700">
+                    <Label
+                        htmlFor="jg-venue"
+                        className="text-sm font-medium text-slate-700"
+                    >
                         Select JG Venue <Required />
                     </Label>
                     <select
                         id="jg-venue"
                         aria-invalid={Boolean(errors.jgVenue)}
                         className={`${selectBase} ${
-                            errors.jgVenue ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500' : ''
+                            errors.jgVenue
+                                ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500'
+                                : ''
                         }`}
                         value={formData.jgVenue}
-                        onChange={(e) => updateFormData('jgVenue', e.target.value)}
+                        onChange={(e) =>
+                            updateFormData('jgVenue', e.target.value)
+                        }
                     >
                         <option value="">Select a JG Venue</option>
                         <option>Venue 1</option>
@@ -357,7 +474,9 @@ export function EventDetails({ formData, updateFormData, errors = {} }: FormPage
                         label="Venue Name"
                         required
                         value={formData.otherVenueName}
-                        onChange={(e) => updateFormData('otherVenueName', e.target.value)}
+                        onChange={(e) =>
+                            updateFormData('otherVenueName', e.target.value)
+                        }
                         error={errors.otherVenueName}
                         labelBackgroundClassName="bg-slate-50"
                     />
@@ -367,7 +486,9 @@ export function EventDetails({ formData, updateFormData, errors = {} }: FormPage
                         label="Venue Address"
                         required
                         value={formData.otherVenueAddress}
-                        onChange={(e) => updateFormData('otherVenueAddress', e.target.value)}
+                        onChange={(e) =>
+                            updateFormData('otherVenueAddress', e.target.value)
+                        }
                         error={errors.otherVenueAddress}
                         labelBackgroundClassName="bg-slate-50"
                     />
@@ -376,7 +497,10 @@ export function EventDetails({ formData, updateFormData, errors = {} }: FormPage
 
             {/* Event Reach */}
             <div>
-                <Label htmlFor="event-reach" className="text-sm font-medium text-slate-700">
+                <Label
+                    htmlFor="event-reach"
+                    className="text-sm font-medium text-slate-700"
+                >
                     Event Reach <Required />
                 </Label>
                 <select
@@ -388,7 +512,9 @@ export function EventDetails({ formData, updateFormData, errors = {} }: FormPage
                             : ''
                     }`}
                     value={formData.eventReach}
-                    onChange={(e) => updateFormData('eventReach', e.target.value)}
+                    onChange={(e) =>
+                        updateFormData('eventReach', e.target.value)
+                    }
                 >
                     <option value="">Select an Option</option>
                     <option>South Africa</option>
@@ -406,16 +532,24 @@ export function EventDetails({ formData, updateFormData, errors = {} }: FormPage
                     </Label>
                     <div className="mt-2 grid gap-2 text-sm text-slate-700 md:grid-cols-2">
                         {hubOptions.map((hub) => (
-                            <label key={hub} className="flex items-center gap-2">
+                            <label
+                                key={hub}
+                                className="flex items-center gap-2"
+                            >
                                 <Checkbox
                                     checked={formData.hubs.includes(hub)}
                                     onCheckedChange={(checked) => {
                                         if (checked) {
-                                            updateFormData('hubs', [...formData.hubs, hub]);
+                                            updateFormData('hubs', [
+                                                ...formData.hubs,
+                                                hub,
+                                            ]);
                                         } else {
                                             updateFormData(
                                                 'hubs',
-                                                formData.hubs.filter((h) => h !== hub),
+                                                formData.hubs.filter(
+                                                    (h) => h !== hub,
+                                                ),
                                             );
                                         }
                                     }}
@@ -436,16 +570,24 @@ export function EventDetails({ formData, updateFormData, errors = {} }: FormPage
                     </Label>
                     <div className="mt-2 grid gap-2 text-sm text-slate-700 md:grid-cols-2">
                         {congregationOptions.map((cong) => (
-                            <label key={cong} className="flex items-center gap-2">
+                            <label
+                                key={cong}
+                                className="flex items-center gap-2"
+                            >
                                 <Checkbox
                                     checked={formData.hubs.includes(cong)}
                                     onCheckedChange={(checked) => {
                                         if (checked) {
-                                            updateFormData('hubs', [...formData.hubs, cong]);
+                                            updateFormData('hubs', [
+                                                ...formData.hubs,
+                                                cong,
+                                            ]);
                                         } else {
                                             updateFormData(
                                                 'hubs',
-                                                formData.hubs.filter((h) => h !== cong),
+                                                formData.hubs.filter(
+                                                    (h) => h !== cong,
+                                                ),
                                             );
                                         }
                                     }}
@@ -477,7 +619,8 @@ export function EventDetails({ formData, updateFormData, errors = {} }: FormPage
             {formData.childMinding === 'Yes' && (
                 <div>
                     <p className="text-xs text-slate-500">
-                        Please give a detailed description of the child minding you will be offering.
+                        Please give a detailed description of the child minding
+                        you will be offering.
                     </p>
                     <div className="mt-2">
                         <FloatingLabelTextarea
@@ -485,7 +628,12 @@ export function EventDetails({ formData, updateFormData, errors = {} }: FormPage
                             label="Child-minding description"
                             required
                             value={formData.childMindingDescription}
-                            onChange={(e) => updateFormData('childMindingDescription', e.target.value)}
+                            onChange={(e) =>
+                                updateFormData(
+                                    'childMindingDescription',
+                                    e.target.value,
+                                )
+                            }
                             error={errors.childMindingDescription}
                         />
                     </div>

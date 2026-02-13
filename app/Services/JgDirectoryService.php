@@ -90,6 +90,7 @@ class JgDirectoryService
                 if ($name !== '') {
                     $names[] = $name;
                 }
+
                 continue;
             }
 

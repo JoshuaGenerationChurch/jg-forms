@@ -57,9 +57,7 @@ export default function AdminFormShow({ form }: Props) {
 
                         <dl className="mt-8 grid gap-4 md:grid-cols-2">
                             <div className="rounded-lg border border-slate-200 p-4">
-                                <dt className="text-xs text-slate-500">
-                                    Slug
-                                </dt>
+                                <dt className="text-xs text-slate-500">Slug</dt>
                                 <dd className="mt-1 text-sm text-slate-900">
                                     {form.slug}
                                 </dd>

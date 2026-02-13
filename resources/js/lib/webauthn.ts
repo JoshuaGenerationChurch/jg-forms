@@ -29,14 +29,17 @@ function bufferToBase64url(buffer: ArrayBuffer): string {
     for (let i = 0; i < bytes.length; i++) {
         binary += String.fromCharCode(bytes[i]);
     }
-    return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+    return btoa(binary)
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_')
+        .replace(/=/g, '');
 }
 
 /**
  * Convert JSON options to PublicKeyCredentialCreationOptions
  */
 function jsonToCreationOptions(
-    json: PublicKeyCredentialCreationOptionsJSON
+    json: PublicKeyCredentialCreationOptionsJSON,
 ): PublicKeyCredentialCreationOptions {
     return {
         publicKey: {
@@ -46,10 +49,12 @@ function jsonToCreationOptions(
                 ...json.publicKey.user,
                 id: base64urlToBuffer(json.publicKey.user.id),
             },
-            excludeCredentials: json.publicKey.excludeCredentials?.map((cred) => ({
-                ...cred,
-                id: base64urlToBuffer(cred.id),
-            })),
+            excludeCredentials: json.publicKey.excludeCredentials?.map(
+                (cred) => ({
+                    ...cred,
+                    id: base64urlToBuffer(cred.id),
+                }),
+            ),
         },
     };
 }
@@ -58,7 +63,7 @@ function jsonToCreationOptions(
  * Convert JSON options to PublicKeyCredentialRequestOptions
  */
 function jsonToRequestOptions(
-    json: PublicKeyCredentialRequestOptionsJSON
+    json: PublicKeyCredentialRequestOptionsJSON,
 ): PublicKeyCredentialRequestOptions {
     return {
         publicKey: {
@@ -76,7 +81,7 @@ function jsonToRequestOptions(
  * Convert PublicKeyCredential to JSON for registration
  */
 function credentialToRegistrationJSON(
-    credential: PublicKeyCredential
+    credential: PublicKeyCredential,
 ): RegistrationCredential {
     const response = credential.response as AuthenticatorAttestationResponse;
     return {
@@ -94,7 +99,7 @@ function credentialToRegistrationJSON(
  * Convert PublicKeyCredential to JSON for authentication
  */
 function credentialToAuthenticationJSON(
-    credential: PublicKeyCredential
+    credential: PublicKeyCredential,
 ): AuthenticationCredential {
     const response = credential.response as AuthenticatorAssertionResponse;
     return {
@@ -140,7 +145,7 @@ export async function isPlatformAuthenticatorAvailable(): Promise<boolean> {
  * Register a new passkey
  */
 export async function registerPasskey(
-    optionsJSON: PublicKeyCredentialCreationOptionsJSON
+    optionsJSON: PublicKeyCredentialCreationOptionsJSON,
 ): Promise<RegistrationCredential> {
     if (!isWebAuthnSupported()) {
         throw new Error('WebAuthn is not supported in this browser');
@@ -148,7 +153,7 @@ export async function registerPasskey(
 
     const options = jsonToCreationOptions(optionsJSON);
     const credential = (await navigator.credentials.create(
-        options
+        options,
     )) as PublicKeyCredential;
 
     if (!credential) {
@@ -162,7 +167,7 @@ export async function registerPasskey(
  * Authenticate with a passkey
  */
 export async function authenticateWithPasskey(
-    optionsJSON: PublicKeyCredentialRequestOptionsJSON
+    optionsJSON: PublicKeyCredentialRequestOptionsJSON,
 ): Promise<AuthenticationCredential> {
     if (!isWebAuthnSupported()) {
         throw new Error('WebAuthn is not supported in this browser');
@@ -170,7 +175,7 @@ export async function authenticateWithPasskey(
 
     const options = jsonToRequestOptions(optionsJSON);
     const credential = (await navigator.credentials.get(
-        options
+        options,
     )) as PublicKeyCredential;
 
     if (!credential) {

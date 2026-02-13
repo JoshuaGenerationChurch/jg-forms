@@ -13,10 +13,16 @@ import {
 import { dateInputBase } from './types';
 import type { FormPageProps } from './types';
 
-export function EventRegistration({ formData, updateFormData, errors = {} }: FormPageProps) {
+export function EventRegistration({
+    formData,
+    updateFormData,
+    errors = {},
+}: FormPageProps) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const todayIsoDate = new Date(today.getTime() - today.getTimezoneOffset() * 60000)
+    const todayIsoDate = new Date(
+        today.getTime() - today.getTimezoneOffset() * 60000,
+    )
         .toISOString()
         .slice(0, 10);
 
@@ -25,14 +31,18 @@ export function EventRegistration({ formData, updateFormData, errors = {} }: For
             <SectionHeader title="Event Registration Form" />
 
             <div>
-                <p className="text-xs text-slate-500">A brief description that will appear on your event form.</p>
+                <p className="text-xs text-slate-500">
+                    A brief description that will appear on your event form.
+                </p>
                 <div className="mt-2">
                     <FloatingLabelTextarea
                         id="quicket-description"
                         label="Description"
                         required
                         value={formData.quicketDescription}
-                        onChange={(e) => updateFormData('quicketDescription', e.target.value)}
+                        onChange={(e) =>
+                            updateFormData('quicketDescription', e.target.value)
+                        }
                         error={errors.quicketDescription}
                     />
                 </div>
@@ -86,14 +96,18 @@ export function EventRegistration({ formData, updateFormData, errors = {} }: For
                                     required
                                     type="number"
                                     inputMode="numeric"
-                                    value={formData.ticketQuantities.adults18Plus}
+                                    value={
+                                        formData.ticketQuantities.adults18Plus
+                                    }
                                     onChange={(e) =>
                                         updateFormData('ticketQuantities', {
                                             ...formData.ticketQuantities,
                                             adults18Plus: e.target.value,
                                         })
                                     }
-                                    error={errors['ticketQuantities.adults18Plus']}
+                                    error={
+                                        errors['ticketQuantities.adults18Plus']
+                                    }
                                 />
                             </div>
                         )}
@@ -138,14 +152,18 @@ export function EventRegistration({ formData, updateFormData, errors = {} }: For
                                     required
                                     type="number"
                                     inputMode="numeric"
-                                    value={formData.ticketQuantities.adults13Plus}
+                                    value={
+                                        formData.ticketQuantities.adults13Plus
+                                    }
                                     onChange={(e) =>
                                         updateFormData('ticketQuantities', {
                                             ...formData.ticketQuantities,
                                             adults13Plus: e.target.value,
                                         })
                                     }
-                                    error={errors['ticketQuantities.adults13Plus']}
+                                    error={
+                                        errors['ticketQuantities.adults13Plus']
+                                    }
                                 />
                             </div>
                         )}
@@ -163,7 +181,9 @@ export function EventRegistration({ formData, updateFormData, errors = {} }: For
                                     })
                                 }
                             />
-                            <span className="font-medium">Children 4-12 years</span>
+                            <span className="font-medium">
+                                Children 4-12 years
+                            </span>
                         </label>
 
                         {formData.ticketTypes.children4to12 && (
@@ -190,14 +210,18 @@ export function EventRegistration({ formData, updateFormData, errors = {} }: For
                                     required
                                     type="number"
                                     inputMode="numeric"
-                                    value={formData.ticketQuantities.children4to12}
+                                    value={
+                                        formData.ticketQuantities.children4to12
+                                    }
                                     onChange={(e) =>
                                         updateFormData('ticketQuantities', {
                                             ...formData.ticketQuantities,
                                             children4to12: e.target.value,
                                         })
                                     }
-                                    error={errors['ticketQuantities.children4to12']}
+                                    error={
+                                        errors['ticketQuantities.children4to12']
+                                    }
                                 />
                             </div>
                         )}
@@ -215,7 +239,9 @@ export function EventRegistration({ formData, updateFormData, errors = {} }: For
                                     })
                                 }
                             />
-                            <span className="font-medium">Children 0-3 years</span>
+                            <span className="font-medium">
+                                Children 0-3 years
+                            </span>
                         </label>
 
                         {formData.ticketTypes.children0to3 && (
@@ -242,14 +268,18 @@ export function EventRegistration({ formData, updateFormData, errors = {} }: For
                                     required
                                     type="number"
                                     inputMode="numeric"
-                                    value={formData.ticketQuantities.children0to3}
+                                    value={
+                                        formData.ticketQuantities.children0to3
+                                    }
                                     onChange={(e) =>
                                         updateFormData('ticketQuantities', {
                                             ...formData.ticketQuantities,
                                             children0to3: e.target.value,
                                         })
                                     }
-                                    error={errors['ticketQuantities.children0to3']}
+                                    error={
+                                        errors['ticketQuantities.children0to3']
+                                    }
                                 />
                             </div>
                         )}
@@ -273,16 +303,25 @@ export function EventRegistration({ formData, updateFormData, errors = {} }: For
                         {formData.ticketTypes.other && (
                             <div className="ml-6 space-y-3">
                                 {formData.otherTickets.map((ticket, index) => (
-                                    <div key={index} className="flex items-end gap-2">
+                                    <div
+                                        key={index}
+                                        className="flex items-end gap-2"
+                                    >
                                         <FloatingLabelInput
                                             id={`other-ticket-${index}-name`}
                                             label="Ticket Name"
                                             required
                                             value={ticket.name}
                                             onChange={(e) => {
-                                                const newTickets = [...formData.otherTickets];
-                                                newTickets[index].name = e.target.value;
-                                                updateFormData('otherTickets', newTickets);
+                                                const newTickets = [
+                                                    ...formData.otherTickets,
+                                                ];
+                                                newTickets[index].name =
+                                                    e.target.value;
+                                                updateFormData(
+                                                    'otherTickets',
+                                                    newTickets,
+                                                );
                                             }}
                                             className="flex-1"
                                         />
@@ -295,9 +334,15 @@ export function EventRegistration({ formData, updateFormData, errors = {} }: For
                                             inputMode="numeric"
                                             value={ticket.price}
                                             onChange={(e) => {
-                                                const newTickets = [...formData.otherTickets];
-                                                newTickets[index].price = e.target.value;
-                                                updateFormData('otherTickets', newTickets);
+                                                const newTickets = [
+                                                    ...formData.otherTickets,
+                                                ];
+                                                newTickets[index].price =
+                                                    e.target.value;
+                                                updateFormData(
+                                                    'otherTickets',
+                                                    newTickets,
+                                                );
                                             }}
                                             className="w-32"
                                         />
@@ -310,9 +355,15 @@ export function EventRegistration({ formData, updateFormData, errors = {} }: For
                                             inputMode="numeric"
                                             value={ticket.quantity}
                                             onChange={(e) => {
-                                                const newTickets = [...formData.otherTickets];
-                                                newTickets[index].quantity = e.target.value;
-                                                updateFormData('otherTickets', newTickets);
+                                                const newTickets = [
+                                                    ...formData.otherTickets,
+                                                ];
+                                                newTickets[index].quantity =
+                                                    e.target.value;
+                                                updateFormData(
+                                                    'otherTickets',
+                                                    newTickets,
+                                                );
                                             }}
                                             className="w-28"
                                         />
@@ -322,8 +373,14 @@ export function EventRegistration({ formData, updateFormData, errors = {} }: For
                                             size="icon"
                                             type="button"
                                             onClick={() => {
-                                                const newTickets = formData.otherTickets.filter((_, i) => i !== index);
-                                                updateFormData('otherTickets', newTickets);
+                                                const newTickets =
+                                                    formData.otherTickets.filter(
+                                                        (_, i) => i !== index,
+                                                    );
+                                                updateFormData(
+                                                    'otherTickets',
+                                                    newTickets,
+                                                );
                                             }}
                                         >
                                             <Minus className="size-4 text-red-600" />
@@ -338,7 +395,11 @@ export function EventRegistration({ formData, updateFormData, errors = {} }: For
                                     onClick={() =>
                                         updateFormData('otherTickets', [
                                             ...formData.otherTickets,
-                                            { name: '', price: '', quantity: '' },
+                                            {
+                                                name: '',
+                                                price: '',
+                                                quantity: '',
+                                            },
                                         ])
                                     }
                                 >
@@ -354,15 +415,17 @@ export function EventRegistration({ formData, updateFormData, errors = {} }: For
             {/* Platform Fee Question */}
             <div>
                 <Label className="text-sm font-medium text-slate-700">
-                    Do your ticket prices include a 10% fee for our event platform's administrative and commission fees?{' '}
-                    <Required />
+                    Do your ticket prices include a 10% fee for our event
+                    platform's administrative and commission fees? <Required />
                 </Label>
                 <RadioGroup
                     name="ticket-price-includes-fee"
                     options={['Yes', 'No']}
                     columns={2}
                     value={formData.ticketPriceIncludesFee}
-                    onChange={(value) => updateFormData('ticketPriceIncludesFee', value)}
+                    onChange={(value) =>
+                        updateFormData('ticketPriceIncludesFee', value)
+                    }
                     error={errors.ticketPriceIncludesFee}
                 />
             </div>
@@ -482,9 +545,14 @@ export function EventRegistration({ formData, updateFormData, errors = {} }: For
                                     label="Field name"
                                     value={field}
                                     onChange={(e) => {
-                                        const newFields = [...formData.otherInfoFields];
+                                        const newFields = [
+                                            ...formData.otherInfoFields,
+                                        ];
                                         newFields[index] = e.target.value;
-                                        updateFormData('otherInfoFields', newFields);
+                                        updateFormData(
+                                            'otherInfoFields',
+                                            newFields,
+                                        );
                                     }}
                                     className="flex-1"
                                 />
@@ -494,8 +562,14 @@ export function EventRegistration({ formData, updateFormData, errors = {} }: For
                                     size="icon"
                                     type="button"
                                     onClick={() => {
-                                        const newFields = formData.otherInfoFields.filter((_, i) => i !== index);
-                                        updateFormData('otherInfoFields', newFields);
+                                        const newFields =
+                                            formData.otherInfoFields.filter(
+                                                (_, i) => i !== index,
+                                            );
+                                        updateFormData(
+                                            'otherInfoFields',
+                                            newFields,
+                                        );
                                     }}
                                 >
                                     <Minus className="size-4 text-red-600" />
@@ -507,7 +581,12 @@ export function EventRegistration({ formData, updateFormData, errors = {} }: For
                             variant="outline"
                             size="sm"
                             type="button"
-                            onClick={() => updateFormData('otherInfoFields', [...formData.otherInfoFields, ''])}
+                            onClick={() =>
+                                updateFormData('otherInfoFields', [
+                                    ...formData.otherInfoFields,
+                                    '',
+                                ])
+                            }
                         >
                             <Plus className="mr-2 size-4" />
                             Add Another Field
@@ -525,13 +604,18 @@ export function EventRegistration({ formData, updateFormData, errors = {} }: For
                     options={['Yes', 'No']}
                     columns={2}
                     value={formData.allowDonations}
-                    onChange={(value) => updateFormData('allowDonations', value)}
+                    onChange={(value) =>
+                        updateFormData('allowDonations', value)
+                    }
                     error={errors.allowDonations}
                 />
             </div>
 
             <div>
-                <Label htmlFor="registration-closing-date" className="text-sm font-medium text-slate-700">
+                <Label
+                    htmlFor="registration-closing-date"
+                    className="text-sm font-medium text-slate-700"
+                >
                     Registration Closing Date <Required />
                 </Label>
                 <input
@@ -545,7 +629,12 @@ export function EventRegistration({ formData, updateFormData, errors = {} }: For
                             : ''
                     }`}
                     value={formData.registrationClosingDate}
-                    onChange={(e) => updateFormData('registrationClosingDate', e.target.value)}
+                    onChange={(e) =>
+                        updateFormData(
+                            'registrationClosingDate',
+                            e.target.value,
+                        )
+                    }
                 />
                 <FieldError error={errors.registrationClosingDate} />
             </div>

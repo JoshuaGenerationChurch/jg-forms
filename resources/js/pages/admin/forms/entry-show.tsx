@@ -96,10 +96,7 @@ export default function AdminFormEntryShow({ form, entry }: Props) {
                                     <div className="flex justify-between gap-4">
                                         <dt className="text-slate-500">Name</dt>
                                         <dd className="text-slate-900">
-                                            {[
-                                                entry.firstName,
-                                                entry.lastName,
-                                            ]
+                                            {[entry.firstName, entry.lastName]
                                                 .filter(Boolean)
                                                 .join(' ') || 'N/A'}
                                         </dd>

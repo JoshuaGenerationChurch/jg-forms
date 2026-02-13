@@ -37,10 +37,17 @@ function OptionCard({
         <div className="rounded-lg border border-slate-200 bg-white p-3">
             {showImage ? <OptionImage label={label} /> : null}
             <label htmlFor={id} className="flex items-start gap-3">
-                <Checkbox id={id} checked={checked} onCheckedChange={(next) => onCheckedChange(Boolean(next))} className="mt-0.5" />
+                <Checkbox
+                    id={id}
+                    checked={checked}
+                    onCheckedChange={(next) => onCheckedChange(Boolean(next))}
+                    className="mt-0.5"
+                />
                 <span className="text-sm text-slate-700">{label}</span>
             </label>
-            {checked && children ? <div className="mt-3 pl-7">{children}</div> : null}
+            {checked && children ? (
+                <div className="mt-3 pl-7">{children}</div>
+            ) : null}
         </div>
     );
 }
@@ -109,7 +116,11 @@ function DirectionQtyGrid({
     );
 }
 
-export function Signage({ formData, updateFormData, errors = {} }: FormPageProps) {
+export function Signage({
+    formData,
+    updateFormData,
+    errors = {},
+}: FormPageProps) {
     return (
         <div className="space-y-6">
             <SectionHeader title="Signage" />
@@ -125,7 +136,8 @@ export function Signage({ formData, updateFormData, errors = {} }: FormPageProps
                         checked={formData.sharkfinJgBranded}
                         onCheckedChange={(checked) => {
                             updateFormData('sharkfinJgBranded', checked);
-                            if (!checked) updateFormData('sharkfinJgBrandedQty', '');
+                            if (!checked)
+                                updateFormData('sharkfinJgBrandedQty', '');
                         }}
                     >
                         <FloatingLabelInput
@@ -135,7 +147,12 @@ export function Signage({ formData, updateFormData, errors = {} }: FormPageProps
                             type="number"
                             inputMode="numeric"
                             value={formData.sharkfinJgBrandedQty}
-                            onChange={(e) => updateFormData('sharkfinJgBrandedQty', e.target.value)}
+                            onChange={(e) =>
+                                updateFormData(
+                                    'sharkfinJgBrandedQty',
+                                    e.target.value,
+                                )
+                            }
                             error={errors.sharkfinJgBrandedQty}
                         />
                     </OptionCard>
@@ -146,7 +163,8 @@ export function Signage({ formData, updateFormData, errors = {} }: FormPageProps
                         checked={formData.sharkfinJgKidsBranded}
                         onCheckedChange={(checked) => {
                             updateFormData('sharkfinJgKidsBranded', checked);
-                            if (!checked) updateFormData('sharkfinJgKidsBrandedQty', '');
+                            if (!checked)
+                                updateFormData('sharkfinJgKidsBrandedQty', '');
                         }}
                     >
                         <FloatingLabelInput
@@ -156,7 +174,12 @@ export function Signage({ formData, updateFormData, errors = {} }: FormPageProps
                             type="number"
                             inputMode="numeric"
                             value={formData.sharkfinJgKidsBrandedQty}
-                            onChange={(e) => updateFormData('sharkfinJgKidsBrandedQty', e.target.value)}
+                            onChange={(e) =>
+                                updateFormData(
+                                    'sharkfinJgKidsBrandedQty',
+                                    e.target.value,
+                                )
+                            }
                             error={errors.sharkfinJgKidsBrandedQty}
                         />
                     </OptionCard>
@@ -164,7 +187,9 @@ export function Signage({ formData, updateFormData, errors = {} }: FormPageProps
             </div>
 
             <div className="space-y-3">
-                <p className="text-sm text-slate-700">Temporary Fence Banners</p>
+                <p className="text-sm text-slate-700">
+                    Temporary Fence Banners
+                </p>
                 <div className="rounded-lg border border-slate-200 bg-white p-3">
                     <div className="mb-3 h-40 w-full overflow-hidden rounded-md border border-slate-200 bg-slate-100">
                         <div className="flex h-full items-center justify-center px-3 text-center text-xs text-slate-500">
@@ -173,18 +198,30 @@ export function Signage({ formData, updateFormData, errors = {} }: FormPageProps
                     </div>
                     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                         <div className="rounded-md border border-slate-200 p-3">
-                            <label htmlFor="temporary-fence-standard-2x1" className="flex items-start gap-2">
+                            <label
+                                htmlFor="temporary-fence-standard-2x1"
+                                className="flex items-start gap-2"
+                            >
                                 <Checkbox
                                     id="temporary-fence-standard-2x1"
                                     checked={formData.temporaryFenceStandard2x1}
                                     onCheckedChange={(checked) => {
                                         const nextChecked = Boolean(checked);
-                                        updateFormData('temporaryFenceStandard2x1', nextChecked);
-                                        if (!nextChecked) updateFormData('temporaryFenceStandard2x1Qty', '');
+                                        updateFormData(
+                                            'temporaryFenceStandard2x1',
+                                            nextChecked,
+                                        );
+                                        if (!nextChecked)
+                                            updateFormData(
+                                                'temporaryFenceStandard2x1Qty',
+                                                '',
+                                            );
                                     }}
                                     className="mt-0.5"
                                 />
-                                <span className="text-sm text-slate-700">2x1m</span>
+                                <span className="text-sm text-slate-700">
+                                    2x1m
+                                </span>
                             </label>
                             {formData.temporaryFenceStandard2x1 ? (
                                 <div className="mt-3">
@@ -194,27 +231,48 @@ export function Signage({ formData, updateFormData, errors = {} }: FormPageProps
                                         required
                                         type="number"
                                         inputMode="numeric"
-                                        value={formData.temporaryFenceStandard2x1Qty}
-                                        onChange={(e) => updateFormData('temporaryFenceStandard2x1Qty', e.target.value)}
-                                        error={errors.temporaryFenceStandard2x1Qty}
+                                        value={
+                                            formData.temporaryFenceStandard2x1Qty
+                                        }
+                                        onChange={(e) =>
+                                            updateFormData(
+                                                'temporaryFenceStandard2x1Qty',
+                                                e.target.value,
+                                            )
+                                        }
+                                        error={
+                                            errors.temporaryFenceStandard2x1Qty
+                                        }
                                     />
                                 </div>
                             ) : null}
                         </div>
 
                         <div className="rounded-md border border-slate-200 p-3">
-                            <label htmlFor="temporary-fence-custom-3x1" className="flex items-start gap-2">
+                            <label
+                                htmlFor="temporary-fence-custom-3x1"
+                                className="flex items-start gap-2"
+                            >
                                 <Checkbox
                                     id="temporary-fence-custom-3x1"
                                     checked={formData.temporaryFenceCustom3x1}
                                     onCheckedChange={(checked) => {
                                         const nextChecked = Boolean(checked);
-                                        updateFormData('temporaryFenceCustom3x1', nextChecked);
-                                        if (!nextChecked) updateFormData('temporaryFenceCustom3x1Qty', '');
+                                        updateFormData(
+                                            'temporaryFenceCustom3x1',
+                                            nextChecked,
+                                        );
+                                        if (!nextChecked)
+                                            updateFormData(
+                                                'temporaryFenceCustom3x1Qty',
+                                                '',
+                                            );
                                     }}
                                     className="mt-0.5"
                                 />
-                                <span className="text-sm text-slate-700">3x1m</span>
+                                <span className="text-sm text-slate-700">
+                                    3x1m
+                                </span>
                             </label>
                             {formData.temporaryFenceCustom3x1 ? (
                                 <div className="mt-3">
@@ -224,27 +282,48 @@ export function Signage({ formData, updateFormData, errors = {} }: FormPageProps
                                         required
                                         type="number"
                                         inputMode="numeric"
-                                        value={formData.temporaryFenceCustom3x1Qty}
-                                        onChange={(e) => updateFormData('temporaryFenceCustom3x1Qty', e.target.value)}
-                                        error={errors.temporaryFenceCustom3x1Qty}
+                                        value={
+                                            formData.temporaryFenceCustom3x1Qty
+                                        }
+                                        onChange={(e) =>
+                                            updateFormData(
+                                                'temporaryFenceCustom3x1Qty',
+                                                e.target.value,
+                                            )
+                                        }
+                                        error={
+                                            errors.temporaryFenceCustom3x1Qty
+                                        }
                                     />
                                 </div>
                             ) : null}
                         </div>
 
                         <div className="rounded-md border border-slate-200 p-3">
-                            <label htmlFor="temporary-fence-custom-4x1" className="flex items-start gap-2">
+                            <label
+                                htmlFor="temporary-fence-custom-4x1"
+                                className="flex items-start gap-2"
+                            >
                                 <Checkbox
                                     id="temporary-fence-custom-4x1"
                                     checked={formData.temporaryFenceCustom4x1}
                                     onCheckedChange={(checked) => {
                                         const nextChecked = Boolean(checked);
-                                        updateFormData('temporaryFenceCustom4x1', nextChecked);
-                                        if (!nextChecked) updateFormData('temporaryFenceCustom4x1Qty', '');
+                                        updateFormData(
+                                            'temporaryFenceCustom4x1',
+                                            nextChecked,
+                                        );
+                                        if (!nextChecked)
+                                            updateFormData(
+                                                'temporaryFenceCustom4x1Qty',
+                                                '',
+                                            );
                                     }}
                                     className="mt-0.5"
                                 />
-                                <span className="text-sm text-slate-700">4x1m</span>
+                                <span className="text-sm text-slate-700">
+                                    4x1m
+                                </span>
                             </label>
                             {formData.temporaryFenceCustom4x1 ? (
                                 <div className="mt-3">
@@ -254,27 +333,48 @@ export function Signage({ formData, updateFormData, errors = {} }: FormPageProps
                                         required
                                         type="number"
                                         inputMode="numeric"
-                                        value={formData.temporaryFenceCustom4x1Qty}
-                                        onChange={(e) => updateFormData('temporaryFenceCustom4x1Qty', e.target.value)}
-                                        error={errors.temporaryFenceCustom4x1Qty}
+                                        value={
+                                            formData.temporaryFenceCustom4x1Qty
+                                        }
+                                        onChange={(e) =>
+                                            updateFormData(
+                                                'temporaryFenceCustom4x1Qty',
+                                                e.target.value,
+                                            )
+                                        }
+                                        error={
+                                            errors.temporaryFenceCustom4x1Qty
+                                        }
                                     />
                                 </div>
                             ) : null}
                         </div>
 
                         <div className="rounded-md border border-slate-200 p-3">
-                            <label htmlFor="temporary-fence-custom-5x1" className="flex items-start gap-2">
+                            <label
+                                htmlFor="temporary-fence-custom-5x1"
+                                className="flex items-start gap-2"
+                            >
                                 <Checkbox
                                     id="temporary-fence-custom-5x1"
                                     checked={formData.temporaryFenceCustom5x1}
                                     onCheckedChange={(checked) => {
                                         const nextChecked = Boolean(checked);
-                                        updateFormData('temporaryFenceCustom5x1', nextChecked);
-                                        if (!nextChecked) updateFormData('temporaryFenceCustom5x1Qty', '');
+                                        updateFormData(
+                                            'temporaryFenceCustom5x1',
+                                            nextChecked,
+                                        );
+                                        if (!nextChecked)
+                                            updateFormData(
+                                                'temporaryFenceCustom5x1Qty',
+                                                '',
+                                            );
                                     }}
                                     className="mt-0.5"
                                 />
-                                <span className="text-sm text-slate-700">5x1m</span>
+                                <span className="text-sm text-slate-700">
+                                    5x1m
+                                </span>
                             </label>
                             {formData.temporaryFenceCustom5x1 ? (
                                 <div className="mt-3">
@@ -284,9 +384,18 @@ export function Signage({ formData, updateFormData, errors = {} }: FormPageProps
                                         required
                                         type="number"
                                         inputMode="numeric"
-                                        value={formData.temporaryFenceCustom5x1Qty}
-                                        onChange={(e) => updateFormData('temporaryFenceCustom5x1Qty', e.target.value)}
-                                        error={errors.temporaryFenceCustom5x1Qty}
+                                        value={
+                                            formData.temporaryFenceCustom5x1Qty
+                                        }
+                                        onChange={(e) =>
+                                            updateFormData(
+                                                'temporaryFenceCustom5x1Qty',
+                                                e.target.value,
+                                            )
+                                        }
+                                        error={
+                                            errors.temporaryFenceCustom5x1Qty
+                                        }
                                     />
                                 </div>
                             ) : null}
@@ -296,7 +405,9 @@ export function Signage({ formData, updateFormData, errors = {} }: FormPageProps
             </div>
 
             <div className="space-y-4">
-                <p className="text-sm text-slate-700">Internal/Directional Signs</p>
+                <p className="text-sm text-slate-700">
+                    Internal/Directional Signs
+                </p>
 
                 <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
                     <p className="text-sm text-slate-700">Toilets</p>
@@ -306,12 +417,27 @@ export function Signage({ formData, updateFormData, errors = {} }: FormPageProps
                             label="Arrows with Male Word"
                             checked={formData.toiletsArrowsMaleWord}
                             onCheckedChange={(checked) => {
-                                updateFormData('toiletsArrowsMaleWord', checked);
+                                updateFormData(
+                                    'toiletsArrowsMaleWord',
+                                    checked,
+                                );
                                 if (!checked) {
-                                    updateFormData('toiletsArrowsMaleWordUpQty', '');
-                                    updateFormData('toiletsArrowsMaleWordDownQty', '');
-                                    updateFormData('toiletsArrowsMaleWordLeftQty', '');
-                                    updateFormData('toiletsArrowsMaleWordRightQty', '');
+                                    updateFormData(
+                                        'toiletsArrowsMaleWordUpQty',
+                                        '',
+                                    );
+                                    updateFormData(
+                                        'toiletsArrowsMaleWordDownQty',
+                                        '',
+                                    );
+                                    updateFormData(
+                                        'toiletsArrowsMaleWordLeftQty',
+                                        '',
+                                    );
+                                    updateFormData(
+                                        'toiletsArrowsMaleWordRightQty',
+                                        '',
+                                    );
                                 }
                             }}
                         >
@@ -320,11 +446,33 @@ export function Signage({ formData, updateFormData, errors = {} }: FormPageProps
                                 upQty={formData.toiletsArrowsMaleWordUpQty}
                                 downQty={formData.toiletsArrowsMaleWordDownQty}
                                 leftQty={formData.toiletsArrowsMaleWordLeftQty}
-                                rightQty={formData.toiletsArrowsMaleWordRightQty}
-                                onUpChange={(value) => updateFormData('toiletsArrowsMaleWordUpQty', value)}
-                                onDownChange={(value) => updateFormData('toiletsArrowsMaleWordDownQty', value)}
-                                onLeftChange={(value) => updateFormData('toiletsArrowsMaleWordLeftQty', value)}
-                                onRightChange={(value) => updateFormData('toiletsArrowsMaleWordRightQty', value)}
+                                rightQty={
+                                    formData.toiletsArrowsMaleWordRightQty
+                                }
+                                onUpChange={(value) =>
+                                    updateFormData(
+                                        'toiletsArrowsMaleWordUpQty',
+                                        value,
+                                    )
+                                }
+                                onDownChange={(value) =>
+                                    updateFormData(
+                                        'toiletsArrowsMaleWordDownQty',
+                                        value,
+                                    )
+                                }
+                                onLeftChange={(value) =>
+                                    updateFormData(
+                                        'toiletsArrowsMaleWordLeftQty',
+                                        value,
+                                    )
+                                }
+                                onRightChange={(value) =>
+                                    updateFormData(
+                                        'toiletsArrowsMaleWordRightQty',
+                                        value,
+                                    )
+                                }
                                 error={errors.toiletsArrowsMaleWord}
                             />
                         </OptionCard>
@@ -334,25 +482,66 @@ export function Signage({ formData, updateFormData, errors = {} }: FormPageProps
                             label="Arrows with Female Word"
                             checked={formData.toiletsArrowsFemaleWord}
                             onCheckedChange={(checked) => {
-                                updateFormData('toiletsArrowsFemaleWord', checked);
+                                updateFormData(
+                                    'toiletsArrowsFemaleWord',
+                                    checked,
+                                );
                                 if (!checked) {
-                                    updateFormData('toiletsArrowsFemaleWordUpQty', '');
-                                    updateFormData('toiletsArrowsFemaleWordDownQty', '');
-                                    updateFormData('toiletsArrowsFemaleWordLeftQty', '');
-                                    updateFormData('toiletsArrowsFemaleWordRightQty', '');
+                                    updateFormData(
+                                        'toiletsArrowsFemaleWordUpQty',
+                                        '',
+                                    );
+                                    updateFormData(
+                                        'toiletsArrowsFemaleWordDownQty',
+                                        '',
+                                    );
+                                    updateFormData(
+                                        'toiletsArrowsFemaleWordLeftQty',
+                                        '',
+                                    );
+                                    updateFormData(
+                                        'toiletsArrowsFemaleWordRightQty',
+                                        '',
+                                    );
                                 }
                             }}
                         >
                             <DirectionQtyGrid
                                 idPrefix="toilets-arrows-female-word"
                                 upQty={formData.toiletsArrowsFemaleWordUpQty}
-                                downQty={formData.toiletsArrowsFemaleWordDownQty}
-                                leftQty={formData.toiletsArrowsFemaleWordLeftQty}
-                                rightQty={formData.toiletsArrowsFemaleWordRightQty}
-                                onUpChange={(value) => updateFormData('toiletsArrowsFemaleWordUpQty', value)}
-                                onDownChange={(value) => updateFormData('toiletsArrowsFemaleWordDownQty', value)}
-                                onLeftChange={(value) => updateFormData('toiletsArrowsFemaleWordLeftQty', value)}
-                                onRightChange={(value) => updateFormData('toiletsArrowsFemaleWordRightQty', value)}
+                                downQty={
+                                    formData.toiletsArrowsFemaleWordDownQty
+                                }
+                                leftQty={
+                                    formData.toiletsArrowsFemaleWordLeftQty
+                                }
+                                rightQty={
+                                    formData.toiletsArrowsFemaleWordRightQty
+                                }
+                                onUpChange={(value) =>
+                                    updateFormData(
+                                        'toiletsArrowsFemaleWordUpQty',
+                                        value,
+                                    )
+                                }
+                                onDownChange={(value) =>
+                                    updateFormData(
+                                        'toiletsArrowsFemaleWordDownQty',
+                                        value,
+                                    )
+                                }
+                                onLeftChange={(value) =>
+                                    updateFormData(
+                                        'toiletsArrowsFemaleWordLeftQty',
+                                        value,
+                                    )
+                                }
+                                onRightChange={(value) =>
+                                    updateFormData(
+                                        'toiletsArrowsFemaleWordRightQty',
+                                        value,
+                                    )
+                                }
                                 error={errors.toiletsArrowsFemaleWord}
                             />
                         </OptionCard>
@@ -362,25 +551,68 @@ export function Signage({ formData, updateFormData, errors = {} }: FormPageProps
                             label="Arrows with Male/Female Word"
                             checked={formData.toiletsArrowsMaleFemaleWord}
                             onCheckedChange={(checked) => {
-                                updateFormData('toiletsArrowsMaleFemaleWord', checked);
+                                updateFormData(
+                                    'toiletsArrowsMaleFemaleWord',
+                                    checked,
+                                );
                                 if (!checked) {
-                                    updateFormData('toiletsArrowsMaleFemaleWordUpQty', '');
-                                    updateFormData('toiletsArrowsMaleFemaleWordDownQty', '');
-                                    updateFormData('toiletsArrowsMaleFemaleWordLeftQty', '');
-                                    updateFormData('toiletsArrowsMaleFemaleWordRightQty', '');
+                                    updateFormData(
+                                        'toiletsArrowsMaleFemaleWordUpQty',
+                                        '',
+                                    );
+                                    updateFormData(
+                                        'toiletsArrowsMaleFemaleWordDownQty',
+                                        '',
+                                    );
+                                    updateFormData(
+                                        'toiletsArrowsMaleFemaleWordLeftQty',
+                                        '',
+                                    );
+                                    updateFormData(
+                                        'toiletsArrowsMaleFemaleWordRightQty',
+                                        '',
+                                    );
                                 }
                             }}
                         >
                             <DirectionQtyGrid
                                 idPrefix="toilets-arrows-male-female-word"
-                                upQty={formData.toiletsArrowsMaleFemaleWordUpQty}
-                                downQty={formData.toiletsArrowsMaleFemaleWordDownQty}
-                                leftQty={formData.toiletsArrowsMaleFemaleWordLeftQty}
-                                rightQty={formData.toiletsArrowsMaleFemaleWordRightQty}
-                                onUpChange={(value) => updateFormData('toiletsArrowsMaleFemaleWordUpQty', value)}
-                                onDownChange={(value) => updateFormData('toiletsArrowsMaleFemaleWordDownQty', value)}
-                                onLeftChange={(value) => updateFormData('toiletsArrowsMaleFemaleWordLeftQty', value)}
-                                onRightChange={(value) => updateFormData('toiletsArrowsMaleFemaleWordRightQty', value)}
+                                upQty={
+                                    formData.toiletsArrowsMaleFemaleWordUpQty
+                                }
+                                downQty={
+                                    formData.toiletsArrowsMaleFemaleWordDownQty
+                                }
+                                leftQty={
+                                    formData.toiletsArrowsMaleFemaleWordLeftQty
+                                }
+                                rightQty={
+                                    formData.toiletsArrowsMaleFemaleWordRightQty
+                                }
+                                onUpChange={(value) =>
+                                    updateFormData(
+                                        'toiletsArrowsMaleFemaleWordUpQty',
+                                        value,
+                                    )
+                                }
+                                onDownChange={(value) =>
+                                    updateFormData(
+                                        'toiletsArrowsMaleFemaleWordDownQty',
+                                        value,
+                                    )
+                                }
+                                onLeftChange={(value) =>
+                                    updateFormData(
+                                        'toiletsArrowsMaleFemaleWordLeftQty',
+                                        value,
+                                    )
+                                }
+                                onRightChange={(value) =>
+                                    updateFormData(
+                                        'toiletsArrowsMaleFemaleWordRightQty',
+                                        value,
+                                    )
+                                }
                                 error={errors.toiletsArrowsMaleFemaleWord}
                             />
                         </OptionCard>
@@ -391,7 +623,8 @@ export function Signage({ formData, updateFormData, errors = {} }: FormPageProps
                             checked={formData.toiletsMaleFemale}
                             onCheckedChange={(checked) => {
                                 updateFormData('toiletsMaleFemale', checked);
-                                if (!checked) updateFormData('toiletsMaleFemaleQty', '');
+                                if (!checked)
+                                    updateFormData('toiletsMaleFemaleQty', '');
                             }}
                         >
                             <FloatingLabelInput
@@ -401,7 +634,12 @@ export function Signage({ formData, updateFormData, errors = {} }: FormPageProps
                                 type="number"
                                 inputMode="numeric"
                                 value={formData.toiletsMaleFemaleQty}
-                                onChange={(e) => updateFormData('toiletsMaleFemaleQty', e.target.value)}
+                                onChange={(e) =>
+                                    updateFormData(
+                                        'toiletsMaleFemaleQty',
+                                        e.target.value,
+                                    )
+                                }
                                 error={errors.toiletsMaleFemaleQty}
                             />
                         </OptionCard>
@@ -412,7 +650,8 @@ export function Signage({ formData, updateFormData, errors = {} }: FormPageProps
                             checked={formData.toiletsMale}
                             onCheckedChange={(checked) => {
                                 updateFormData('toiletsMale', checked);
-                                if (!checked) updateFormData('toiletsMaleQty', '');
+                                if (!checked)
+                                    updateFormData('toiletsMaleQty', '');
                             }}
                         >
                             <FloatingLabelInput
@@ -422,7 +661,12 @@ export function Signage({ formData, updateFormData, errors = {} }: FormPageProps
                                 type="number"
                                 inputMode="numeric"
                                 value={formData.toiletsMaleQty}
-                                onChange={(e) => updateFormData('toiletsMaleQty', e.target.value)}
+                                onChange={(e) =>
+                                    updateFormData(
+                                        'toiletsMaleQty',
+                                        e.target.value,
+                                    )
+                                }
                                 error={errors.toiletsMaleQty}
                             />
                         </OptionCard>
@@ -433,7 +677,8 @@ export function Signage({ formData, updateFormData, errors = {} }: FormPageProps
                             checked={formData.toiletsFemale}
                             onCheckedChange={(checked) => {
                                 updateFormData('toiletsFemale', checked);
-                                if (!checked) updateFormData('toiletsFemaleQty', '');
+                                if (!checked)
+                                    updateFormData('toiletsFemaleQty', '');
                             }}
                         >
                             <FloatingLabelInput
@@ -443,7 +688,12 @@ export function Signage({ formData, updateFormData, errors = {} }: FormPageProps
                                 type="number"
                                 inputMode="numeric"
                                 value={formData.toiletsFemaleQty}
-                                onChange={(e) => updateFormData('toiletsFemaleQty', e.target.value)}
+                                onChange={(e) =>
+                                    updateFormData(
+                                        'toiletsFemaleQty',
+                                        e.target.value,
+                                    )
+                                }
                                 error={errors.toiletsFemaleQty}
                             />
                         </OptionCard>
@@ -459,7 +709,8 @@ export function Signage({ formData, updateFormData, errors = {} }: FormPageProps
                             checked={formData.momsNursing}
                             onCheckedChange={(checked) => {
                                 updateFormData('momsNursing', checked);
-                                if (!checked) updateFormData('momsNursingQty', '');
+                                if (!checked)
+                                    updateFormData('momsNursingQty', '');
                             }}
                         >
                             <FloatingLabelInput
@@ -469,7 +720,12 @@ export function Signage({ formData, updateFormData, errors = {} }: FormPageProps
                                 type="number"
                                 inputMode="numeric"
                                 value={formData.momsNursingQty}
-                                onChange={(e) => updateFormData('momsNursingQty', e.target.value)}
+                                onChange={(e) =>
+                                    updateFormData(
+                                        'momsNursingQty',
+                                        e.target.value,
+                                    )
+                                }
                                 error={errors.momsNursingQty}
                             />
                         </OptionCard>
@@ -479,12 +735,27 @@ export function Signage({ formData, updateFormData, errors = {} }: FormPageProps
                             label="Nursing Moms (No Men Allowed) with Arrows"
                             checked={formData.momsNursingWithArrows}
                             onCheckedChange={(checked) => {
-                                updateFormData('momsNursingWithArrows', checked);
+                                updateFormData(
+                                    'momsNursingWithArrows',
+                                    checked,
+                                );
                                 if (!checked) {
-                                    updateFormData('momsNursingWithArrowsUpQty', '');
-                                    updateFormData('momsNursingWithArrowsDownQty', '');
-                                    updateFormData('momsNursingWithArrowsLeftQty', '');
-                                    updateFormData('momsNursingWithArrowsRightQty', '');
+                                    updateFormData(
+                                        'momsNursingWithArrowsUpQty',
+                                        '',
+                                    );
+                                    updateFormData(
+                                        'momsNursingWithArrowsDownQty',
+                                        '',
+                                    );
+                                    updateFormData(
+                                        'momsNursingWithArrowsLeftQty',
+                                        '',
+                                    );
+                                    updateFormData(
+                                        'momsNursingWithArrowsRightQty',
+                                        '',
+                                    );
                                 }
                             }}
                         >
@@ -493,11 +764,33 @@ export function Signage({ formData, updateFormData, errors = {} }: FormPageProps
                                 upQty={formData.momsNursingWithArrowsUpQty}
                                 downQty={formData.momsNursingWithArrowsDownQty}
                                 leftQty={formData.momsNursingWithArrowsLeftQty}
-                                rightQty={formData.momsNursingWithArrowsRightQty}
-                                onUpChange={(value) => updateFormData('momsNursingWithArrowsUpQty', value)}
-                                onDownChange={(value) => updateFormData('momsNursingWithArrowsDownQty', value)}
-                                onLeftChange={(value) => updateFormData('momsNursingWithArrowsLeftQty', value)}
-                                onRightChange={(value) => updateFormData('momsNursingWithArrowsRightQty', value)}
+                                rightQty={
+                                    formData.momsNursingWithArrowsRightQty
+                                }
+                                onUpChange={(value) =>
+                                    updateFormData(
+                                        'momsNursingWithArrowsUpQty',
+                                        value,
+                                    )
+                                }
+                                onDownChange={(value) =>
+                                    updateFormData(
+                                        'momsNursingWithArrowsDownQty',
+                                        value,
+                                    )
+                                }
+                                onLeftChange={(value) =>
+                                    updateFormData(
+                                        'momsNursingWithArrowsLeftQty',
+                                        value,
+                                    )
+                                }
+                                onRightChange={(value) =>
+                                    updateFormData(
+                                        'momsNursingWithArrowsRightQty',
+                                        value,
+                                    )
+                                }
                                 error={errors.momsNursingWithArrows}
                             />
                         </OptionCard>
@@ -508,7 +801,8 @@ export function Signage({ formData, updateFormData, errors = {} }: FormPageProps
                             checked={formData.momsWithBabies}
                             onCheckedChange={(checked) => {
                                 updateFormData('momsWithBabies', checked);
-                                if (!checked) updateFormData('momsWithBabiesQty', '');
+                                if (!checked)
+                                    updateFormData('momsWithBabiesQty', '');
                             }}
                         >
                             <FloatingLabelInput
@@ -518,7 +812,12 @@ export function Signage({ formData, updateFormData, errors = {} }: FormPageProps
                                 type="number"
                                 inputMode="numeric"
                                 value={formData.momsWithBabiesQty}
-                                onChange={(e) => updateFormData('momsWithBabiesQty', e.target.value)}
+                                onChange={(e) =>
+                                    updateFormData(
+                                        'momsWithBabiesQty',
+                                        e.target.value,
+                                    )
+                                }
                                 error={errors.momsWithBabiesQty}
                             />
                         </OptionCard>
@@ -528,25 +827,66 @@ export function Signage({ formData, updateFormData, errors = {} }: FormPageProps
                             label="Moms Room (Moms with babies) with Arrows"
                             checked={formData.momsWithBabiesWithArrows}
                             onCheckedChange={(checked) => {
-                                updateFormData('momsWithBabiesWithArrows', checked);
+                                updateFormData(
+                                    'momsWithBabiesWithArrows',
+                                    checked,
+                                );
                                 if (!checked) {
-                                    updateFormData('momsWithBabiesWithArrowsUpQty', '');
-                                    updateFormData('momsWithBabiesWithArrowsDownQty', '');
-                                    updateFormData('momsWithBabiesWithArrowsLeftQty', '');
-                                    updateFormData('momsWithBabiesWithArrowsRightQty', '');
+                                    updateFormData(
+                                        'momsWithBabiesWithArrowsUpQty',
+                                        '',
+                                    );
+                                    updateFormData(
+                                        'momsWithBabiesWithArrowsDownQty',
+                                        '',
+                                    );
+                                    updateFormData(
+                                        'momsWithBabiesWithArrowsLeftQty',
+                                        '',
+                                    );
+                                    updateFormData(
+                                        'momsWithBabiesWithArrowsRightQty',
+                                        '',
+                                    );
                                 }
                             }}
                         >
                             <DirectionQtyGrid
                                 idPrefix="moms-with-babies-with-arrows"
                                 upQty={formData.momsWithBabiesWithArrowsUpQty}
-                                downQty={formData.momsWithBabiesWithArrowsDownQty}
-                                leftQty={formData.momsWithBabiesWithArrowsLeftQty}
-                                rightQty={formData.momsWithBabiesWithArrowsRightQty}
-                                onUpChange={(value) => updateFormData('momsWithBabiesWithArrowsUpQty', value)}
-                                onDownChange={(value) => updateFormData('momsWithBabiesWithArrowsDownQty', value)}
-                                onLeftChange={(value) => updateFormData('momsWithBabiesWithArrowsLeftQty', value)}
-                                onRightChange={(value) => updateFormData('momsWithBabiesWithArrowsRightQty', value)}
+                                downQty={
+                                    formData.momsWithBabiesWithArrowsDownQty
+                                }
+                                leftQty={
+                                    formData.momsWithBabiesWithArrowsLeftQty
+                                }
+                                rightQty={
+                                    formData.momsWithBabiesWithArrowsRightQty
+                                }
+                                onUpChange={(value) =>
+                                    updateFormData(
+                                        'momsWithBabiesWithArrowsUpQty',
+                                        value,
+                                    )
+                                }
+                                onDownChange={(value) =>
+                                    updateFormData(
+                                        'momsWithBabiesWithArrowsDownQty',
+                                        value,
+                                    )
+                                }
+                                onLeftChange={(value) =>
+                                    updateFormData(
+                                        'momsWithBabiesWithArrowsLeftQty',
+                                        value,
+                                    )
+                                }
+                                onRightChange={(value) =>
+                                    updateFormData(
+                                        'momsWithBabiesWithArrowsRightQty',
+                                        value,
+                                    )
+                                }
                                 error={errors.momsWithBabiesWithArrows}
                             />
                         </OptionCard>
@@ -562,7 +902,8 @@ export function Signage({ formData, updateFormData, errors = {} }: FormPageProps
                             checked={formData.toddlersRoom}
                             onCheckedChange={(checked) => {
                                 updateFormData('toddlersRoom', checked);
-                                if (!checked) updateFormData('toddlersRoomQty', '');
+                                if (!checked)
+                                    updateFormData('toddlersRoomQty', '');
                             }}
                         >
                             <FloatingLabelInput
@@ -572,7 +913,12 @@ export function Signage({ formData, updateFormData, errors = {} }: FormPageProps
                                 type="number"
                                 inputMode="numeric"
                                 value={formData.toddlersRoomQty}
-                                onChange={(e) => updateFormData('toddlersRoomQty', e.target.value)}
+                                onChange={(e) =>
+                                    updateFormData(
+                                        'toddlersRoomQty',
+                                        e.target.value,
+                                    )
+                                }
                                 error={errors.toddlersRoomQty}
                             />
                         </OptionCard>
@@ -587,7 +933,10 @@ export function Signage({ formData, updateFormData, errors = {} }: FormPageProps
                                     updateFormData('toddlersArrowsUpQty', '');
                                     updateFormData('toddlersArrowsDownQty', '');
                                     updateFormData('toddlersArrowsLeftQty', '');
-                                    updateFormData('toddlersArrowsRightQty', '');
+                                    updateFormData(
+                                        'toddlersArrowsRightQty',
+                                        '',
+                                    );
                                 }
                             }}
                         >
@@ -597,10 +946,27 @@ export function Signage({ formData, updateFormData, errors = {} }: FormPageProps
                                 downQty={formData.toddlersArrowsDownQty}
                                 leftQty={formData.toddlersArrowsLeftQty}
                                 rightQty={formData.toddlersArrowsRightQty}
-                                onUpChange={(value) => updateFormData('toddlersArrowsUpQty', value)}
-                                onDownChange={(value) => updateFormData('toddlersArrowsDownQty', value)}
-                                onLeftChange={(value) => updateFormData('toddlersArrowsLeftQty', value)}
-                                onRightChange={(value) => updateFormData('toddlersArrowsRightQty', value)}
+                                onUpChange={(value) =>
+                                    updateFormData('toddlersArrowsUpQty', value)
+                                }
+                                onDownChange={(value) =>
+                                    updateFormData(
+                                        'toddlersArrowsDownQty',
+                                        value,
+                                    )
+                                }
+                                onLeftChange={(value) =>
+                                    updateFormData(
+                                        'toddlersArrowsLeftQty',
+                                        value,
+                                    )
+                                }
+                                onRightChange={(value) =>
+                                    updateFormData(
+                                        'toddlersArrowsRightQty',
+                                        value,
+                                    )
+                                }
                                 error={errors.toddlersArrows}
                             />
                         </OptionCard>
@@ -616,7 +982,8 @@ export function Signage({ formData, updateFormData, errors = {} }: FormPageProps
                             checked={formData.firstAidSign}
                             onCheckedChange={(checked) => {
                                 updateFormData('firstAidSign', checked);
-                                if (!checked) updateFormData('firstAidSignQty', '');
+                                if (!checked)
+                                    updateFormData('firstAidSignQty', '');
                             }}
                         >
                             <FloatingLabelInput
@@ -626,7 +993,12 @@ export function Signage({ formData, updateFormData, errors = {} }: FormPageProps
                                 type="number"
                                 inputMode="numeric"
                                 value={formData.firstAidSignQty}
-                                onChange={(e) => updateFormData('firstAidSignQty', e.target.value)}
+                                onChange={(e) =>
+                                    updateFormData(
+                                        'firstAidSignQty',
+                                        e.target.value,
+                                    )
+                                }
                                 error={errors.firstAidSignQty}
                             />
                         </OptionCard>
@@ -636,12 +1008,27 @@ export function Signage({ formData, updateFormData, errors = {} }: FormPageProps
                             label="Sign with Arrows"
                             checked={formData.firstAidSignWithArrows}
                             onCheckedChange={(checked) => {
-                                updateFormData('firstAidSignWithArrows', checked);
+                                updateFormData(
+                                    'firstAidSignWithArrows',
+                                    checked,
+                                );
                                 if (!checked) {
-                                    updateFormData('firstAidSignWithArrowsUpQty', '');
-                                    updateFormData('firstAidSignWithArrowsDownQty', '');
-                                    updateFormData('firstAidSignWithArrowsLeftQty', '');
-                                    updateFormData('firstAidSignWithArrowsRightQty', '');
+                                    updateFormData(
+                                        'firstAidSignWithArrowsUpQty',
+                                        '',
+                                    );
+                                    updateFormData(
+                                        'firstAidSignWithArrowsDownQty',
+                                        '',
+                                    );
+                                    updateFormData(
+                                        'firstAidSignWithArrowsLeftQty',
+                                        '',
+                                    );
+                                    updateFormData(
+                                        'firstAidSignWithArrowsRightQty',
+                                        '',
+                                    );
                                 }
                             }}
                         >
@@ -650,11 +1037,33 @@ export function Signage({ formData, updateFormData, errors = {} }: FormPageProps
                                 upQty={formData.firstAidSignWithArrowsUpQty}
                                 downQty={formData.firstAidSignWithArrowsDownQty}
                                 leftQty={formData.firstAidSignWithArrowsLeftQty}
-                                rightQty={formData.firstAidSignWithArrowsRightQty}
-                                onUpChange={(value) => updateFormData('firstAidSignWithArrowsUpQty', value)}
-                                onDownChange={(value) => updateFormData('firstAidSignWithArrowsDownQty', value)}
-                                onLeftChange={(value) => updateFormData('firstAidSignWithArrowsLeftQty', value)}
-                                onRightChange={(value) => updateFormData('firstAidSignWithArrowsRightQty', value)}
+                                rightQty={
+                                    formData.firstAidSignWithArrowsRightQty
+                                }
+                                onUpChange={(value) =>
+                                    updateFormData(
+                                        'firstAidSignWithArrowsUpQty',
+                                        value,
+                                    )
+                                }
+                                onDownChange={(value) =>
+                                    updateFormData(
+                                        'firstAidSignWithArrowsDownQty',
+                                        value,
+                                    )
+                                }
+                                onLeftChange={(value) =>
+                                    updateFormData(
+                                        'firstAidSignWithArrowsLeftQty',
+                                        value,
+                                    )
+                                }
+                                onRightChange={(value) =>
+                                    updateFormData(
+                                        'firstAidSignWithArrowsRightQty',
+                                        value,
+                                    )
+                                }
                                 error={errors.firstAidSignWithArrows}
                             />
                         </OptionCard>
@@ -680,7 +1089,12 @@ export function Signage({ formData, updateFormData, errors = {} }: FormPageProps
                             label="Detailed Description"
                             required
                             value={formData.internalOtherDescription}
-                            onChange={(e) => updateFormData('internalOtherDescription', e.target.value)}
+                            onChange={(e) =>
+                                updateFormData(
+                                    'internalOtherDescription',
+                                    e.target.value,
+                                )
+                            }
                             error={errors.internalOtherDescription}
                         />
                         <FloatingLabelInput
@@ -690,7 +1104,12 @@ export function Signage({ formData, updateFormData, errors = {} }: FormPageProps
                             type="number"
                             inputMode="numeric"
                             value={formData.internalOtherQty}
-                            onChange={(e) => updateFormData('internalOtherQty', e.target.value)}
+                            onChange={(e) =>
+                                updateFormData(
+                                    'internalOtherQty',
+                                    e.target.value,
+                                )
+                            }
                             error={errors.internalOtherQty}
                         />
                     </div>
@@ -698,7 +1117,9 @@ export function Signage({ formData, updateFormData, errors = {} }: FormPageProps
             </div>
 
             <div className="space-y-3">
-                <p className="text-sm text-slate-700">External/Directional Signs</p>
+                <p className="text-sm text-slate-700">
+                    External/Directional Signs
+                </p>
                 <div className="grid gap-3 md:grid-cols-2">
                     <OptionCard
                         id="external-no-parking"
@@ -706,7 +1127,8 @@ export function Signage({ formData, updateFormData, errors = {} }: FormPageProps
                         checked={formData.externalNoParking}
                         onCheckedChange={(checked) => {
                             updateFormData('externalNoParking', checked);
-                            if (!checked) updateFormData('externalNoParkingQty', '');
+                            if (!checked)
+                                updateFormData('externalNoParkingQty', '');
                         }}
                     >
                         <FloatingLabelInput
@@ -716,7 +1138,12 @@ export function Signage({ formData, updateFormData, errors = {} }: FormPageProps
                             type="number"
                             inputMode="numeric"
                             value={formData.externalNoParkingQty}
-                            onChange={(e) => updateFormData('externalNoParkingQty', e.target.value)}
+                            onChange={(e) =>
+                                updateFormData(
+                                    'externalNoParkingQty',
+                                    e.target.value,
+                                )
+                            }
                             error={errors.externalNoParkingQty}
                         />
                     </OptionCard>
@@ -726,7 +1153,11 @@ export function Signage({ formData, updateFormData, errors = {} }: FormPageProps
                         checked={formData.externalDisabledParking}
                         onCheckedChange={(checked) => {
                             updateFormData('externalDisabledParking', checked);
-                            if (!checked) updateFormData('externalDisabledParkingQty', '');
+                            if (!checked)
+                                updateFormData(
+                                    'externalDisabledParkingQty',
+                                    '',
+                                );
                         }}
                     >
                         <FloatingLabelInput
@@ -736,7 +1167,12 @@ export function Signage({ formData, updateFormData, errors = {} }: FormPageProps
                             type="number"
                             inputMode="numeric"
                             value={formData.externalDisabledParkingQty}
-                            onChange={(e) => updateFormData('externalDisabledParkingQty', e.target.value)}
+                            onChange={(e) =>
+                                updateFormData(
+                                    'externalDisabledParkingQty',
+                                    e.target.value,
+                                )
+                            }
                             error={errors.externalDisabledParkingQty}
                         />
                     </OptionCard>
@@ -746,7 +1182,8 @@ export function Signage({ formData, updateFormData, errors = {} }: FormPageProps
                         checked={formData.externalAmbulanceBay}
                         onCheckedChange={(checked) => {
                             updateFormData('externalAmbulanceBay', checked);
-                            if (!checked) updateFormData('externalAmbulanceBayQty', '');
+                            if (!checked)
+                                updateFormData('externalAmbulanceBayQty', '');
                         }}
                     >
                         <FloatingLabelInput
@@ -756,7 +1193,12 @@ export function Signage({ formData, updateFormData, errors = {} }: FormPageProps
                             type="number"
                             inputMode="numeric"
                             value={formData.externalAmbulanceBayQty}
-                            onChange={(e) => updateFormData('externalAmbulanceBayQty', e.target.value)}
+                            onChange={(e) =>
+                                updateFormData(
+                                    'externalAmbulanceBayQty',
+                                    e.target.value,
+                                )
+                            }
                             error={errors.externalAmbulanceBayQty}
                         />
                     </OptionCard>
@@ -766,7 +1208,8 @@ export function Signage({ formData, updateFormData, errors = {} }: FormPageProps
                         checked={formData.externalEntrance}
                         onCheckedChange={(checked) => {
                             updateFormData('externalEntrance', checked);
-                            if (!checked) updateFormData('externalEntranceQty', '');
+                            if (!checked)
+                                updateFormData('externalEntranceQty', '');
                         }}
                     >
                         <FloatingLabelInput
@@ -776,7 +1219,12 @@ export function Signage({ formData, updateFormData, errors = {} }: FormPageProps
                             type="number"
                             inputMode="numeric"
                             value={formData.externalEntranceQty}
-                            onChange={(e) => updateFormData('externalEntranceQty', e.target.value)}
+                            onChange={(e) =>
+                                updateFormData(
+                                    'externalEntranceQty',
+                                    e.target.value,
+                                )
+                            }
                             error={errors.externalEntranceQty}
                         />
                     </OptionCard>
@@ -796,7 +1244,12 @@ export function Signage({ formData, updateFormData, errors = {} }: FormPageProps
                             type="number"
                             inputMode="numeric"
                             value={formData.externalExitQty}
-                            onChange={(e) => updateFormData('externalExitQty', e.target.value)}
+                            onChange={(e) =>
+                                updateFormData(
+                                    'externalExitQty',
+                                    e.target.value,
+                                )
+                            }
                             error={errors.externalExitQty}
                         />
                     </OptionCard>
@@ -808,9 +1261,18 @@ export function Signage({ formData, updateFormData, errors = {} }: FormPageProps
                             updateFormData('externalJoshGenArrows', checked);
                             if (!checked) {
                                 updateFormData('externalJoshGenArrowUpQty', '');
-                                updateFormData('externalJoshGenArrowDownQty', '');
-                                updateFormData('externalJoshGenArrowLeftQty', '');
-                                updateFormData('externalJoshGenArrowRightQty', '');
+                                updateFormData(
+                                    'externalJoshGenArrowDownQty',
+                                    '',
+                                );
+                                updateFormData(
+                                    'externalJoshGenArrowLeftQty',
+                                    '',
+                                );
+                                updateFormData(
+                                    'externalJoshGenArrowRightQty',
+                                    '',
+                                );
                             }
                         }}
                     >
@@ -820,10 +1282,30 @@ export function Signage({ formData, updateFormData, errors = {} }: FormPageProps
                             downQty={formData.externalJoshGenArrowDownQty}
                             leftQty={formData.externalJoshGenArrowLeftQty}
                             rightQty={formData.externalJoshGenArrowRightQty}
-                            onUpChange={(value) => updateFormData('externalJoshGenArrowUpQty', value)}
-                            onDownChange={(value) => updateFormData('externalJoshGenArrowDownQty', value)}
-                            onLeftChange={(value) => updateFormData('externalJoshGenArrowLeftQty', value)}
-                            onRightChange={(value) => updateFormData('externalJoshGenArrowRightQty', value)}
+                            onUpChange={(value) =>
+                                updateFormData(
+                                    'externalJoshGenArrowUpQty',
+                                    value,
+                                )
+                            }
+                            onDownChange={(value) =>
+                                updateFormData(
+                                    'externalJoshGenArrowDownQty',
+                                    value,
+                                )
+                            }
+                            onLeftChange={(value) =>
+                                updateFormData(
+                                    'externalJoshGenArrowLeftQty',
+                                    value,
+                                )
+                            }
+                            onRightChange={(value) =>
+                                updateFormData(
+                                    'externalJoshGenArrowRightQty',
+                                    value,
+                                )
+                            }
                             error={errors.externalJoshGenArrows}
                         />
                     </OptionCard>
@@ -849,7 +1331,12 @@ export function Signage({ formData, updateFormData, errors = {} }: FormPageProps
                             label="Detailed Description"
                             required
                             value={formData.sandwichBoardsDescription}
-                            onChange={(e) => updateFormData('sandwichBoardsDescription', e.target.value)}
+                            onChange={(e) =>
+                                updateFormData(
+                                    'sandwichBoardsDescription',
+                                    e.target.value,
+                                )
+                            }
                             error={errors.sandwichBoardsDescription}
                         />
                         <FloatingLabelInput
@@ -859,7 +1346,12 @@ export function Signage({ formData, updateFormData, errors = {} }: FormPageProps
                             type="number"
                             inputMode="numeric"
                             value={formData.sandwichBoardsQty}
-                            onChange={(e) => updateFormData('sandwichBoardsQty', e.target.value)}
+                            onChange={(e) =>
+                                updateFormData(
+                                    'sandwichBoardsQty',
+                                    e.target.value,
+                                )
+                            }
                             error={errors.sandwichBoardsQty}
                         />
                     </div>
@@ -870,10 +1362,19 @@ export function Signage({ formData, updateFormData, errors = {} }: FormPageProps
                     label="Permanent External Building Signs"
                     checked={formData.permanentExternalBuildingSigns}
                     onCheckedChange={(checked) => {
-                        updateFormData('permanentExternalBuildingSigns', checked);
+                        updateFormData(
+                            'permanentExternalBuildingSigns',
+                            checked,
+                        );
                         if (!checked) {
-                            updateFormData('permanentExternalBuildingSignsDescription', '');
-                            updateFormData('permanentExternalBuildingSignsQty', '');
+                            updateFormData(
+                                'permanentExternalBuildingSignsDescription',
+                                '',
+                            );
+                            updateFormData(
+                                'permanentExternalBuildingSignsQty',
+                                '',
+                            );
                         }
                     }}
                 >
@@ -882,9 +1383,18 @@ export function Signage({ formData, updateFormData, errors = {} }: FormPageProps
                             id="permanent-external-building-signs-description"
                             label="Detailed Description"
                             required
-                            value={formData.permanentExternalBuildingSignsDescription}
-                            onChange={(e) => updateFormData('permanentExternalBuildingSignsDescription', e.target.value)}
-                            error={errors.permanentExternalBuildingSignsDescription}
+                            value={
+                                formData.permanentExternalBuildingSignsDescription
+                            }
+                            onChange={(e) =>
+                                updateFormData(
+                                    'permanentExternalBuildingSignsDescription',
+                                    e.target.value,
+                                )
+                            }
+                            error={
+                                errors.permanentExternalBuildingSignsDescription
+                            }
                         />
                         <FloatingLabelInput
                             id="permanent-external-building-signs-qty"
@@ -893,7 +1403,12 @@ export function Signage({ formData, updateFormData, errors = {} }: FormPageProps
                             type="number"
                             inputMode="numeric"
                             value={formData.permanentExternalBuildingSignsQty}
-                            onChange={(e) => updateFormData('permanentExternalBuildingSignsQty', e.target.value)}
+                            onChange={(e) =>
+                                updateFormData(
+                                    'permanentExternalBuildingSignsQty',
+                                    e.target.value,
+                                )
+                            }
                             error={errors.permanentExternalBuildingSignsQty}
                         />
                     </div>
@@ -918,7 +1433,12 @@ export function Signage({ formData, updateFormData, errors = {} }: FormPageProps
                             label="Detailed Description"
                             required
                             value={formData.otherSignageDescription}
-                            onChange={(e) => updateFormData('otherSignageDescription', e.target.value)}
+                            onChange={(e) =>
+                                updateFormData(
+                                    'otherSignageDescription',
+                                    e.target.value,
+                                )
+                            }
                             error={errors.otherSignageDescription}
                         />
                         <FloatingLabelInput
@@ -928,7 +1448,12 @@ export function Signage({ formData, updateFormData, errors = {} }: FormPageProps
                             type="number"
                             inputMode="numeric"
                             value={formData.otherSignageQty}
-                            onChange={(e) => updateFormData('otherSignageQty', e.target.value)}
+                            onChange={(e) =>
+                                updateFormData(
+                                    'otherSignageQty',
+                                    e.target.value,
+                                )
+                            }
                             error={errors.otherSignageQty}
                         />
                     </div>

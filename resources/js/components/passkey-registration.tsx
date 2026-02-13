@@ -1,5 +1,6 @@
-import { useState } from 'react';
 import { router } from '@inertiajs/react';
+import { Fingerprint, Check, X } from 'lucide-react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,7 +11,6 @@ import {
     registerPasskey,
 } from '@/lib/webauthn';
 import { webauthnApi } from '@/lib/webauthn-api';
-import { Fingerprint, Check, X } from 'lucide-react';
 
 type Props = {
     onSuccess?: () => void;

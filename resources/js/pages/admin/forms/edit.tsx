@@ -70,7 +70,11 @@ export default function AdminFormEdit({ form }: Props) {
                         <form onSubmit={submit} className="mt-8 space-y-5">
                             <div className="space-y-2">
                                 <Label htmlFor="form-slug">Slug</Label>
-                                <Input id="form-slug" value={form.slug} disabled />
+                                <Input
+                                    id="form-slug"
+                                    value={form.slug}
+                                    disabled
+                                />
                             </div>
 
                             <div className="space-y-2">

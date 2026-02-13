@@ -50,9 +50,16 @@ export default function WorkRequestEntryShow({ entry }: Props) {
                     <div className="rounded-md border border-slate-200 bg-white p-8 shadow-sm">
                         <div className="flex flex-wrap items-center justify-between gap-3">
                             <div>
-                                <h1 className="text-2xl font-semibold text-slate-900">Work Request Entry #{entry.id}</h1>
+                                <h1 className="text-2xl font-semibold text-slate-900">
+                                    Work Request Entry #{entry.id}
+                                </h1>
                                 <p className="mt-1 text-sm text-slate-500">
-                                    Submitted {entry.createdAt ? new Date(entry.createdAt).toLocaleString() : 'Unknown'}
+                                    Submitted{' '}
+                                    {entry.createdAt
+                                        ? new Date(
+                                              entry.createdAt,
+                                          ).toLocaleString()
+                                        : 'Unknown'}
                                 </p>
                             </div>
                             <Button variant="outline" asChild>
@@ -65,53 +72,84 @@ export default function WorkRequestEntryShow({ entry }: Props) {
 
                         <div className="mt-8 grid gap-6 md:grid-cols-2">
                             <div className="rounded-lg border border-slate-200 p-4">
-                                <h2 className="text-sm font-semibold text-slate-900">Requester</h2>
+                                <h2 className="text-sm font-semibold text-slate-900">
+                                    Requester
+                                </h2>
                                 <dl className="mt-3 space-y-2 text-sm">
                                     <div className="flex justify-between gap-4">
                                         <dt className="text-slate-500">Name</dt>
                                         <dd className="text-slate-900">
-                                            {[entry.firstName, entry.lastName].filter(Boolean).join(' ') || 'N/A'}
+                                            {[entry.firstName, entry.lastName]
+                                                .filter(Boolean)
+                                                .join(' ') || 'N/A'}
                                         </dd>
                                     </div>
                                     <div className="flex justify-between gap-4">
-                                        <dt className="text-slate-500">Email</dt>
-                                        <dd className="text-slate-900">{entry.email || 'N/A'}</dd>
+                                        <dt className="text-slate-500">
+                                            Email
+                                        </dt>
+                                        <dd className="text-slate-900">
+                                            {entry.email || 'N/A'}
+                                        </dd>
                                     </div>
                                     <div className="flex justify-between gap-4">
-                                        <dt className="text-slate-500">Cellphone</dt>
-                                        <dd className="text-slate-900">{entry.cellphone || 'N/A'}</dd>
+                                        <dt className="text-slate-500">
+                                            Cellphone
+                                        </dt>
+                                        <dd className="text-slate-900">
+                                            {entry.cellphone || 'N/A'}
+                                        </dd>
                                     </div>
                                     <div className="flex justify-between gap-4">
-                                        <dt className="text-slate-500">Congregation</dt>
-                                        <dd className="text-slate-900">{entry.congregation || 'N/A'}</dd>
+                                        <dt className="text-slate-500">
+                                            Congregation
+                                        </dt>
+                                        <dd className="text-slate-900">
+                                            {entry.congregation || 'N/A'}
+                                        </dd>
                                     </div>
                                 </dl>
                             </div>
 
                             <div className="rounded-lg border border-slate-200 p-4">
-                                <h2 className="text-sm font-semibold text-slate-900">Request Summary</h2>
+                                <h2 className="text-sm font-semibold text-slate-900">
+                                    Request Summary
+                                </h2>
                                 <dl className="mt-3 space-y-2 text-sm">
                                     <div className="flex justify-between gap-4">
-                                        <dt className="text-slate-500">Event Name</dt>
-                                        <dd className="text-slate-900">{entry.eventName || 'N/A'}</dd>
+                                        <dt className="text-slate-500">
+                                            Event Name
+                                        </dt>
+                                        <dd className="text-slate-900">
+                                            {entry.eventName || 'N/A'}
+                                        </dd>
                                     </div>
                                     <div className="flex justify-between gap-4">
-                                        <dt className="text-slate-500">Summary</dt>
+                                        <dt className="text-slate-500">
+                                            Summary
+                                        </dt>
                                         <dd className="max-w-[70%] text-right text-slate-900">
                                             {entry.requestSummary || 'N/A'}
                                         </dd>
                                     </div>
                                     <div className="flex justify-between gap-4">
-                                        <dt className="text-slate-500">Types</dt>
+                                        <dt className="text-slate-500">
+                                            Types
+                                        </dt>
                                         <dd className="text-right text-slate-900">
-                                            {entry.requestTypes.length > 0 ? entry.requestTypes.join(', ') : 'N/A'}
+                                            {entry.requestTypes.length > 0
+                                                ? entry.requestTypes.join(', ')
+                                                : 'N/A'}
                                         </dd>
                                     </div>
                                 </dl>
                             </div>
                         </div>
 
-                        <EntryResponseReport formSlug={entry.formSlug} payload={entry.payload} />
+                        <EntryResponseReport
+                            formSlug={entry.formSlug}
+                            payload={entry.payload}
+                        />
                     </div>
                 </div>
             </div>

@@ -10,7 +10,11 @@ import {
 } from './form-components';
 import type { FormPageProps } from './types';
 
-export function DigitalMedia({ formData, updateFormData, errors = {} }: FormPageProps) {
+export function DigitalMedia({
+    formData,
+    updateFormData,
+    errors = {},
+}: FormPageProps) {
     return (
         <div className="space-y-6">
             <SectionHeader title="Digital Media" />
@@ -24,7 +28,9 @@ export function DigitalMedia({ formData, updateFormData, errors = {} }: FormPage
                     options={['Banking Details Graphic', 'Other']}
                     columns={2}
                     value={formData.digitalGraphicType}
-                    onChange={(value) => updateFormData('digitalGraphicType', value)}
+                    onChange={(value) =>
+                        updateFormData('digitalGraphicType', value)
+                    }
                     error={errors.digitalGraphicType}
                 />
             </div>
@@ -36,7 +42,12 @@ export function DigitalMedia({ formData, updateFormData, errors = {} }: FormPage
                         label="Bank Name"
                         required
                         value={formData.digitalBankName}
-                        onChange={(event) => updateFormData('digitalBankName', event.target.value)}
+                        onChange={(event) =>
+                            updateFormData(
+                                'digitalBankName',
+                                event.target.value,
+                            )
+                        }
                         error={errors.digitalBankName}
                     />
                     <FloatingLabelInput
@@ -44,7 +55,12 @@ export function DigitalMedia({ formData, updateFormData, errors = {} }: FormPage
                         label="Branch Code"
                         required
                         value={formData.digitalBranchCode}
-                        onChange={(event) => updateFormData('digitalBranchCode', event.target.value)}
+                        onChange={(event) =>
+                            updateFormData(
+                                'digitalBranchCode',
+                                event.target.value,
+                            )
+                        }
                         error={errors.digitalBranchCode}
                     />
                     <FloatingLabelInput
@@ -52,7 +68,12 @@ export function DigitalMedia({ formData, updateFormData, errors = {} }: FormPage
                         label="Account Number"
                         required
                         value={formData.digitalAccountNumber}
-                        onChange={(event) => updateFormData('digitalAccountNumber', event.target.value)}
+                        onChange={(event) =>
+                            updateFormData(
+                                'digitalAccountNumber',
+                                event.target.value,
+                            )
+                        }
                         error={errors.digitalAccountNumber}
                     />
                     <FloatingLabelInput
@@ -60,7 +81,12 @@ export function DigitalMedia({ formData, updateFormData, errors = {} }: FormPage
                         label="Reference"
                         required
                         value={formData.digitalReference}
-                        onChange={(event) => updateFormData('digitalReference', event.target.value)}
+                        onChange={(event) =>
+                            updateFormData(
+                                'digitalReference',
+                                event.target.value,
+                            )
+                        }
                         error={errors.digitalReference}
                     />
                 </div>
@@ -69,15 +95,22 @@ export function DigitalMedia({ formData, updateFormData, errors = {} }: FormPage
             {formData.digitalGraphicType === 'Other' && (
                 <div>
                     <p className="mb-2 text-xs text-slate-500">
-                        Give us a description of the heart and purpose of your activity to help us conceptualize a
-                        suitable design for you, and include the information you require on this graphic.
+                        Give us a description of the heart and purpose of your
+                        activity to help us conceptualize a suitable design for
+                        you, and include the information you require on this
+                        graphic.
                     </p>
                     <FloatingLabelTextarea
                         id="digital-other-graphic-description"
                         label="Graphic Description"
                         required
                         value={formData.digitalOtherGraphicDescription}
-                        onChange={(event) => updateFormData('digitalOtherGraphicDescription', event.target.value)}
+                        onChange={(event) =>
+                            updateFormData(
+                                'digitalOtherGraphicDescription',
+                                event.target.value,
+                            )
+                        }
                         error={errors.digitalOtherGraphicDescription}
                     />
                 </div>
@@ -91,21 +124,36 @@ export function DigitalMedia({ formData, updateFormData, errors = {} }: FormPage
                     <label className="flex items-center gap-2">
                         <Checkbox
                             checked={formData.digitalFormatWhatsapp}
-                            onCheckedChange={(checked) => updateFormData('digitalFormatWhatsapp', Boolean(checked))}
+                            onCheckedChange={(checked) =>
+                                updateFormData(
+                                    'digitalFormatWhatsapp',
+                                    Boolean(checked),
+                                )
+                            }
                         />
                         <span>Whatsapp (1080x1920p)</span>
                     </label>
                     <label className="flex items-center gap-2">
                         <Checkbox
                             checked={formData.digitalFormatAVSlide}
-                            onCheckedChange={(checked) => updateFormData('digitalFormatAVSlide', Boolean(checked))}
+                            onCheckedChange={(checked) =>
+                                updateFormData(
+                                    'digitalFormatAVSlide',
+                                    Boolean(checked),
+                                )
+                            }
                         />
                         <span>AV Slide (1920x1080p)</span>
                     </label>
                     <label className="flex items-center gap-2">
                         <Checkbox
                             checked={formData.digitalFormatOther}
-                            onCheckedChange={(checked) => updateFormData('digitalFormatOther', Boolean(checked))}
+                            onCheckedChange={(checked) =>
+                                updateFormData(
+                                    'digitalFormatOther',
+                                    Boolean(checked),
+                                )
+                            }
                         />
                         <span>Other</span>
                     </label>
@@ -119,7 +167,12 @@ export function DigitalMedia({ formData, updateFormData, errors = {} }: FormPage
                     label="Describe the format"
                     required
                     value={formData.digitalOtherFormatDescription}
-                    onChange={(event) => updateFormData('digitalOtherFormatDescription', event.target.value)}
+                    onChange={(event) =>
+                        updateFormData(
+                            'digitalOtherFormatDescription',
+                            event.target.value,
+                        )
+                    }
                     error={errors.digitalOtherFormatDescription}
                 />
             )}

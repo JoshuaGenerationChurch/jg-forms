@@ -220,7 +220,10 @@ export interface FormData {
 
 export interface FormPageProps {
     formData: FormData;
-    updateFormData: <K extends keyof FormData>(key: K, value: FormData[K]) => void;
+    updateFormData: <K extends keyof FormData>(
+        key: K,
+        value: FormData[K],
+    ) => void;
     errors?: Record<string, string | undefined>;
 }
 

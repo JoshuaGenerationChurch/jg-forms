@@ -1,4 +1,5 @@
 import { Form, Head, router } from '@inertiajs/react';
+import { Fingerprint } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import InputError from '@/components/input-error';
 import TextLink from '@/components/text-link';
@@ -8,16 +9,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import AuthLayout from '@/layouts/auth-layout';
-import { register } from '@/routes';
-import { store } from '@/routes/login';
-import { request } from '@/routes/password';
 import {
     isWebAuthnSupported,
     isPlatformAuthenticatorAvailable,
     authenticateWithPasskey,
 } from '@/lib/webauthn';
 import { webauthnApi } from '@/lib/webauthn-api';
-import { Fingerprint } from 'lucide-react';
+import { register } from '@/routes';
+import { store } from '@/routes/login';
+import { request } from '@/routes/password';
 
 type Props = {
     status?: string;

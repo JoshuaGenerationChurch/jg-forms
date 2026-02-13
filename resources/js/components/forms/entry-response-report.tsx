@@ -67,7 +67,13 @@ const WORK_REQUEST_SECTION_RULES: Array<{
     },
     {
         title: 'Digital Media',
-        prefixes: ['digital', 'graphicsWhatsApp', 'graphicsInstagram', 'graphicsAVSlide', 'graphicsOther'],
+        prefixes: [
+            'digital',
+            'graphicsWhatsApp',
+            'graphicsInstagram',
+            'graphicsAVSlide',
+            'graphicsOther',
+        ],
     },
     {
         title: 'Print Media',
@@ -208,7 +214,9 @@ function keyValueSummary(value: Record<string, unknown>): string {
             typeof item === 'number' ||
             typeof item === 'boolean'
         ) {
-            selectedLabels.push(`${formatLabel(key)}: ${formatPrimitive(item)}`);
+            selectedLabels.push(
+                `${formatLabel(key)}: ${formatPrimitive(item)}`,
+            );
         }
     }
 
@@ -221,8 +229,8 @@ function formatArray(value: unknown[]): string {
         return '';
     }
 
-    const primitiveValues = meaningfulItems.filter(
-        (item) => ['string', 'number', 'boolean'].includes(typeof item),
+    const primitiveValues = meaningfulItems.filter((item) =>
+        ['string', 'number', 'boolean'].includes(typeof item),
     ) as Array<string | number | boolean>;
 
     if (primitiveValues.length === meaningfulItems.length) {
@@ -268,18 +276,35 @@ function formatValue(value: unknown): string {
     return '';
 }
 
-function buildHolidaySections(payload: Record<string, unknown>): ReportSection[] {
+function buildHolidaySections(
+    payload: Record<string, unknown>,
+): ReportSection[] {
     const sections: ReportSection[] = [];
 
     const serviceTimes = payload.serviceTimes;
-    if (Array.isArray(serviceTimes) && serviceTimes.some((item) => isPlainObject(item))) {
+    if (
+        Array.isArray(serviceTimes) &&
+        serviceTimes.some((item) => isPlainObject(item))
+    ) {
         const rows = serviceTimes
-            .filter((item): item is Record<string, unknown> => isPlainObject(item))
+            .filter((item): item is Record<string, unknown> =>
+                isPlainObject(item),
+            )
             .map((service, index) => {
-                const serviceName = typeof service.serviceName === 'string' ? service.serviceName.trim() : '';
-                const date = typeof service.date === 'string' ? service.date.trim() : '';
-                const startTime = typeof service.startTime === 'string' ? service.startTime.trim() : '';
-                const venue = typeof service.venue === 'string' ? service.venue.trim() : '';
+                const serviceName =
+                    typeof service.serviceName === 'string'
+                        ? service.serviceName.trim()
+                        : '';
+                const date =
+                    typeof service.date === 'string' ? service.date.trim() : '';
+                const startTime =
+                    typeof service.startTime === 'string'
+                        ? service.startTime.trim()
+                        : '';
+                const venue =
+                    typeof service.venue === 'string'
+                        ? service.venue.trim()
+                        : '';
 
                 const value = [
                     serviceName || `Service ${index + 1}`,
@@ -305,7 +330,14 @@ function buildHolidaySections(payload: Record<string, unknown>): ReportSection[]
         }
     }
 
-    const additionalRows = ['congregation', 'firstName', 'lastName', 'email', 'cellphone', 'notes']
+    const additionalRows = [
+        'congregation',
+        'firstName',
+        'lastName',
+        'email',
+        'cellphone',
+        'notes',
+    ]
         .map((key) => ({ key, value: payload[key] }))
         .filter(({ value }) => isMeaningful(value))
         .map(({ key, value }) => ({
@@ -324,7 +356,9 @@ function buildHolidaySections(payload: Record<string, unknown>): ReportSection[]
     return sections;
 }
 
-function buildWorkRequestSections(payload: Record<string, unknown>): ReportSection[] {
+function buildWorkRequestSections(
+    payload: Record<string, unknown>,
+): ReportSection[] {
     const sections: ReportSection[] = [];
     const consumedKeys = new Set<string>();
 
@@ -358,7 +392,9 @@ function buildWorkRequestSections(payload: Record<string, unknown>): ReportSecti
                         return false;
                     }
 
-                    return rule.prefixes?.some((prefix) => key.startsWith(prefix));
+                    return rule.prefixes?.some((prefix) =>
+                        key.startsWith(prefix),
+                    );
                 })
                 .sort(([left], [right]) => left.localeCompare(right));
 
@@ -403,7 +439,10 @@ function buildWorkRequestSections(payload: Record<string, unknown>): ReportSecti
     return sections;
 }
 
-function buildSections(formSlug: string, payload: Record<string, unknown>): ReportSection[] {
+function buildSections(
+    formSlug: string,
+    payload: Record<string, unknown>,
+): ReportSection[] {
     if (formSlug === 'easter-holidays' || formSlug === 'christmas-holidays') {
         return buildHolidaySections(payload);
     }
@@ -415,9 +454,14 @@ function renderRows(rows: Array<{ label: string; value: string }>): ReactNode {
     return (
         <dl className="space-y-2 text-sm">
             {rows.map((row) => (
-                <div key={`${row.label}-${row.value}`} className="flex flex-col gap-1 border-b border-slate-100 pb-2 last:border-b-0 last:pb-0 md:flex-row md:items-start md:justify-between md:gap-4">
+                <div
+                    key={`${row.label}-${row.value}`}
+                    className="flex flex-col gap-1 border-b border-slate-100 pb-2 last:border-b-0 last:pb-0 md:flex-row md:items-start md:justify-between md:gap-4"
+                >
                     <dt className="text-slate-500">{row.label}</dt>
-                    <dd className="max-w-[70%] text-left text-slate-900 md:text-right">{row.value}</dd>
+                    <dd className="max-w-[70%] text-left text-slate-900 md:text-right">
+                        {row.value}
+                    </dd>
                 </div>
             ))}
         </dl>
@@ -428,8 +472,12 @@ export default function EntryResponseReport({ formSlug, payload }: Props) {
     if (!payload || Object.keys(payload).length === 0) {
         return (
             <div className="mt-6 rounded-lg border border-slate-200 p-4">
-                <h2 className="text-sm font-semibold text-slate-900">Responses</h2>
-                <p className="mt-3 text-sm text-slate-500">No response data was captured for this entry.</p>
+                <h2 className="text-sm font-semibold text-slate-900">
+                    Responses
+                </h2>
+                <p className="mt-3 text-sm text-slate-500">
+                    No response data was captured for this entry.
+                </p>
             </div>
         );
     }
@@ -439,8 +487,12 @@ export default function EntryResponseReport({ formSlug, payload }: Props) {
     if (sections.length === 0) {
         return (
             <div className="mt-6 rounded-lg border border-slate-200 p-4">
-                <h2 className="text-sm font-semibold text-slate-900">Responses</h2>
-                <p className="mt-3 text-sm text-slate-500">No filled responses found in this submission.</p>
+                <h2 className="text-sm font-semibold text-slate-900">
+                    Responses
+                </h2>
+                <p className="mt-3 text-sm text-slate-500">
+                    No filled responses found in this submission.
+                </p>
             </div>
         );
     }
@@ -450,8 +502,13 @@ export default function EntryResponseReport({ formSlug, payload }: Props) {
             <h2 className="text-sm font-semibold text-slate-900">Responses</h2>
             <div className="mt-4 space-y-4">
                 {sections.map((section) => (
-                    <div key={section.title} className="rounded-lg border border-slate-200 p-4">
-                        <h3 className="text-sm font-semibold text-slate-900">{section.title}</h3>
+                    <div
+                        key={section.title}
+                        className="rounded-lg border border-slate-200 p-4"
+                    >
+                        <h3 className="text-sm font-semibold text-slate-900">
+                            {section.title}
+                        </h3>
                         <div className="mt-3">{renderRows(section.rows)}</div>
                     </div>
                 ))}

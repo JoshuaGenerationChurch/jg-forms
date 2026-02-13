@@ -28,7 +28,10 @@ function getTimePart(dateTime: string, fallback: string): string {
     return timePart !== '' ? timePart : fallback;
 }
 
-function clampEndDateToStartMonth(startDateTime: string, endDateTime: string): string {
+function clampEndDateToStartMonth(
+    startDateTime: string,
+    endDateTime: string,
+): string {
     const startDate = getDatePart(startDateTime);
     const endDate = getDatePart(endDateTime);
 
@@ -51,7 +54,9 @@ export default function WorkRequestTabs() {
     const [formData, setFormData] = useState<FormData>(initialFormData);
     const [errors, setErrors] = useState<ValidationErrors>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [submitState, setSubmitState] = useState<'idle' | 'success' | 'error'>('idle');
+    const [submitState, setSubmitState] = useState<
+        'idle' | 'success' | 'error'
+    >('idle');
 
     useEffect(() => {
         if (submitState !== 'success') {
@@ -65,98 +70,102 @@ export default function WorkRequestTabs() {
         return () => window.clearTimeout(timeout);
     }, [submitState]);
 
-    const updateFormData = useCallback(<K extends keyof FormData>(key: K, value: FormData[K]) => {
-        if (submitState !== 'idle') {
-            setSubmitState('idle');
-        }
-
-        setFormData((prev) => {
-            const next = { ...prev, [key]: value } as FormData;
-            const requiresDigital = next.includesDatesVenue || next.includesRegistration;
-
-            if (requiresDigital) {
-                next.includesGraphics = true;
-                next.includesGraphicsDigital = true;
+    const updateFormData = useCallback(
+        <K extends keyof FormData>(key: K, value: FormData[K]) => {
+            if (submitState !== 'idle') {
+                setSubmitState('idle');
             }
 
-            if (next.eventStartDate && next.eventEndDate) {
-                next.eventEndDate = clampEndDateToStartMonth(
-                    next.eventStartDate,
-                    next.eventEndDate,
-                );
-            }
+            setFormData((prev) => {
+                const next = { ...prev, [key]: value } as FormData;
+                const requiresDigital =
+                    next.includesDatesVenue || next.includesRegistration;
 
-            return next;
-        });
-
-        // Clear any errors that are related to the updated field.
-        setErrors((prev) => {
-            if (!prev || Object.keys(prev).length === 0) return prev;
-
-            const next: ValidationErrors = { ...prev };
-            delete next[String(key)];
-
-            const prefix = `${String(key)}.`;
-            for (const k of Object.keys(next)) {
-                if (k.startsWith(prefix)) {
-                    delete next[k];
+                if (requiresDigital) {
+                    next.includesGraphics = true;
+                    next.includesGraphicsDigital = true;
                 }
-            }
 
-            // Clear nature-of-request derived errors when toggling request checkboxes.
-            if (String(key).startsWith('includes')) {
-                delete next.natureOfRequest;
-                delete next.graphicsType;
-            }
+                if (next.eventStartDate && next.eventEndDate) {
+                    next.eventEndDate = clampEndDateToStartMonth(
+                        next.eventStartDate,
+                        next.eventEndDate,
+                    );
+                }
 
-            // Clear Digital Media derived error when any digital field changes.
-            if (String(key).startsWith('digital')) {
-                delete next.digitalFormats;
-            }
+                return next;
+            });
 
-            const isSignageField =
-                String(key).startsWith('signage') ||
-                String(key).startsWith('sharkfin') ||
-                String(key).startsWith('temporaryFence') ||
-                String(key).startsWith('toilets') ||
-                String(key).startsWith('moms') ||
-                String(key).startsWith('toddlers') ||
-                String(key).startsWith('firstAid') ||
-                String(key).startsWith('internal') ||
-                String(key).startsWith('external') ||
-                String(key).startsWith('sandwichBoards') ||
-                String(key).startsWith('permanentExternalBuildingSigns') ||
-                String(key).startsWith('otherSignage');
+            // Clear any errors that are related to the updated field.
+            setErrors((prev) => {
+                if (!prev || Object.keys(prev).length === 0) return prev;
 
-            if (isSignageField) {
-                delete next.signageSelection;
-            }
+                const next: ValidationErrors = { ...prev };
+                delete next[String(key)];
 
-            if (String(key) === 'signageScope') {
-                delete next.signageHubs;
-                delete next.signageCongregations;
-            }
+                const prefix = `${String(key)}.`;
+                for (const k of Object.keys(next)) {
+                    if (k.startsWith(prefix)) {
+                        delete next[k];
+                    }
+                }
 
-            if (String(key) === 'printScope') {
-                delete next.printHubs;
-                delete next.printCongregations;
-            }
+                // Clear nature-of-request derived errors when toggling request checkboxes.
+                if (String(key).startsWith('includes')) {
+                    delete next.natureOfRequest;
+                    delete next.graphicsType;
+                }
 
-            if (String(key) === 'printTypes') {
-                delete next.printA5Qty;
-                delete next.printA6Qty;
-                delete next.printA3Qty;
-                delete next.printA4Qty;
-                delete next.printCardsQty;
-                delete next.printCoffeeCupSleevesQty;
-                delete next.printVisitorCoffeeVoucherCardQty;
-                delete next.printOther;
-                delete next.printOtherQty;
-            }
+                // Clear Digital Media derived error when any digital field changes.
+                if (String(key).startsWith('digital')) {
+                    delete next.digitalFormats;
+                }
 
-            return next;
-        });
-    }, [submitState]);
+                const isSignageField =
+                    String(key).startsWith('signage') ||
+                    String(key).startsWith('sharkfin') ||
+                    String(key).startsWith('temporaryFence') ||
+                    String(key).startsWith('toilets') ||
+                    String(key).startsWith('moms') ||
+                    String(key).startsWith('toddlers') ||
+                    String(key).startsWith('firstAid') ||
+                    String(key).startsWith('internal') ||
+                    String(key).startsWith('external') ||
+                    String(key).startsWith('sandwichBoards') ||
+                    String(key).startsWith('permanentExternalBuildingSigns') ||
+                    String(key).startsWith('otherSignage');
+
+                if (isSignageField) {
+                    delete next.signageSelection;
+                }
+
+                if (String(key) === 'signageScope') {
+                    delete next.signageHubs;
+                    delete next.signageCongregations;
+                }
+
+                if (String(key) === 'printScope') {
+                    delete next.printHubs;
+                    delete next.printCongregations;
+                }
+
+                if (String(key) === 'printTypes') {
+                    delete next.printA5Qty;
+                    delete next.printA6Qty;
+                    delete next.printA3Qty;
+                    delete next.printA4Qty;
+                    delete next.printCardsQty;
+                    delete next.printCoffeeCupSleevesQty;
+                    delete next.printVisitorCoffeeVoucherCardQty;
+                    delete next.printOther;
+                    delete next.printOtherQty;
+                }
+
+                return next;
+            });
+        },
+        [submitState],
+    );
 
     // Determine which pages should be visible based on form data
     const visiblePages = useMemo(() => {
@@ -190,39 +199,79 @@ export default function WorkRequestTabs() {
             {
                 id: 'contact',
                 title: 'Contact Details',
-                content: <ContactDetails formData={formData} updateFormData={updateFormData} errors={errors} />,
+                content: (
+                    <ContactDetails
+                        formData={formData}
+                        updateFormData={updateFormData}
+                        errors={errors}
+                    />
+                ),
             },
             {
                 id: 'nature',
                 title: 'Request',
-                content: <NatureOfRequest formData={formData} updateFormData={updateFormData} errors={errors} />,
+                content: (
+                    <NatureOfRequest
+                        formData={formData}
+                        updateFormData={updateFormData}
+                        errors={errors}
+                    />
+                ),
             },
             {
                 id: 'event',
                 title: 'Event Details',
-                content: <EventDetails formData={formData} updateFormData={updateFormData} errors={errors} />,
+                content: (
+                    <EventDetails
+                        formData={formData}
+                        updateFormData={updateFormData}
+                        errors={errors}
+                    />
+                ),
             },
             {
                 id: 'quicket',
                 title: 'Event Registration',
                 content: (
-                    <EventRegistration formData={formData} updateFormData={updateFormData} errors={errors} />
+                    <EventRegistration
+                        formData={formData}
+                        updateFormData={updateFormData}
+                        errors={errors}
+                    />
                 ),
             },
             {
                 id: 'digital',
                 title: 'Digital Media',
-                content: <DigitalMedia formData={formData} updateFormData={updateFormData} errors={errors} />,
+                content: (
+                    <DigitalMedia
+                        formData={formData}
+                        updateFormData={updateFormData}
+                        errors={errors}
+                    />
+                ),
             },
             {
                 id: 'signage',
                 title: 'Signage',
-                content: <Signage formData={formData} updateFormData={updateFormData} errors={errors} />,
+                content: (
+                    <Signage
+                        formData={formData}
+                        updateFormData={updateFormData}
+                        errors={errors}
+                    />
+                ),
             },
             {
                 id: 'print',
                 title: 'Print Media',
-                content: <PrintMedia formData={formData} updateFormData={updateFormData} errors={errors} />,
+                content: (
+                    <PrintMedia
+                        formData={formData}
+                        updateFormData={updateFormData}
+                        errors={errors}
+                    />
+                ),
             },
         ];
 
@@ -331,7 +380,10 @@ export default function WorkRequestTabs() {
         setStepIndex((index) => Math.max(0, index - 1));
     }, []);
 
-    const stepperSteps = useMemo(() => steps.map(({ id, title }) => ({ id, title })), [steps]);
+    const stepperSteps = useMemo(
+        () => steps.map(({ id, title }) => ({ id, title })),
+        [steps],
+    );
 
     return (
         <>
@@ -350,10 +402,12 @@ export default function WorkRequestTabs() {
                     <div className="mx-auto w-full max-w-5xl py-8">
                         <div className="rounded-md border border-slate-200 bg-white p-8 shadow-sm">
                             <div>
-                                <h1 className="text-2xl font-semibold text-slate-900">Work Request Form</h1>
+                                <h1 className="text-2xl font-semibold text-slate-900">
+                                    Work Request Form
+                                </h1>
                                 <p className="mt-1 text-sm text-slate-500">
-                                    Tab navigation enabled (gated). You can move forward only after completing earlier
-                                    steps.
+                                    Tab navigation enabled (gated). You can move
+                                    forward only after completing earlier steps.
                                 </p>
                                 {submitState === 'success' ? (
                                     <p className="mt-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
@@ -362,7 +416,8 @@ export default function WorkRequestTabs() {
                                 ) : null}
                                 {submitState === 'error' ? (
                                     <p className="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-                                        We could not submit your request. Please review the form and try again.
+                                        We could not submit your request. Please
+                                        review the form and try again.
                                     </p>
                                 ) : null}
                                 <WorkRequestTabStepper
@@ -388,14 +443,30 @@ export default function WorkRequestTabs() {
                                         </Link>
                                     </Button>
                                     {safeStepIndex > 0 && (
-                                        <Button variant="outline" type="button" onClick={handlePrevious}>
+                                        <Button
+                                            variant="outline"
+                                            type="button"
+                                            onClick={handlePrevious}
+                                        >
                                             Previous
                                         </Button>
                                     )}
                                 </div>
                                 <div className="flex flex-wrap items-center gap-3">
-                                    <Button type="button" onClick={isLastStep ? handleSubmit : handleNext} disabled={isSubmitting}>
-                                        {isLastStep ? (isSubmitting ? 'Submitting...' : 'Submit Request') : 'Next'}
+                                    <Button
+                                        type="button"
+                                        onClick={
+                                            isLastStep
+                                                ? handleSubmit
+                                                : handleNext
+                                        }
+                                        disabled={isSubmitting}
+                                    >
+                                        {isLastStep
+                                            ? isSubmitting
+                                                ? 'Submitting...'
+                                                : 'Submit Request'
+                                            : 'Next'}
                                     </Button>
                                     <Button variant="outline" type="button">
                                         <Save className="size-4" />

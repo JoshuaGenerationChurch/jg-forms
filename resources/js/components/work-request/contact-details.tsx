@@ -1,9 +1,18 @@
 import { Label } from '@/components/ui/label';
-import { FloatingLabelInput, FieldError, Required, SectionHeader } from './form-components';
+import {
+    FloatingLabelInput,
+    FieldError,
+    Required,
+    SectionHeader,
+} from './form-components';
 import { congregationOptions, selectBase } from './types';
 import type { FormPageProps } from './types';
 
-export function ContactDetails({ formData, updateFormData, errors = {} }: FormPageProps) {
+export function ContactDetails({
+    formData,
+    updateFormData,
+    errors = {},
+}: FormPageProps) {
     return (
         <div className="space-y-6">
             <SectionHeader title="Contact Details" />
@@ -14,7 +23,9 @@ export function ContactDetails({ formData, updateFormData, errors = {} }: FormPa
                     required
                     autoComplete="given-name"
                     value={formData.firstName}
-                    onChange={(e) => updateFormData('firstName', e.target.value)}
+                    onChange={(e) =>
+                        updateFormData('firstName', e.target.value)
+                    }
                     error={errors.firstName}
                 />
 
@@ -36,7 +47,9 @@ export function ContactDetails({ formData, updateFormData, errors = {} }: FormPa
                     inputMode="tel"
                     autoComplete="tel"
                     value={formData.cellphone}
-                    onChange={(e) => updateFormData('cellphone', e.target.value)}
+                    onChange={(e) =>
+                        updateFormData('cellphone', e.target.value)
+                    }
                     error={errors.cellphone}
                 />
 
@@ -52,7 +65,10 @@ export function ContactDetails({ formData, updateFormData, errors = {} }: FormPa
                 />
 
                 <div>
-                    <Label htmlFor="congregation" className="text-sm font-medium text-slate-700">
+                    <Label
+                        htmlFor="congregation"
+                        className="text-sm font-medium text-slate-700"
+                    >
                         Your Congregation <Required />
                     </Label>
                     <select
@@ -60,7 +76,9 @@ export function ContactDetails({ formData, updateFormData, errors = {} }: FormPa
                         aria-invalid={Boolean(errors.congregation)}
                         className={`${selectBase} ${errors.congregation ? 'border-red-500' : ''}`}
                         value={formData.congregation}
-                        onChange={(e) => updateFormData('congregation', e.target.value)}
+                        onChange={(e) =>
+                            updateFormData('congregation', e.target.value)
+                        }
                     >
                         <option value="">Select an Option</option>
                         {congregationOptions.map((cong) => (

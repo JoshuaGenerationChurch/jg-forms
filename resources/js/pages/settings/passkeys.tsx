@@ -1,12 +1,12 @@
 import { Head, router } from '@inertiajs/react';
+import { formatDistanceToNow } from 'date-fns';
+import { Fingerprint, Trash2, Smartphone, Monitor } from 'lucide-react';
 import { useState } from 'react';
+import PasskeyRegistration from '@/components/passkey-registration';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
-import PasskeyRegistration from '@/components/passkey-registration';
 import { webauthnApi } from '@/lib/webauthn-api';
 import type { WebAuthnCredential } from '@/types/webauthn';
-import { Fingerprint, Trash2, Smartphone, Monitor } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
 
 type Props = {
     credentials: WebAuthnCredential[];

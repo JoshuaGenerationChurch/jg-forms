@@ -41,8 +41,8 @@ export function FloatingLabelInput({
                     placeholder=" "
                     aria-invalid={invalid}
                     className={cn(
-                        'peer block w-full rounded-lg border-2 bg-slate-100/50 px-4 pb-3 pt-5 text-sm text-slate-900 shadow-sm transition',
-                        'placeholder-transparent focus-visible:outline-none focus-visible:ring-1',
+                        'peer block w-full rounded-lg border-2 bg-slate-100/50 px-4 pt-5 pb-3 text-sm text-slate-900 shadow-sm transition',
+                        'placeholder-transparent focus-visible:ring-1 focus-visible:outline-none',
                         invalid
                             ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500'
                             : 'border-slate-200 focus-visible:border-blue-400 focus-visible:ring-blue-400',
@@ -54,7 +54,7 @@ export function FloatingLabelInput({
                 <label
                     htmlFor={id}
                     className={cn(
-                        'pointer-events-none absolute left-4 top-0 -translate-y-1/2 rounded px-1 text-xs font-semibold transition-all duration-200',
+                        'pointer-events-none absolute top-0 left-4 -translate-y-1/2 rounded px-1 text-xs font-semibold transition-all duration-200',
                         invalid ? 'text-red-600' : 'text-blue-600',
                         labelBackgroundClassName ?? 'bg-white',
                         'peer-[&:placeholder-shown:not(:focus)]:top-1/2',
@@ -103,8 +103,8 @@ export function FloatingLabelTextarea({
                     placeholder=" "
                     aria-invalid={invalid}
                     className={cn(
-                        'peer block min-h-[120px] w-full resize-y rounded-lg border-2 bg-slate-100/50 px-4 pb-3 pt-6 text-sm text-slate-900 shadow-sm transition',
-                        'placeholder-transparent focus-visible:outline-none focus-visible:ring-1',
+                        'peer block min-h-[120px] w-full resize-y rounded-lg border-2 bg-slate-100/50 px-4 pt-6 pb-3 text-sm text-slate-900 shadow-sm transition',
+                        'placeholder-transparent focus-visible:ring-1 focus-visible:outline-none',
                         invalid
                             ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500'
                             : 'border-slate-200 focus-visible:border-blue-400 focus-visible:ring-blue-400',
@@ -116,7 +116,7 @@ export function FloatingLabelTextarea({
                 <label
                     htmlFor={id}
                     className={cn(
-                        'pointer-events-none absolute left-4 top-0 -translate-y-1/2 rounded px-1 text-xs font-semibold transition-all duration-200',
+                        'pointer-events-none absolute top-0 left-4 -translate-y-1/2 rounded px-1 text-xs font-semibold transition-all duration-200',
                         invalid ? 'text-red-600' : 'text-blue-600',
                         labelBackgroundClassName ?? 'bg-white',
                         'peer-[&:placeholder-shown:not(:focus)]:top-4',
@@ -157,7 +157,9 @@ export function ErrorSummary({
 }) {
     if (!errors) return null;
 
-    const messages = Object.values(errors).filter((m): m is string => Boolean(m));
+    const messages = Object.values(errors).filter((m): m is string =>
+        Boolean(m),
+    );
     const uniqueMessages = Array.from(new Set(messages));
 
     if (uniqueMessages.length === 0) return null;
@@ -205,7 +207,11 @@ export function RadioGroup({
             <div
                 className={cn(
                     'mt-2 grid gap-2',
-                    columns === 2 ? 'grid-cols-2' : columns === 3 ? 'grid-cols-3' : 'grid-cols-1',
+                    columns === 2
+                        ? 'grid-cols-2'
+                        : columns === 3
+                          ? 'grid-cols-3'
+                          : 'grid-cols-1',
                 )}
             >
                 {options.map((option, index) => {
@@ -228,12 +234,14 @@ export function RadioGroup({
                                 className={cn(
                                     'relative flex cursor-pointer items-center rounded-lg border-2 border-slate-200 bg-slate-100/50 px-4 py-3 pl-11 text-sm shadow-sm transition',
                                     'text-slate-700 hover:border-slate-300',
-                                    "before:absolute before:left-4 before:top-1/2 before:h-5 before:w-5 before:-translate-y-1/2 before:rounded-full before:border-2 before:border-slate-300 before:bg-white before:content-['']",
-                                    "after:absolute after:left-4 after:top-1/2 after:h-2 after:w-2 after:-translate-y-1/2 after:translate-x-[6px] after:rounded-full after:bg-white after:opacity-0 after:content-['']",
-                                    'peer-checked:border-blue-400 peer-checked:bg-white peer-checked:text-slate-900 peer-checked:font-semibold',
+                                    "before:absolute before:top-1/2 before:left-4 before:h-5 before:w-5 before:-translate-y-1/2 before:rounded-full before:border-2 before:border-slate-300 before:bg-white before:content-['']",
+                                    "after:absolute after:top-1/2 after:left-4 after:h-2 after:w-2 after:translate-x-[6px] after:-translate-y-1/2 after:rounded-full after:bg-white after:opacity-0 after:content-['']",
+                                    'peer-checked:border-blue-400 peer-checked:bg-white peer-checked:font-semibold peer-checked:text-slate-900',
                                     'peer-checked:before:border-blue-600 peer-checked:before:bg-blue-600 peer-checked:after:opacity-100',
                                     'peer-focus-visible:ring-1 peer-focus-visible:ring-blue-400',
-                                    invalid && !checked && 'border-red-500 before:border-red-500',
+                                    invalid &&
+                                        !checked &&
+                                        'border-red-500 before:border-red-500',
                                 )}
                             >
                                 {option}

@@ -1,8 +1,18 @@
 import { useEffect, useState } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
-import { FieldError, FloatingLabelInput, Required, SectionHeader } from './form-components';
-import { congregationOptions, hubOptions, printTypeOptions, selectBase } from './types';
+import {
+    FieldError,
+    FloatingLabelInput,
+    Required,
+    SectionHeader,
+} from './form-components';
+import {
+    congregationOptions,
+    hubOptions,
+    printTypeOptions,
+    selectBase,
+} from './types';
 import type { FormPageProps } from './types';
 
 type DirectoryResponse = {
@@ -25,11 +35,18 @@ const sanitizeList = (values: unknown): string[] => {
     return Array.from(new Set(cleanValues));
 };
 
-export function PrintMedia({ formData, updateFormData, errors = {} }: FormPageProps) {
+export function PrintMedia({
+    formData,
+    updateFormData,
+    errors = {},
+}: FormPageProps) {
     const [availableHubs, setAvailableHubs] = useState<string[]>(hubOptions);
-    const [availableCongregations, setAvailableCongregations] = useState<string[]>(congregationOptions);
+    const [availableCongregations, setAvailableCongregations] =
+        useState<string[]>(congregationOptions);
     const [isLoadingDirectory, setIsLoadingDirectory] = useState(false);
-    const [directoryWarning, setDirectoryWarning] = useState<string | null>(null);
+    const [directoryWarning, setDirectoryWarning] = useState<string | null>(
+        null,
+    );
 
     useEffect(() => {
         let cancelled = false;
@@ -39,14 +56,19 @@ export function PrintMedia({ formData, updateFormData, errors = {} }: FormPagePr
             setDirectoryWarning(null);
 
             try {
-                const response = await fetch('/work-request/digital-media-options', {
-                    headers: {
-                        Accept: 'application/json',
+                const response = await fetch(
+                    '/work-request/digital-media-options',
+                    {
+                        headers: {
+                            Accept: 'application/json',
+                        },
                     },
-                });
+                );
 
                 if (!response.ok) {
-                    throw new Error(`Failed to load options: ${response.status}`);
+                    throw new Error(
+                        `Failed to load options: ${response.status}`,
+                    );
                 }
 
                 const payload = (await response.json()) as DirectoryResponse;
@@ -66,11 +88,15 @@ export function PrintMedia({ formData, updateFormData, errors = {} }: FormPagePr
                 }
 
                 if (hubs.length === 0 || congregations.length === 0) {
-                    setDirectoryWarning('Using local fallback options while JG API data is unavailable.');
+                    setDirectoryWarning(
+                        'Using local fallback options while JG API data is unavailable.',
+                    );
                 }
             } catch {
                 if (!cancelled) {
-                    setDirectoryWarning('Could not load JG API options. Using local fallback options.');
+                    setDirectoryWarning(
+                        'Could not load JG API options. Using local fallback options.',
+                    );
                 }
             } finally {
                 if (!cancelled) {
@@ -86,11 +112,18 @@ export function PrintMedia({ formData, updateFormData, errors = {} }: FormPagePr
         };
     }, []);
 
-    const toggleSelection = (field: MultiSelectField, option: string, checked: boolean) => {
+    const toggleSelection = (
+        field: MultiSelectField,
+        option: string,
+        checked: boolean,
+    ) => {
         const currentValues = formData[field];
 
         if (checked) {
-            updateFormData(field, Array.from(new Set([...currentValues, option])));
+            updateFormData(
+                field,
+                Array.from(new Set([...currentValues, option])),
+            );
             return;
         }
 
@@ -111,7 +144,9 @@ export function PrintMedia({ formData, updateFormData, errors = {} }: FormPagePr
                         type="number"
                         inputMode="numeric"
                         value={formData.printA5Qty}
-                        onChange={(e) => updateFormData('printA5Qty', e.target.value)}
+                        onChange={(e) =>
+                            updateFormData('printA5Qty', e.target.value)
+                        }
                         error={errors.printA5Qty}
                     />
                 );
@@ -124,7 +159,9 @@ export function PrintMedia({ formData, updateFormData, errors = {} }: FormPagePr
                         type="number"
                         inputMode="numeric"
                         value={formData.printA6Qty}
-                        onChange={(e) => updateFormData('printA6Qty', e.target.value)}
+                        onChange={(e) =>
+                            updateFormData('printA6Qty', e.target.value)
+                        }
                         error={errors.printA6Qty}
                     />
                 );
@@ -137,7 +174,9 @@ export function PrintMedia({ formData, updateFormData, errors = {} }: FormPagePr
                         type="number"
                         inputMode="numeric"
                         value={formData.printA3Qty}
-                        onChange={(e) => updateFormData('printA3Qty', e.target.value)}
+                        onChange={(e) =>
+                            updateFormData('printA3Qty', e.target.value)
+                        }
                         error={errors.printA3Qty}
                     />
                 );
@@ -150,7 +189,9 @@ export function PrintMedia({ formData, updateFormData, errors = {} }: FormPagePr
                         type="number"
                         inputMode="numeric"
                         value={formData.printA4Qty}
-                        onChange={(e) => updateFormData('printA4Qty', e.target.value)}
+                        onChange={(e) =>
+                            updateFormData('printA4Qty', e.target.value)
+                        }
                         error={errors.printA4Qty}
                     />
                 );
@@ -163,7 +204,9 @@ export function PrintMedia({ formData, updateFormData, errors = {} }: FormPagePr
                         type="number"
                         inputMode="numeric"
                         value={formData.printCardsQty}
-                        onChange={(e) => updateFormData('printCardsQty', e.target.value)}
+                        onChange={(e) =>
+                            updateFormData('printCardsQty', e.target.value)
+                        }
                         error={errors.printCardsQty}
                     />
                 );
@@ -176,7 +219,12 @@ export function PrintMedia({ formData, updateFormData, errors = {} }: FormPagePr
                         type="number"
                         inputMode="numeric"
                         value={formData.printCoffeeCupSleevesQty}
-                        onChange={(e) => updateFormData('printCoffeeCupSleevesQty', e.target.value)}
+                        onChange={(e) =>
+                            updateFormData(
+                                'printCoffeeCupSleevesQty',
+                                e.target.value,
+                            )
+                        }
                         error={errors.printCoffeeCupSleevesQty}
                     />
                 );
@@ -189,7 +237,12 @@ export function PrintMedia({ formData, updateFormData, errors = {} }: FormPagePr
                         type="number"
                         inputMode="numeric"
                         value={formData.printVisitorCoffeeVoucherCardQty}
-                        onChange={(e) => updateFormData('printVisitorCoffeeVoucherCardQty', e.target.value)}
+                        onChange={(e) =>
+                            updateFormData(
+                                'printVisitorCoffeeVoucherCardQty',
+                                e.target.value,
+                            )
+                        }
                         error={errors.printVisitorCoffeeVoucherCardQty}
                     />
                 );
@@ -203,7 +256,10 @@ export function PrintMedia({ formData, updateFormData, errors = {} }: FormPagePr
             <SectionHeader title="Print Media Details" />
 
             <div>
-                <Label htmlFor="print-scope" className="text-sm font-medium text-slate-700">
+                <Label
+                    htmlFor="print-scope"
+                    className="text-sm font-medium text-slate-700"
+                >
                     Scope <Required />
                 </Label>
                 <select
@@ -243,10 +299,19 @@ export function PrintMedia({ formData, updateFormData, errors = {} }: FormPagePr
                     </Label>
                     <div className="mt-2 grid gap-2 text-sm text-slate-700 md:grid-cols-2">
                         {availableHubs.map((hub) => (
-                            <label key={hub} className="flex items-center gap-2">
+                            <label
+                                key={hub}
+                                className="flex items-center gap-2"
+                            >
                                 <Checkbox
                                     checked={formData.printHubs.includes(hub)}
-                                    onCheckedChange={(checked) => toggleSelection('printHubs', hub, Boolean(checked))}
+                                    onCheckedChange={(checked) =>
+                                        toggleSelection(
+                                            'printHubs',
+                                            hub,
+                                            Boolean(checked),
+                                        )
+                                    }
                                 />
                                 <span>{hub}</span>
                             </label>
@@ -263,11 +328,20 @@ export function PrintMedia({ formData, updateFormData, errors = {} }: FormPagePr
                     </Label>
                     <div className="mt-2 grid gap-2 text-sm text-slate-700 md:grid-cols-2">
                         {availableCongregations.map((congregation) => (
-                            <label key={congregation} className="flex items-center gap-2">
+                            <label
+                                key={congregation}
+                                className="flex items-center gap-2"
+                            >
                                 <Checkbox
-                                    checked={formData.printCongregations.includes(congregation)}
+                                    checked={formData.printCongregations.includes(
+                                        congregation,
+                                    )}
                                     onCheckedChange={(checked) =>
-                                        toggleSelection('printCongregations', congregation, Boolean(checked))
+                                        toggleSelection(
+                                            'printCongregations',
+                                            congregation,
+                                            Boolean(checked),
+                                        )
                                     }
                                 />
                                 <span>{congregation}</span>
@@ -280,7 +354,9 @@ export function PrintMedia({ formData, updateFormData, errors = {} }: FormPagePr
 
             {(isLoadingDirectory || directoryWarning) && (
                 <p className="text-xs text-slate-500">
-                    {isLoadingDirectory ? 'Loading JG directory options...' : directoryWarning}
+                    {isLoadingDirectory
+                        ? 'Loading JG directory options...'
+                        : directoryWarning}
                 </p>
             )}
 
@@ -291,7 +367,9 @@ export function PrintMedia({ formData, updateFormData, errors = {} }: FormPagePr
                 <div className="mt-2 space-y-2 text-sm text-slate-700">
                     {printTypeOptions.map((type) => {
                         const isSelected = formData.printTypes.includes(type);
-                        const quantityField = isSelected ? renderQuantityField(type) : null;
+                        const quantityField = isSelected
+                            ? renderQuantityField(type)
+                            : null;
 
                         return (
                             <div key={type} className="space-y-2">
@@ -300,18 +378,25 @@ export function PrintMedia({ formData, updateFormData, errors = {} }: FormPagePr
                                         checked={isSelected}
                                         onCheckedChange={(checked) => {
                                             if (checked) {
-                                                updateFormData('printTypes', [...formData.printTypes, type]);
+                                                updateFormData('printTypes', [
+                                                    ...formData.printTypes,
+                                                    type,
+                                                ]);
                                             } else {
                                                 updateFormData(
                                                     'printTypes',
-                                                    formData.printTypes.filter((t) => t !== type),
+                                                    formData.printTypes.filter(
+                                                        (t) => t !== type,
+                                                    ),
                                                 );
                                             }
                                         }}
                                     />
                                     <span>{type}</span>
                                 </label>
-                                {quantityField ? <div className="pl-6">{quantityField}</div> : null}
+                                {quantityField ? (
+                                    <div className="pl-6">{quantityField}</div>
+                                ) : null}
                             </div>
                         );
                     })}
@@ -326,15 +411,25 @@ export function PrintMedia({ formData, updateFormData, errors = {} }: FormPagePr
                 <label className="mt-2 flex items-center gap-2 text-sm text-slate-700">
                     <Checkbox
                         checked={formData.termsAccepted}
-                        onCheckedChange={(checked) => updateFormData('termsAccepted', checked as boolean)}
+                        onCheckedChange={(checked) =>
+                            updateFormData('termsAccepted', checked as boolean)
+                        }
                     />
                     <span>
                         I agree to the{' '}
-                        <a href="/terms-conditions/" target="_blank" className="text-blue-600 hover:underline">
+                        <a
+                            href="/terms-conditions/"
+                            target="_blank"
+                            className="text-blue-600 hover:underline"
+                        >
                             Ts & Cs
                         </a>{' '}
                         and the{' '}
-                        <a href="/privacy-policy" target="_blank" className="text-blue-600 hover:underline">
+                        <a
+                            href="/privacy-policy"
+                            target="_blank"
+                            className="text-blue-600 hover:underline"
+                        >
                             Privacy Policy
                         </a>
                     </span>

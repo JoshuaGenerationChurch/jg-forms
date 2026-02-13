@@ -127,7 +127,10 @@ export default function AdminFormEntryEdit({ form, entry }: Props) {
                                         id="entry-last-name"
                                         value={data.lastName}
                                         onChange={(event) =>
-                                            setData('lastName', event.target.value)
+                                            setData(
+                                                'lastName',
+                                                event.target.value,
+                                            )
                                         }
                                     />
                                     {errors.lastName ? (
@@ -247,7 +250,10 @@ export default function AdminFormEntryEdit({ form, entry }: Props) {
                                     rows={16}
                                     value={data.payloadJson}
                                     onChange={(event) =>
-                                        setData('payloadJson', event.target.value)
+                                        setData(
+                                            'payloadJson',
+                                            event.target.value,
+                                        )
                                     }
                                 />
                                 {errors.payloadJson ? (
