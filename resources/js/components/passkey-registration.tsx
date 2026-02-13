@@ -43,9 +43,9 @@ export default function PasskeyRegistration({ onSuccess }: Props) {
         try {
             // Get registration options from server
             const optionsResponse = await fetch(
-                WebauthnController.registerOptions.form().url,
+                webauthnApi.registerOptions.url,
                 {
-                    method: WebauthnController.registerOptions.form().method,
+                    method: webauthnApi.registerOptions.method,
                     headers: {
                         'Content-Type': 'application/json',
                         'X-Requested-With': 'XMLHttpRequest',
