@@ -11,12 +11,12 @@ import AuthLayout from '@/layouts/auth-layout';
 import { register } from '@/routes';
 import { store } from '@/routes/login';
 import { request } from '@/routes/password';
-import * as WebauthnController from '@/actions/LaravelWebauthn/Http/Controllers/WebauthnController';
 import {
     isWebAuthnSupported,
     isPlatformAuthenticatorAvailable,
     authenticateWithPasskey,
 } from '@/lib/webauthn';
+import { webauthnApi } from '@/lib/webauthn-api';
 import { Fingerprint } from 'lucide-react';
 
 type Props = {
