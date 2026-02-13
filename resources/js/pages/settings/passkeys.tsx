@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
 import PasskeyRegistration from '@/components/passkey-registration';
-import * as WebauthnController from '@/actions/LaravelWebauthn/Http/Controllers/WebauthnController';
+import { webauthnApi } from '@/lib/webauthn-api';
 import type { WebAuthnCredential } from '@/types/webauthn';
 import { Fingerprint, Trash2, Smartphone, Monitor } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -23,16 +23,13 @@ export default function Passkeys({ credentials }: Props) {
         setDeletingId(id);
 
         try {
-            const response = await fetch(
-                WebauthnController.destroy(id).form().url,
-                {
-                    method: WebauthnController.destroy(id).form().method,
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest',
-                    },
-                }
-            );
+            const response = await fetch(webauthnApi.destroy(id).url, {
+                method: webauthnApi.destroy(id).method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            });
 
             if (response.ok) {
                 router.reload();
@@ -48,7 +45,10 @@ export default function Passkeys({ credentials }: Props) {
     };
 
     const getIcon = (type: string) => {
-        if (type.toLowerCase().includes('mobile') || type.toLowerCase().includes('phone')) {
+        if (
+            type.toLowerCase().includes('mobile') ||
+            type.toLowerCase().includes('phone')
+        ) {
             return <Smartphone className="h-5 w-5" />;
         }
         return <Monitor className="h-5 w-5" />;
@@ -81,9 +81,7 @@ export default function Passkeys({ credentials }: Props) {
 
                 <div className="space-y-4">
                     <div>
-                        <h2 className="text-xl font-semibold">
-                            Your Passkeys
-                        </h2>
+                        <h2 className="text-xl font-semibold">Your Passkeys</h2>
                         <p className="mt-1 text-sm text-muted-foreground">
                             {credentials.length === 0
                                 ? 'No passkeys registered yet'
@@ -119,9 +117,9 @@ export default function Passkeys({ credentials }: Props) {
                                                     Added{' '}
                                                     {formatDistanceToNow(
                                                         new Date(
-                                                            credential.created_at
+                                                            credential.created_at,
                                                         ),
-                                                        { addSuffix: true }
+                                                        { addSuffix: true },
                                                     )}
                                                 </p>
                                                 {credential.last_used_at && (
@@ -129,9 +127,9 @@ export default function Passkeys({ credentials }: Props) {
                                                         Last used{' '}
                                                         {formatDistanceToNow(
                                                             new Date(
-                                                                credential.last_used_at
+                                                                credential.last_used_at,
                                                             ),
-                                                            { addSuffix: true }
+                                                            { addSuffix: true },
                                                         )}
                                                     </p>
                                                 )}
@@ -145,9 +143,7 @@ export default function Passkeys({ credentials }: Props) {
                                         onClick={() =>
                                             handleDelete(credential.id)
                                         }
-                                        disabled={
-                                            deletingId === credential.id
-                                        }
+                                        disabled={deletingId === credential.id}
                                     >
                                         {deletingId === credential.id ? (
                                             <Spinner className="h-4 w-4" />
@@ -170,8 +166,7 @@ export default function Passkeys({ credentials }: Props) {
                         phished
                     </li>
                     <li>
-                        • Each passkey is unique to this website and your
-                        device
+                        • Each passkey is unique to this website and your device
                     </li>
                     <li>
                         • You can register multiple passkeys for different

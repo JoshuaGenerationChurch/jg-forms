@@ -63,20 +63,17 @@ export default function PasskeyRegistration({ onSuccess }: Props) {
             const credential = await registerPasskey(options);
 
             // Send to server
-            const response = await fetch(
-                WebauthnController.register.form().url,
-                {
-                    method: WebauthnController.register.form().method,
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest',
-                    },
-                    body: JSON.stringify({
-                        ...credential,
-                        name: deviceName || 'My Device',
-                    }),
+            const response = await fetch(webauthnApi.register.url, {
+                method: webauthnApi.register.method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
                 },
-            );
+                body: JSON.stringify({
+                    ...credential,
+                    name: deviceName || 'My Device',
+                }),
+            });
 
             if (response.ok) {
                 setSuccess(true);
