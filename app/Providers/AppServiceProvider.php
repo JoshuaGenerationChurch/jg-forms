@@ -2,11 +2,13 @@
 
 namespace App\Providers;
 
+use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use LaravelWebauthn\Facades\Webauthn;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -24,6 +26,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+        $this->configureWebauthn();
     }
 
     protected function configureDefaults(): void
@@ -43,5 +46,26 @@ class AppServiceProvider extends ServiceProvider
                 ->uncompromised()
             : null
         );
+    }
+
+    protected function configureWebauthn(): void
+    {
+        // Enable userless login - find user by credential's userHandle
+        Webauthn::authenticateUsing(function ($request) {
+            if (config('webauthn.userless')) {
+                // Get the userHandle from the credential response
+                $userHandle = $request->input('response.userHandle');
+
+                if ($userHandle) {
+                    // Decode base64url userHandle to get user ID
+                    $userId = base64_decode(strtr($userHandle, '-_', '+/'));
+
+                    // Find and return the user
+                    return User::find($userId);
+                }
+            }
+
+            return null;
+        });
     }
 }
