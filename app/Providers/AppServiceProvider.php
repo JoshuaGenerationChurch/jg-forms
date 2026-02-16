@@ -50,6 +50,9 @@ class AppServiceProvider extends ServiceProvider
 
     protected function configureWebauthn(): void
     {
+        // Disable automatic route registration (we define routes manually in web.php)
+        Webauthn::ignoreRoutes();
+
         // Enable userless login - find user by credential's userHandle
         Webauthn::authenticateUsing(function ($request) {
             if (config('webauthn.userless')) {
