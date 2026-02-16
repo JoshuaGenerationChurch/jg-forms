@@ -293,61 +293,183 @@ Passkeys provide passwordless authentication using:
 - [ ] Frontend assets built: `npm run build`
 - [ ] SSL certificate installed and valid
 - [ ] Environment variables configured on production server
+- [ ] `WEBAUTHN_USERLESS=true` added to production `.env`
 
 ### Deployment Steps
 
-1. **SSH into Production Server**
-   ```bash
-   ssh officeftp@165.22.118.253
-   cd /home/1197962.cloudwaysapps.com/hczbsjjmgr/public_html
-   ```
+#### 1. SSH into Production Server
+```bash
+ssh officeftp@165.22.118.253
+cd /home/1197962.cloudwaysapps.com/hczbsjjmgr/public_html
+```
 
-2. **Pull Latest Code**
-   ```bash
-   git pull origin main
-   ```
+#### 2. Update Code
+```bash
+# Pull latest code (or upload files if not using git)
+git pull origin main
+```
 
-3. **Install Dependencies**
-   ```bash
-   composer install --no-dev --optimize-autoloader
-   npm install --production
-   ```
+#### 3. Install Dependencies
+```bash
+composer install --no-dev --optimize-autoloader
+npm install --production
+```
 
-4. **Run Migrations**
-   ```bash
-   php artisan migrate --force
-   ```
+#### 4. Configure Environment
 
-5. **Build Assets**
-   ```bash
-   ./node_modules/.bin/vite build
-   ```
+**CRITICAL:** Ensure `.env` has these settings:
+```env
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=https://office.joshgen.org
+WEBAUTHN_USERLESS=true
+```
 
-6. **Clear and Cache**
-   ```bash
-   php artisan config:clear
-   php artisan config:cache
-   php artisan route:clear
-   php artisan route:cache
-   php artisan view:clear
-   php artisan view:cache
-   ```
+Verify the setting:
+```bash
+grep WEBAUTHN_USERLESS .env
+```
 
-7. **Verify Production Environment**
-   
-   Ensure `.env` has:
-   ```env
-   APP_ENV=production
-   APP_DEBUG=false
-   APP_URL=https://office.joshgen.org
-   WEBAUTHN_USERLESS=true
-   ```
+If missing, add it:
+```bash
+echo "WEBAUTHN_USERLESS=true" >> .env
+```
 
-8. **Test on Production**
-   - Visit `https://office.joshgen.org/login`
-   - Verify "Sign in with Passkey" button appears
-   - Test registration at `/settings/passkeys`
-   - Test login with passkey
+#### 5. Run Database Migrations
+```bash
+php artisan migrate --force
+```
+
+This creates the `webauthn_keys` table.
+
+#### 6. Build Frontend Assets
+```bash
+./node_modules/.bin/vite build
+```
+
+**Note:** This must be done AFTER code updates to include latest changes.
+
+#### 7. Clear and Rebuild Caches
+
+**IMPORTANT:** This step is critical. Must be done in this exact order:
+
+```bash
+# First: Remove old cached config
+rm -f bootstrap/cache/config.php
+rm -f bootstrap/cache/routes*.php
+
+# Second: Clear all caches
+php artisan config:clear
+php artisan route:clear
+php artisan view:clear
+php artisan cache:clear
+
+# Third: Rebuild caches for production
+php artisan config:cache
+php artisan route:cache
+
+# Fourth: Verify config is loaded correctly
+php artisan config:show webauthn.userless
+```
+
+**Expected output:** `true`
+
+If it shows `false`, repeat step 7.
+
+#### 8. Verify Installation
+
+Check that routes are registered:
+```bash
+php artisan route:list | grep webauthn
+```
+
+Expected output (5 routes):
+```
+POST   webauthn/login
+POST   webauthn/login/options
+POST   webauthn/register
+POST   webauthn/register/options
+DELETE webauthn/{id}
+```
+
+#### 9. Test on Production
+
+1. **Visit:** https://office.joshgen.org/login
+2. **Check:** "Sign in with Passkey" button appears
+3. **Login** with password first
+4. **Go to:** https://office.joshgen.org/settings/passkeys
+5. **Register** a new passkey
+6. **Logout** and test login with passkey
+
+### Common Production Issues
+
+#### Issue: Config cache not updating
+
+**Symptoms:**
+- Routes work but passkey login fails with "Authentication failed"
+- `config:show webauthn.userless` shows `false`
+
+**Solution:**
+```bash
+rm -f bootstrap/cache/config.php
+php artisan config:clear
+php artisan config:cache
+php artisan config:show webauthn.userless  # Should show: true
+```
+
+#### Issue: Routes not found (404)
+
+**Symptoms:**
+- `/webauthn/login/options` returns 404
+
+**Solution:**
+```bash
+php artisan route:clear
+php artisan route:cache
+php artisan route:list | grep webauthn
+```
+
+#### Issue: Old JavaScript cached
+
+**Symptoms:**
+- Button doesn't appear or makes wrong API calls
+- Assets have old timestamps
+
+**Solution:**
+```bash
+./node_modules/.bin/vite build
+# Clear browser cache (Ctrl+Shift+Delete)
+```
+
+#### Issue: 500 error on `/settings/passkeys`
+
+**Symptoms:**
+- Can login but settings page crashes
+
+**Solution:**
+```bash
+php artisan migrate --force  # Ensure webauthn_keys table exists
+php artisan config:clear
+php artisan config:cache
+```
+
+### Production Deployment Checklist
+
+After deployment, verify each item:
+
+- [ ] Code updated on server
+- [ ] Dependencies installed (`composer install`, `npm install`)
+- [ ] `.env` has `WEBAUTHN_USERLESS=true`
+- [ ] Config cache cleared and rebuilt
+- [ ] `php artisan config:show webauthn.userless` returns `true`
+- [ ] Route cache cleared and rebuilt
+- [ ] `php artisan route:list | grep webauthn` shows 5 routes
+- [ ] Database migrations run
+- [ ] Frontend assets built with Vite
+- [ ] Login page shows "Sign in with Passkey" button
+- [ ] Can register new passkey at `/settings/passkeys`
+- [ ] Can login with passkey successfully
+- [ ] No errors in `storage/logs/laravel.log`
 
 ## Troubleshooting
 

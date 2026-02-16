@@ -91,7 +91,34 @@ Visit `https://your-site.test` (or `http://localhost:8000`)
 
 The application is deployed on Cloudways at: **https://office.joshgen.org**
 
-For production deployment instructions, see [SETUP_GUIDE.md - Production Deployment](SETUP_GUIDE.md#production-deployment)
+### Critical Production Notes
+
+When deploying to production, **ALWAYS** follow these steps in order:
+
+1. **Update code files** via SSH or SFTP
+2. **Install/update dependencies**: `composer install --no-dev --optimize-autoloader`
+3. **Set environment variables** in `.env`:
+   - `APP_ENV=production`
+   - `APP_DEBUG=false`
+   - `WEBAUTHN_USERLESS=true` (required for passkey login)
+4. **Clear config cache COMPLETELY**:
+   ```bash
+   rm -f bootstrap/cache/config.php
+   php artisan config:clear
+   php artisan config:cache
+   ```
+5. **Run database migrations**: `php artisan migrate --force`
+6. **Build frontend assets**: `./node_modules/.bin/vite build`
+7. **Clear Laravel caches**:
+   ```bash
+   php artisan route:clear
+   php artisan view:clear
+   ```
+8. **Verify config**: `php artisan config:show webauthn.userless` (should return `true`)
+
+**Critical**: Config cache must be cleared AFTER changing `.env` or passkey login will fail with "Authentication failed" error.
+
+For detailed production deployment instructions and troubleshooting, see [SETUP_GUIDE.md - Production Deployment](SETUP_GUIDE.md#production-deployment)
 
 ## Project Structure
 
