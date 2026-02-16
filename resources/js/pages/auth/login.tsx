@@ -83,6 +83,8 @@ export default function Login({
             // Prompt user for passkey
             const credential = await authenticateWithPasskey(options);
 
+            console.log('Credential to send:', credential);
+
             // Send credential to server
             const response = await fetch(webauthnApi.login.url, {
                 method: webauthnApi.login.method,
@@ -96,10 +98,26 @@ export default function Login({
                 body: JSON.stringify(credential),
             });
 
+            console.log('Response status:', response.status);
+
             if (response.ok) {
                 router.visit('/dashboard');
             } else {
                 const data = await response.json();
+                console.log('Error response:', data);
+
+                // Check for validation errors
+                if (data.errors) {
+                    console.log('Validation errors:', data.errors);
+                    const errorMessages = Object.entries(data.errors)
+                        .map(
+                            ([field, messages]) =>
+                                `${field}: ${(messages as string[]).join(', ')}`,
+                        )
+                        .join('\n');
+                    throw new Error(`Validation failed:\n${errorMessages}`);
+                }
+
                 throw new Error(data.message || 'Authentication failed');
             }
         } catch (error) {
