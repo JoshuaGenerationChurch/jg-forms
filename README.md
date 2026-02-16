@@ -59,7 +59,22 @@ This application supports passwordless authentication using passkeys:
 - 🤖 Fingerprint / Face unlock on Android
 - 🔐 Hardware security keys (YubiKey, etc.)
 
-See [PASSKEY_IMPLEMENTATION.md](PASSKEY_IMPLEMENTATION.md) for implementation details.
+### Quick Setup
+
+For new developers setting up passkey authentication:
+
+```bash
+cd jg-forms
+./scripts/setup-passkeys.sh
+```
+
+This automated script will install dependencies, configure the database, and set up HTTPS.
+
+### Documentation
+
+- 📖 [PASSKEY_SETUP.md](PASSKEY_SETUP.md) - Complete setup guide and troubleshooting
+- ✅ [PASSKEY_CHECKLIST.md](PASSKEY_CHECKLIST.md) - Verification checklist for developers
+- 📝 [scripts/setup-passkeys.sh](scripts/setup-passkeys.sh) - Automated setup script
 
 ## Development
 
@@ -77,9 +92,9 @@ Visit `https://your-site.test` (or `http://localhost:8000`)
 
 ## Deployment
 
-See [WEBAUTHN_DEPLOYMENT.md](WEBAUTHN_DEPLOYMENT.md) for production deployment instructions.
-
 The application is deployed on Cloudways at: **https://office.joshgen.org**
+
+For production deployment with passkey support, see [PASSKEY_SETUP.md](PASSKEY_SETUP.md#production-deployment)
 
 ## Project Structure
 
@@ -96,9 +111,10 @@ The application is deployed on Cloudways at: **https://office.joshgen.org**
 
 ## Documentation
 
-- [Local Setup Guide](LOCAL_SETUP.md) - Complete local development setup
-- [Passkey Implementation](PASSKEY_IMPLEMENTATION.md) - WebAuthn/Passkey documentation
-- [Deployment Guide](WEBAUTHN_DEPLOYMENT.md) - Production deployment steps
+- 📘 [Local Setup Guide](LOCAL_SETUP.md) - Complete local development setup
+- 🔐 [Passkey Setup Guide](PASSKEY_SETUP.md) - WebAuthn/Passkey implementation and troubleshooting
+- ✅ [Passkey Checklist](PASSKEY_CHECKLIST.md) - Verification checklist for passkey setup
+- 🚀 [Passkey Setup Script](scripts/setup-passkeys.sh) - Automated installation script
 
 ## Contributing
 
