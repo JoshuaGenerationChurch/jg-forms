@@ -41,24 +41,66 @@ export default function PasskeyRegistration({ onSuccess }: Props) {
         setSuccess(false);
 
         try {
+            // Get CSRF token from cookie (Laravel uses XSRF-TOKEN cookie)
+            const getCookie = (name: string) => {
+                const value = `; ${document.cookie}`;
+                const parts = value.split(`; ${name}=`);
+                if (parts.length === 2)
+                    return decodeURIComponent(
+                        parts.pop()?.split(';').shift() || '',
+                    );
+                return '';
+            };
+            const csrfToken = getCookie('XSRF-TOKEN');
+
             // Get registration options from server
             const optionsResponse = await fetch(
                 webauthnApi.registerOptions.url,
                 {
                     method: webauthnApi.registerOptions.method,
                     headers: {
+                        Accept: 'application/json',
                         'Content-Type': 'application/json',
                         'X-Requested-With': 'XMLHttpRequest',
+                        'X-XSRF-TOKEN': csrfToken,
                     },
                     credentials: 'same-origin',
                 },
             );
 
+            // Log response details for debugging
+            console.log('Options response status:', optionsResponse.status);
+            console.log(
+                'Options response headers:',
+                Object.fromEntries(optionsResponse.headers.entries()),
+            );
+
             if (!optionsResponse.ok) {
-                throw new Error('Failed to get registration options');
+                const responseText = await optionsResponse.text();
+                console.error(
+                    'Registration options error response:',
+                    responseText,
+                );
+                throw new Error(
+                    `Failed to get registration options: ${optionsResponse.status} ${responseText.substring(0, 200)}`,
+                );
             }
 
-            const options = await optionsResponse.json();
+            // Get the response text first so we can log it
+            const responseText = await optionsResponse.text();
+            console.log('Raw response:', responseText.substring(0, 500));
+
+            // Try to parse as JSON
+            let options;
+            try {
+                options = JSON.parse(responseText);
+            } catch (parseError) {
+                console.error('Failed to parse response as JSON:', parseError);
+                console.error('Full response text:', responseText);
+                throw new Error(
+                    'Server returned invalid JSON response. Check console for details.',
+                );
+            }
 
             // Create credential
             const credential = await registerPasskey(options);
@@ -67,9 +109,12 @@ export default function PasskeyRegistration({ onSuccess }: Props) {
             const response = await fetch(webauthnApi.register.url, {
                 method: webauthnApi.register.method,
                 headers: {
+                    Accept: 'application/json',
                     'Content-Type': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest',
+                    'X-XSRF-TOKEN': csrfToken,
                 },
+                credentials: 'same-origin',
                 body: JSON.stringify({
                     ...credential,
                     name: deviceName || 'My Device',
