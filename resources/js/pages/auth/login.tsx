@@ -49,13 +49,29 @@ export default function Login({
         setPasskeyError(null);
 
         try {
+            // Get CSRF token from cookie
+            const getCookie = (name: string) => {
+                const value = `; ${document.cookie}`;
+                const parts = value.split(`; ${name}=`);
+                if (parts.length === 2)
+                    return decodeURIComponent(
+                        parts.pop()?.split(';').shift() || '',
+                    );
+                return '';
+            };
+            const csrfToken = getCookie('XSRF-TOKEN');
+
             // Get challenge from server
             const optionsResponse = await fetch(webauthnApi.loginOptions.url, {
                 method: webauthnApi.loginOptions.method,
                 headers: {
+                    Accept: 'application/json',
                     'Content-Type': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest',
+                    'X-XSRF-TOKEN': csrfToken,
                 },
+                credentials: 'same-origin',
+                body: JSON.stringify({}),
             });
 
             if (!optionsResponse.ok) {
@@ -71,9 +87,12 @@ export default function Login({
             const response = await fetch(webauthnApi.login.url, {
                 method: webauthnApi.login.method,
                 headers: {
+                    Accept: 'application/json',
                     'Content-Type': 'application/json',
                     'X-Requested-With': 'XMLHttpRequest',
+                    'X-XSRF-TOKEN': csrfToken,
                 },
+                credentials: 'same-origin',
                 body: JSON.stringify(credential),
             });
 
