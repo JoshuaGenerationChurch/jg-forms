@@ -50,6 +50,7 @@ export default function PasskeyRegistration({ onSuccess }: Props) {
                         'Content-Type': 'application/json',
                         'X-Requested-With': 'XMLHttpRequest',
                     },
+                    credentials: 'same-origin',
                 },
             );
 
