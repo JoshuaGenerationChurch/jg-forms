@@ -63,13 +63,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('work-request.entries.show');
 
     // WebAuthn authenticated routes (for registration and management)
-    Route::post('/webauthn/register/options', [WebauthnController::class, 'registerOptions'])
+    Route::post('/webauthn/register/options', [WebauthnKeyController::class, 'create'])
         ->name('webauthn.register.options');
-    Route::post('/webauthn/register', [WebauthnController::class, 'register'])
+    Route::post('/webauthn/register', [WebauthnKeyController::class, 'store'])
         ->name('webauthn.register');
-    Route::get('/webauthn/keys', [WebauthnController::class, 'index'])
-        ->name('webauthn.index');
-    Route::delete('/webauthn/{id}', [WebauthnController::class, 'destroy'])
+    Route::delete('/webauthn/{id}', [WebauthnKeyController::class, 'destroy'])
         ->name('webauthn.destroy');
 
     // Passkey settings page
