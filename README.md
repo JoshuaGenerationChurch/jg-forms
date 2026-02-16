@@ -18,8 +18,8 @@ A Laravel 12 + React + Inertia.js application for managing work requests and for
 Run the setup script to automatically configure your local environment:
 
 ```bash
-chmod +x setup-local.sh
-./setup-local.sh
+chmod +x setup.sh
+./setup.sh
 ```
 
 The script will guide you through:
@@ -28,10 +28,11 @@ The script will guide you through:
 - Configuring environment variables
 - Building frontend assets
 - Setting up WebAuthn/Passkey support
+- Configuring HTTPS for local development
 
 ### Manual Setup
 
-See [LOCAL_SETUP.md](LOCAL_SETUP.md) for detailed manual installation instructions.
+See [SETUP_GUIDE.md](SETUP_GUIDE.md) for detailed manual installation instructions.
 
 ## Requirements
 
@@ -61,20 +62,16 @@ This application supports passwordless authentication using passkeys:
 
 ### Quick Setup
 
-For new developers setting up passkey authentication:
+The main setup script includes full passkey configuration:
 
 ```bash
-cd jg-forms
-./scripts/setup-passkeys.sh
+./setup.sh
 ```
-
-This automated script will install dependencies, configure the database, and set up HTTPS.
 
 ### Documentation
 
-- 📖 [PASSKEY_SETUP.md](PASSKEY_SETUP.md) - Complete setup guide and troubleshooting
-- ✅ [PASSKEY_CHECKLIST.md](PASSKEY_CHECKLIST.md) - Verification checklist for developers
-- 📝 [scripts/setup-passkeys.sh](scripts/setup-passkeys.sh) - Automated setup script
+- 📖 [SETUP_GUIDE.md](SETUP_GUIDE.md) - Complete setup guide with WebAuthn/Passkey configuration
+- 📝 [setup.sh](setup.sh) - Automated setup script
 
 ## Development
 
@@ -94,7 +91,7 @@ Visit `https://your-site.test` (or `http://localhost:8000`)
 
 The application is deployed on Cloudways at: **https://office.joshgen.org**
 
-For production deployment with passkey support, see [PASSKEY_SETUP.md](PASSKEY_SETUP.md#production-deployment)
+For production deployment instructions, see [SETUP_GUIDE.md - Production Deployment](SETUP_GUIDE.md#production-deployment)
 
 ## Project Structure
 
@@ -111,15 +108,13 @@ For production deployment with passkey support, see [PASSKEY_SETUP.md](PASSKEY_S
 
 ## Documentation
 
-- 📘 [Local Setup Guide](LOCAL_SETUP.md) - Complete local development setup
-- 🔐 [Passkey Setup Guide](PASSKEY_SETUP.md) - WebAuthn/Passkey implementation and troubleshooting
-- ✅ [Passkey Checklist](PASSKEY_CHECKLIST.md) - Verification checklist for passkey setup
-- 🚀 [Passkey Setup Script](scripts/setup-passkeys.sh) - Automated installation script
+- 📘 [Complete Setup Guide](SETUP_GUIDE.md) - Local development, WebAuthn/Passkey configuration, and deployment
+- 🚀 [Automated Setup Script](setup.sh) - One-command setup for local development
 
 ## Contributing
 
 1. Clone the repository
-2. Run `./setup-local.sh` to set up your environment
+2. Run `./setup.sh` to set up your environment
 3. Create a feature branch
 4. Make your changes
 5. Submit a pull request
