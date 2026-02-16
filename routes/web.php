@@ -6,6 +6,8 @@ use App\Http\Controllers\WorkRequest\WorkRequestEntryController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
+use LaravelWebauthn\Http\Controllers\AuthenticateController;
+use LaravelWebauthn\Http\Controllers\WebauthnKeyController;
 
 Route::get('/', function () {
     return Inertia::render('welcome', [
@@ -43,9 +45,9 @@ Route::get('work-request/digital-media-options', DigitalMediaOptionsController::
 
 // WebAuthn guest routes (for login)
 Route::middleware(['web', 'guest'])->group(function () {
-    Route::post('/webauthn/login/options', [WebauthnController::class, 'loginOptions'])
+    Route::post('/webauthn/login/options', [AuthenticateController::class, 'create'])
         ->name('webauthn.login.options');
-    Route::post('/webauthn/login', [WebauthnController::class, 'login'])
+    Route::post('/webauthn/login', [AuthenticateController::class, 'store'])
         ->name('webauthn.login');
 });
 
