@@ -43,4 +43,13 @@ return [
         'timeout' => (int) env('JG_API_TIMEOUT', 10),
     ],
 
+    'recaptcha' => [
+        'enabled' => (bool) env('RECAPTCHA_ENABLED', false),
+        'site_key' => env('RECAPTCHA_SITE_KEY'),
+        'project_id' => env('RECAPTCHA_PROJECT_ID'),
+        'expected_action' => env('RECAPTCHA_EXPECTED_ACTION', 'work_request_submit'),
+        'min_score' => (float) env('RECAPTCHA_MIN_SCORE', 0.5),
+        'credentials_path' => env('GOOGLE_APPLICATION_CREDENTIALS'),
+    ],
+
 ];

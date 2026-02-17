@@ -1,13 +1,18 @@
+import { Link } from '@inertiajs/react';
 import { cn } from '@/lib/utils';
 
 type GlobalFooterProps = {
     homeHref?: string;
     showContactUs?: boolean;
+    showLoginButton?: boolean;
+    loginHref?: string;
     variant?: 'default' | 'public';
 };
 
 export function GlobalFooter({
     showContactUs = true,
+    showLoginButton = false,
+    loginHref = '/login',
     variant = 'default',
 }: GlobalFooterProps) {
     const isPublic = variant === 'public';
@@ -54,6 +59,11 @@ export function GlobalFooter({
                         >
                             Contact us
                         </a>
+                    ) : null}
+                    {showLoginButton ? (
+                        <Link href={loginHref} className="hover:text-slate-900">
+                            Admin Login
+                        </Link>
                     ) : null}
                     <span className="text-slate-600">
                         Copyright 2025 Joshua Generation Church

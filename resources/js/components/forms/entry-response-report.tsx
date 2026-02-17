@@ -16,22 +16,6 @@ const WORK_REQUEST_SECTION_RULES: Array<{
     prefixes?: string[];
 }> = [
     {
-        title: 'Request Setup',
-        keys: [
-            'includesDatesVenue',
-            'includesRegistration',
-            'includesGraphics',
-            'includesGraphicsDigital',
-            'includesGraphicsPrint',
-            'includesSignage',
-            'theme',
-            'eventReach',
-            'hubs',
-            'childMinding',
-            'childMindingDescription',
-        ],
-    },
-    {
         title: 'Event Details',
         keys: [
             'eventDuration',
@@ -418,22 +402,6 @@ function buildWorkRequestSections(
                 rows,
             });
         }
-    }
-
-    const additionalRows = Object.entries(payload)
-        .filter(([key, value]) => !consumedKeys.has(key) && isMeaningful(value))
-        .sort(([left], [right]) => left.localeCompare(right))
-        .map(([key, value]) => ({
-            label: formatLabel(key),
-            value: formatValue(value),
-        }))
-        .filter((row) => row.value !== '');
-
-    if (additionalRows.length > 0) {
-        sections.push({
-            title: 'Additional Responses',
-            rows: additionalRows,
-        });
     }
 
     return sections;

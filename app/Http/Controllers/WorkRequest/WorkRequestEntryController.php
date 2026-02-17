@@ -5,6 +5,7 @@ namespace App\Http\Controllers\WorkRequest;
 use App\Http\Controllers\Controller;
 use App\Models\WorkForm;
 use App\Models\WorkRequestEntry;
+use App\Services\RecaptchaEnterpriseService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -65,11 +66,29 @@ class WorkRequestEntryController extends Controller
         ]);
     }
 
-    public function storePublicWorkRequestEntry(Request $request): RedirectResponse
+    public function storePublicWorkRequestEntry(
+        Request $request,
+        RecaptchaEnterpriseService $recaptcha,
+    ): RedirectResponse
     {
-        $validated = $request->validate([
+        $rules = [
             'payload' => ['required', 'array'],
-        ]);
+        ];
+
+        if ($recaptcha->enabled()) {
+            $rules['recaptchaToken'] = ['required', 'string'];
+        }
+
+        $validated = $request->validate($rules);
+
+        if ($recaptcha->enabled()) {
+            $verification = $recaptcha->verifyToken((string) ($validated['recaptchaToken'] ?? ''));
+            if (! $verification['success']) {
+                return back()->withErrors([
+                    'recaptcha' => $verification['message'] ?? 'Could not verify spam protection. Please try again.',
+                ])->withInput();
+            }
+        }
 
         /** @var array<string, mixed> $payload */
         $payload = $validated['payload'];

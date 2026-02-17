@@ -5,14 +5,11 @@ use App\Http\Controllers\WorkRequest\WorkFormController;
 use App\Http\Controllers\WorkRequest\WorkRequestEntryController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
-use Laravel\Fortify\Features;
 use LaravelWebauthn\Http\Controllers\AuthenticateController;
 use LaravelWebauthn\Http\Controllers\WebauthnKeyController;
 
 Route::get('/', function () {
-    return Inertia::render('welcome', [
-        'canRegister' => Features::enabled(Features::registration()),
-    ]);
+    return redirect()->route('forms.index');
 })->name('home');
 
 Route::prefix('forms')->name('forms.')->group(function () {

@@ -65,7 +65,9 @@ export default function FormsIndex({ forms }: Props) {
 
                 <GlobalFooter
                     homeHref="/forms"
+                    loginHref="/login"
                     showContactUs
+                    showLoginButton
                     variant="public"
                 />
             </div>

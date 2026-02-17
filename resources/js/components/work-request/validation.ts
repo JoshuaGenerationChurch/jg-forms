@@ -38,6 +38,10 @@ function isEndMonthBeforeStartMonth(
     return endDate.slice(0, 7) < startDate.slice(0, 7);
 }
 
+function hasInternationalCountryCode(value: string): boolean {
+    return /^\+[1-9]\d{0,3}(?:[\s-]?\d){4,}$/.test(value.trim());
+}
+
 // Validate contact details page
 export function validateContactDetails(formData: FormData): ValidationErrors {
     const errors: ValidationErrors = {};
@@ -50,6 +54,9 @@ export function validateContactDetails(formData: FormData): ValidationErrors {
     }
     if (!formData.cellphone.trim()) {
         errors.cellphone = 'Cellphone is required';
+    } else if (!hasInternationalCountryCode(formData.cellphone)) {
+        errors.cellphone =
+            'Please enter a full cellphone number with country code (for example: +27 82 123 4567)';
     }
     if (!formData.email.trim()) {
         errors.email = 'Email is required';
@@ -120,6 +127,9 @@ export function validateEventDetails(formData: FormData): ValidationErrors {
         }
         if (!formData.organiserCell.trim()) {
             errors.organiserCell = 'Organiser cell number is required';
+        } else if (!hasInternationalCountryCode(formData.organiserCell)) {
+            errors.organiserCell =
+                'Please enter a full cellphone number with country code (for example: +27 82 123 4567)';
         }
     }
     if (!formData.eventDuration) {

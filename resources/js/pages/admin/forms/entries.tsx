@@ -1,6 +1,14 @@
 import { Head, Link, router } from '@inertiajs/react';
-import { ArrowLeft, Eye, Pencil, Trash2 } from 'lucide-react';
-import { useState } from 'react';
+import {
+    ArrowLeft,
+    CalendarDays,
+    ChevronDown,
+    Eye,
+    Pencil,
+    Trash2,
+    X,
+} from 'lucide-react';
+import { useMemo, useRef, useState } from 'react';
 import DeleteConfirmDialog from '@/components/forms/delete-confirm-dialog';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
@@ -18,9 +26,6 @@ type AdminEntry = {
     createdAt: string | null;
     firstName: string | null;
     lastName: string | null;
-    email: string | null;
-    eventName: string | null;
-    requestSummary: string | null;
     requestTypes: string[];
 };
 
@@ -29,9 +34,44 @@ type Props = {
     entries: AdminEntry[];
 };
 
+const REQUEST_TYPE_FILTER_OPTIONS = [
+    { label: 'All Request Types', value: 'all' },
+    { label: 'Event Logistics', value: 'Event logistics' },
+    { label: 'Registration Form', value: 'Registration form' },
+    { label: 'Digital Media', value: 'Digital media' },
+    { label: 'Print Media', value: 'Print media' },
+    { label: 'Signage', value: 'Signage' },
+];
+
+function formatEntryDate(dateValue: string | null): string {
+    if (!dateValue) {
+        return 'Unknown date';
+    }
+
+    const parsedDate = new Date(dateValue);
+    const datePart = parsedDate.toLocaleDateString();
+    const timePart = parsedDate.toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+    });
+
+    return `${datePart} at ${timePart}`;
+}
+
 export default function AdminFormEntries({ form, entries }: Props) {
     const [entryToDelete, setEntryToDelete] = useState<AdminEntry | null>(null);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [firstNameFilter, setFirstNameFilter] = useState('');
+    const [lastNameFilter, setLastNameFilter] = useState('');
+    const [dateFrom, setDateFrom] = useState('');
+    const [dateTo, setDateTo] = useState('');
+    const [requestTypeFilter, setRequestTypeFilter] = useState('all');
+    const [entryDateSort, setEntryDateSort] = useState<'newest' | 'oldest'>(
+        'newest',
+    );
+    const dateFromInputRef = useRef<HTMLInputElement | null>(null);
+    const dateToInputRef = useRef<HTMLInputElement | null>(null);
 
     const handleDelete = () => {
         if (!entryToDelete) {
@@ -49,6 +89,94 @@ export default function AdminFormEntries({ form, entries }: Props) {
             },
         });
     };
+
+    const openDatePicker = (input: HTMLInputElement | null) => {
+        if (!input) {
+            return;
+        }
+
+        if (typeof input.showPicker === 'function') {
+            input.showPicker();
+            return;
+        }
+
+        input.focus();
+    };
+
+    const filteredEntries = useMemo(() => {
+        const normalizedFirstNameFilter = firstNameFilter.trim().toLowerCase();
+        const normalizedLastNameFilter = lastNameFilter.trim().toLowerCase();
+        const normalizedRequestTypeFilter = requestTypeFilter.toLowerCase();
+
+        const matchingEntries = entries.filter((entry) => {
+            const normalizedFirstName = (entry.firstName ?? '').toLowerCase();
+            const normalizedLastName = (entry.lastName ?? '').toLowerCase();
+            const createdAtDate = entry.createdAt?.slice(0, 10) ?? '';
+            const normalizedEntryRequestTypes = entry.requestTypes.map((type) =>
+                type.toLowerCase(),
+            );
+
+            const matchesFirstName =
+                normalizedFirstNameFilter === '' ||
+                normalizedFirstName.includes(normalizedFirstNameFilter);
+            const matchesLastName =
+                normalizedLastNameFilter === '' ||
+                normalizedLastName.includes(normalizedLastNameFilter);
+            const matchesDateFrom =
+                dateFrom === '' ||
+                (createdAtDate !== '' && createdAtDate >= dateFrom);
+            const matchesDateTo =
+                dateTo === '' || (createdAtDate !== '' && createdAtDate <= dateTo);
+            const matchesRequestTypes =
+                requestTypeFilter === 'all' ||
+                normalizedEntryRequestTypes.includes(normalizedRequestTypeFilter);
+
+            return (
+                matchesFirstName &&
+                matchesLastName &&
+                matchesDateFrom &&
+                matchesDateTo &&
+                matchesRequestTypes
+            );
+        });
+
+        matchingEntries.sort((entryA, entryB) => {
+            const timestampA = entryA.createdAt
+                ? Date.parse(entryA.createdAt)
+                : Number.NaN;
+            const timestampB = entryB.createdAt
+                ? Date.parse(entryB.createdAt)
+                : Number.NaN;
+            const hasTimestampA = Number.isFinite(timestampA);
+            const hasTimestampB = Number.isFinite(timestampB);
+
+            if (!hasTimestampA && !hasTimestampB) {
+                return 0;
+            }
+
+            if (!hasTimestampA) {
+                return 1;
+            }
+
+            if (!hasTimestampB) {
+                return -1;
+            }
+
+            return entryDateSort === 'newest'
+                ? timestampB - timestampA
+                : timestampA - timestampB;
+        });
+
+        return matchingEntries;
+    }, [
+        dateFrom,
+        dateTo,
+        entries,
+        entryDateSort,
+        firstNameFilter,
+        lastNameFilter,
+        requestTypeFilter,
+    ]);
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Dashboard', href: '/dashboard' },
@@ -70,9 +198,6 @@ export default function AdminFormEntries({ form, entries }: Props) {
                                 <h1 className="text-2xl font-semibold text-slate-900">
                                     {form.title} Entries
                                 </h1>
-                                <p className="mt-1 text-sm text-slate-500">
-                                    {form.description}
-                                </p>
                             </div>
                             <Button variant="outline" asChild>
                                 <Link href="/admin/forms/entries">
@@ -82,26 +207,244 @@ export default function AdminFormEntries({ form, entries }: Props) {
                             </Button>
                         </div>
 
-                        {entries.length === 0 ? (
-                            <div className="mt-8 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
-                                <p className="text-sm text-slate-600">
-                                    No entries submitted yet for this form.
-                                </p>
-                            </div>
-                        ) : (
-                            <div className="mt-8 space-y-2">
-                                {entries.map((entry) => (
-                                    <div
-                                        key={entry.id}
-                                        className="rounded-lg border border-slate-200 bg-white p-3"
+                        <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+                            <label className="space-y-1">
+                                <span className="text-xs font-medium text-slate-600">
+                                    Request Type
+                                </span>
+                                <div className="relative">
+                                    <select
+                                        className="h-10 w-full appearance-none rounded-md border border-slate-300 bg-white px-3 pr-16 text-sm text-slate-900"
+                                        value={requestTypeFilter}
+                                        onChange={(event) =>
+                                            setRequestTypeFilter(
+                                                event.target.value,
+                                            )
+                                        }
                                     >
-                                        <div className="flex flex-wrap items-start justify-between gap-3">
-                                            <div className="min-w-0 space-y-2">
-                                                <p className="text-sm font-medium text-slate-900">
-                                                    {entry.eventName?.trim() ||
-                                                        entry.requestSummary?.trim() ||
-                                                        `Entry #${entry.id}`}
-                                                </p>
+                                        {REQUEST_TYPE_FILTER_OPTIONS.map(
+                                            (option) => (
+                                                <option
+                                                    key={option.value}
+                                                    value={option.value}
+                                                >
+                                                    {option.label}
+                                                </option>
+                                            ),
+                                        )}
+                                    </select>
+                                    {requestTypeFilter !== 'all' ? (
+                                        <button
+                                            type="button"
+                                            aria-label="Clear Request Type"
+                                            className="absolute top-1/2 right-8 -translate-y-1/2 rounded p-1 text-slate-400 transition hover:text-slate-700"
+                                            onClick={() =>
+                                                setRequestTypeFilter('all')
+                                            }
+                                        >
+                                            <X className="size-4" />
+                                        </button>
+                                    ) : null}
+                                    <ChevronDown className="pointer-events-none absolute top-1/2 right-2 size-4 -translate-y-1/2 text-slate-500" />
+                                </div>
+                            </label>
+
+                            <label className="space-y-1">
+                                <span className="text-xs font-medium text-slate-600">
+                                    First Name
+                                </span>
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        className="h-10 w-full rounded-md border border-slate-300 bg-white px-3 pr-9 text-sm text-slate-900"
+                                        placeholder="First name"
+                                        value={firstNameFilter}
+                                        onChange={(event) =>
+                                            setFirstNameFilter(event.target.value)
+                                        }
+                                    />
+                                    {firstNameFilter !== '' ? (
+                                        <button
+                                            type="button"
+                                            aria-label="Clear First Name"
+                                            className="absolute top-1/2 right-2 -translate-y-1/2 rounded p-1 text-slate-400 transition hover:text-slate-700"
+                                            onClick={() => setFirstNameFilter('')}
+                                        >
+                                            <X className="size-4" />
+                                        </button>
+                                    ) : null}
+                                </div>
+                            </label>
+
+                            <label className="space-y-1">
+                                <span className="text-xs font-medium text-slate-600">
+                                    Last Name
+                                </span>
+                                <div className="relative">
+                                    <input
+                                        type="text"
+                                        className="h-10 w-full rounded-md border border-slate-300 bg-white px-3 pr-9 text-sm text-slate-900"
+                                        placeholder="Last name"
+                                        value={lastNameFilter}
+                                        onChange={(event) =>
+                                            setLastNameFilter(event.target.value)
+                                        }
+                                    />
+                                    {lastNameFilter !== '' ? (
+                                        <button
+                                            type="button"
+                                            aria-label="Clear Last Name"
+                                            className="absolute top-1/2 right-2 -translate-y-1/2 rounded p-1 text-slate-400 transition hover:text-slate-700"
+                                            onClick={() => setLastNameFilter('')}
+                                        >
+                                            <X className="size-4" />
+                                        </button>
+                                    ) : null}
+                                </div>
+                            </label>
+
+                            <label className="space-y-1">
+                                <span className="text-xs font-medium text-slate-600">
+                                    Date From
+                                </span>
+                                <div className="relative">
+                                    <input
+                                        ref={dateFromInputRef}
+                                        type="date"
+                                        className="h-10 w-full appearance-none rounded-md border border-slate-300 bg-white px-3 pr-16 text-sm text-slate-900 [color-scheme:light] outline-none focus-visible:border-blue-400 focus-visible:ring-1 focus-visible:ring-blue-400 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0"
+                                        value={dateFrom}
+                                        onChange={(event) =>
+                                            setDateFrom(event.target.value)
+                                        }
+                                    />
+                                    {dateFrom !== '' ? (
+                                        <button
+                                            type="button"
+                                            aria-label="Clear Date From"
+                                            className="absolute top-1/2 right-8 -translate-y-1/2 rounded p-1 text-slate-400 transition hover:text-slate-700"
+                                            onClick={() => setDateFrom('')}
+                                        >
+                                            <X className="size-4" />
+                                        </button>
+                                    ) : null}
+                                    <button
+                                        type="button"
+                                        aria-label="Open Date From picker"
+                                        className="absolute top-1/2 right-2 -translate-y-1/2 rounded p-1 text-slate-500 transition hover:text-slate-700"
+                                        onClick={() =>
+                                            openDatePicker(dateFromInputRef.current)
+                                        }
+                                    >
+                                        <CalendarDays className="size-4" />
+                                    </button>
+                                </div>
+                            </label>
+
+                            <label className="space-y-1">
+                                <span className="text-xs font-medium text-slate-600">
+                                    Date To
+                                </span>
+                                <div className="relative">
+                                    <input
+                                        ref={dateToInputRef}
+                                        type="date"
+                                        className="h-10 w-full appearance-none rounded-md border border-slate-300 bg-white px-3 pr-16 text-sm text-slate-900 [color-scheme:light] outline-none focus-visible:border-blue-400 focus-visible:ring-1 focus-visible:ring-blue-400 [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:right-0"
+                                        value={dateTo}
+                                        onChange={(event) =>
+                                            setDateTo(event.target.value)
+                                        }
+                                    />
+                                    {dateTo !== '' ? (
+                                        <button
+                                            type="button"
+                                            aria-label="Clear Date To"
+                                            className="absolute top-1/2 right-8 -translate-y-1/2 rounded p-1 text-slate-400 transition hover:text-slate-700"
+                                            onClick={() => setDateTo('')}
+                                        >
+                                            <X className="size-4" />
+                                        </button>
+                                    ) : null}
+                                    <button
+                                        type="button"
+                                        aria-label="Open Date To picker"
+                                        className="absolute top-1/2 right-2 -translate-y-1/2 rounded p-1 text-slate-500 transition hover:text-slate-700"
+                                        onClick={() =>
+                                            openDatePicker(dateToInputRef.current)
+                                        }
+                                    >
+                                        <CalendarDays className="size-4" />
+                                    </button>
+                                </div>
+                            </label>
+                        </div>
+
+                        <div className="mt-8 overflow-x-auto rounded-lg border border-slate-200">
+                            <table className="min-w-full divide-y divide-slate-200">
+                                <thead className="bg-slate-50">
+                                    <tr>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
+                                            First Name
+                                        </th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
+                                            Last Name
+                                        </th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
+                                            <button
+                                                type="button"
+                                                className="inline-flex items-center gap-1 uppercase"
+                                                onClick={() =>
+                                                    setEntryDateSort((value) =>
+                                                        value === 'newest'
+                                                            ? 'oldest'
+                                                            : 'newest',
+                                                    )
+                                                }
+                                            >
+                                                Entry Date
+                                                <span
+                                                    aria-hidden
+                                                    className="text-slate-500"
+                                                >
+                                                    {entryDateSort === 'newest'
+                                                        ? '↓'
+                                                        : '↑'}
+                                                </span>
+                                            </button>
+                                        </th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
+                                            Request Types
+                                        </th>
+                                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-slate-600">
+                                            Actions
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-200 bg-white">
+                                    {filteredEntries.length === 0 ? (
+                                        <tr>
+                                            <td
+                                                colSpan={5}
+                                                className="px-4 py-10 text-center text-sm text-slate-500"
+                                            >
+                                                {entries.length === 0
+                                                    ? 'No entries submitted yet for this form.'
+                                                    : 'No entries match the selected filters.'}
+                                            </td>
+                                        </tr>
+                                    ) : null}
+
+                                    {filteredEntries.map((entry) => (
+                                        <tr key={entry.id}>
+                                            <td className="px-4 py-4 align-top text-sm text-slate-900">
+                                                {entry.firstName?.trim() || 'N/A'}
+                                            </td>
+                                            <td className="px-4 py-4 align-top text-sm text-slate-900">
+                                                {entry.lastName?.trim() || 'N/A'}
+                                            </td>
+                                            <td className="px-4 py-4 align-top text-sm text-slate-700">
+                                                {formatEntryDate(entry.createdAt)}
+                                            </td>
+                                            <td className="px-4 py-4 align-top">
                                                 <div className="flex flex-wrap gap-2">
                                                     {entry.requestTypes.length >
                                                     0 ? (
@@ -121,20 +464,10 @@ export default function AdminFormEntries({ form, entries }: Props) {
                                                         </span>
                                                     )}
                                                 </div>
-                                            </div>
-                                            <div className="space-y-2">
-                                                <div className="text-right text-xs text-slate-500">
-                                                    {entry.createdAt
-                                                        ? new Date(
-                                                              entry.createdAt,
-                                                          ).toLocaleString()
-                                                        : 'Unknown date'}
-                                                </div>
-                                                <div className="flex flex-wrap items-center justify-end gap-2">
-                                                    <Button
-                                                        variant="outline"
-                                                        asChild
-                                                    >
+                                            </td>
+                                            <td className="px-4 py-4 align-top">
+                                                <div className="flex flex-wrap items-center gap-2">
+                                                    <Button variant="outline" asChild>
                                                         <Link
                                                             href={`/admin/forms/entries/${form.slug}/${entry.id}`}
                                                         >
@@ -142,10 +475,7 @@ export default function AdminFormEntries({ form, entries }: Props) {
                                                             View
                                                         </Link>
                                                     </Button>
-                                                    <Button
-                                                        variant="outline"
-                                                        asChild
-                                                    >
+                                                    <Button variant="outline" asChild>
                                                         <Link
                                                             href={`/admin/forms/entries/${form.slug}/${entry.id}/edit`}
                                                         >
@@ -157,30 +487,19 @@ export default function AdminFormEntries({ form, entries }: Props) {
                                                         variant="destructive"
                                                         type="button"
                                                         onClick={() =>
-                                                            setEntryToDelete(
-                                                                entry,
-                                                            )
+                                                            setEntryToDelete(entry)
                                                         }
                                                     >
                                                         <Trash2 className="size-4" />
                                                         Delete
                                                     </Button>
                                                 </div>
-                                            </div>
-                                            <div className="sr-only">
-                                                <span>
-                                                    {entry.createdAt
-                                                        ? new Date(
-                                                              entry.createdAt,
-                                                          ).toLocaleString()
-                                                        : 'Unknown date'}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
             </div>

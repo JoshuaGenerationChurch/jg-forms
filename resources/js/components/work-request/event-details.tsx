@@ -1,4 +1,4 @@
-import { Minus, Plus } from 'lucide-react';
+import { ChevronDown, Minus, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -10,6 +10,12 @@ import {
     Required,
     SectionHeader,
 } from './form-components';
+import {
+    combinePhoneNumber,
+    countryCodeOptionsWithCurrent,
+    phonePlaceholderByCountryCode,
+    splitPhoneNumber,
+} from './phone';
 import {
     congregationOptions,
     dateInputBase,
@@ -30,6 +36,11 @@ export function EventDetails({
     )
         .toISOString()
         .slice(0, 10);
+    const organiserCellParts = splitPhoneNumber(formData.organiserCell);
+    const organiserCellCountryCodeOptions = countryCodeOptionsWithCurrent(
+        organiserCellParts.countryCode,
+    );
+    const organiserCellInvalid = Boolean(errors.organiserCell);
 
     return (
         <div className="space-y-6">
@@ -135,19 +146,67 @@ export function EventDetails({
                             labelBackgroundClassName="bg-slate-50"
                         />
 
-                        <FloatingLabelInput
-                            id="organiser-cell"
-                            label="Cell Number"
-                            required
-                            type="tel"
-                            inputMode="tel"
-                            value={formData.organiserCell}
-                            onChange={(e) =>
-                                updateFormData('organiserCell', e.target.value)
-                            }
-                            error={errors.organiserCell}
-                            labelBackgroundClassName="bg-slate-50"
-                        />
+                        <div>
+                            <Label
+                                htmlFor="organiser-cell-local-number"
+                                className="text-sm font-medium text-slate-700"
+                            >
+                                Cell Number <Required />
+                            </Label>
+                            <div className="mt-2 grid grid-cols-[minmax(12rem,14rem)_minmax(0,1fr)] gap-2">
+                                <div className="relative">
+                                    <select
+                                        id="organiser-cell-country-code"
+                                        aria-label="Organiser cell number country code"
+                                        className={`h-12 w-full appearance-none rounded-lg border-2 bg-slate-100/50 pl-4 pr-12 text-sm text-slate-900 shadow-sm transition focus-visible:border-blue-400 focus-visible:ring-1 focus-visible:ring-blue-400 focus-visible:outline-none ${organiserCellInvalid ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500' : 'border-slate-200'}`}
+                                        value={organiserCellParts.countryCode}
+                                        onChange={(e) =>
+                                            updateFormData(
+                                                'organiserCell',
+                                                combinePhoneNumber(
+                                                    e.target.value,
+                                                    organiserCellParts.localNumber,
+                                                ),
+                                            )
+                                        }
+                                    >
+                                        {organiserCellCountryCodeOptions.map(
+                                            (option) => (
+                                                <option
+                                                    key={option.value}
+                                                    value={option.value}
+                                                >
+                                                    {option.label}
+                                                </option>
+                                            ),
+                                        )}
+                                    </select>
+                                    <ChevronDown className="pointer-events-none absolute top-1/2 right-4 size-4 -translate-y-1/2 text-slate-500" />
+                                </div>
+                                <input
+                                    id="organiser-cell-local-number"
+                                    type="tel"
+                                    inputMode="tel"
+                                    autoComplete="tel-national"
+                                    aria-invalid={organiserCellInvalid}
+                                    className={`h-12 rounded-lg border-2 bg-slate-100/50 px-4 text-sm text-slate-900 shadow-sm transition placeholder:text-slate-400 focus-visible:border-blue-400 focus-visible:ring-1 focus-visible:ring-blue-400 focus-visible:outline-none ${organiserCellInvalid ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500' : 'border-slate-200'}`}
+                                    placeholder={phonePlaceholderByCountryCode(
+                                        organiserCellParts.countryCode,
+                                    )}
+                                    value={organiserCellParts.localNumber}
+                                    onChange={(e) =>
+                                        updateFormData(
+                                            'organiserCell',
+                                            combinePhoneNumber(
+                                                organiserCellParts.countryCode,
+                                                e.target.value,
+                                            ),
+                                        )
+                                    }
+                                />
+                            </div>
+                            <FieldError error={errors.organiserCell} />
+                        </div>
                     </div>
                 </div>
             )}

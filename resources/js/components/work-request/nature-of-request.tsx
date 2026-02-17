@@ -129,6 +129,11 @@ export function NatureOfRequest({
                             }
                             if (!checked) {
                                 updateFormData('includesRegistration', false);
+                                updateFormData('includesGraphicsDigital', false);
+                                updateFormData(
+                                    'includesGraphics',
+                                    formData.includesGraphicsPrint,
+                                );
                             }
                         }}
                     >
@@ -174,7 +179,6 @@ export function NatureOfRequest({
                         checked={formData.includesGraphics}
                         title="Graphics"
                         description="Request design work for digital and/or print assets."
-                        disabled={isDigitalRequired}
                         onCheckedChange={(checked) => {
                             if (!checked && isDigitalRequired) {
                                 return;
@@ -194,7 +198,14 @@ export function NatureOfRequest({
                                 Select Graphic Types
                             </p>
                             <div className="grid gap-2 md:grid-cols-2">
-                                <label className="flex items-start gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
+                                <label
+                                    className={cn(
+                                        'flex items-start gap-3 rounded-lg border px-3 py-2 text-sm',
+                                        isDigitalRequired
+                                            ? 'border-slate-200 bg-slate-100 text-slate-500'
+                                            : 'border-slate-200 bg-white text-slate-700',
+                                    )}
+                                >
                                     <Checkbox
                                         id="graphics-digital"
                                         checked={
@@ -210,12 +221,7 @@ export function NatureOfRequest({
                                         }}
                                         className="mt-0.5"
                                     />
-                                    <span
-                                        className={cn(
-                                            isDigitalRequired &&
-                                                'text-slate-500',
-                                        )}
-                                    >
+                                    <span>
                                         Digital
                                     </span>
                                 </label>

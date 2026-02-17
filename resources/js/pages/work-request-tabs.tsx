@@ -18,6 +18,11 @@ import {
     WorkRequestTabStepper,
 } from '@/components/work-request';
 import type { FormData, ValidationErrors } from '@/components/work-request';
+import {
+    DEFAULT_RECAPTCHA_ACTION,
+    executeRecaptcha,
+    recaptchaEnabled,
+} from '@/lib/recaptcha';
 
 function getDatePart(dateTime: string): string {
     return dateTime.split('T')[0] ?? '';
@@ -342,7 +347,7 @@ export default function WorkRequestTabs() {
         setStepIndex((index) => Math.min(steps.length - 1, index + 1));
     }, [currentStep, formData, isLastStep, steps.length]);
 
-    const handleSubmit = useCallback(() => {
+    const handleSubmit = useCallback(async () => {
         if (!isLastStep) return;
         if (!currentStep) return;
 
@@ -354,9 +359,31 @@ export default function WorkRequestTabs() {
             return;
         }
 
+        let recaptchaToken: string | null = null;
+
+        if (recaptchaEnabled()) {
+            try {
+                recaptchaToken = await executeRecaptcha(
+                    DEFAULT_RECAPTCHA_ACTION,
+                );
+            } catch {
+                setSubmitState('error');
+                setErrors((prev) => ({
+                    ...prev,
+                    recaptcha:
+                        'Spam protection could not load. Please refresh and try again.',
+                }));
+                return;
+            }
+        }
+
         router.post(
             '/work-request/entries',
-            { formSlug: 'work-request', payload: formData },
+            {
+                formSlug: 'work-request',
+                payload: formData,
+                recaptchaToken,
+            },
             {
                 preserveScroll: true,
                 onStart: () => setIsSubmitting(true),
@@ -367,8 +394,9 @@ export default function WorkRequestTabs() {
                     setFormData(initialFormData);
                     window.scrollTo({ top: 0, behavior: 'smooth' });
                 },
-                onError: () => {
+                onError: (serverErrors) => {
                     setSubmitState('error');
+                    setErrors((serverErrors ?? {}) as ValidationErrors);
                 },
                 onFinish: () => setIsSubmitting(false),
             },
@@ -418,6 +446,11 @@ export default function WorkRequestTabs() {
                                     <p className="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
                                         We could not submit your request. Please
                                         review the form and try again.
+                                    </p>
+                                ) : null}
+                                {errors.recaptcha ? (
+                                    <p className="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                                        {errors.recaptcha}
                                     </p>
                                 ) : null}
                                 <WorkRequestTabStepper
