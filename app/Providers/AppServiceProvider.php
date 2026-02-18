@@ -17,6 +17,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        if (! class_exists(Webauthn::class)) {
+            return;
+        }
+
         // Disable automatic WebAuthn route registration BEFORE boot
         // (we define routes manually in web.php)
         Webauthn::ignoreRoutes();
@@ -52,6 +56,10 @@ class AppServiceProvider extends ServiceProvider
 
     protected function configureWebauthn(): void
     {
+        if (! class_exists(Webauthn::class)) {
+            return;
+        }
+
         // Enable userless login - find user by credential's userHandle
         Webauthn::authenticateUsing(function ($request) {
             if (config('webauthn.userless')) {

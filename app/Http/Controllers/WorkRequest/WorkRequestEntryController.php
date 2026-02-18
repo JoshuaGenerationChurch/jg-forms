@@ -69,8 +69,7 @@ class WorkRequestEntryController extends Controller
     public function storePublicWorkRequestEntry(
         Request $request,
         RecaptchaEnterpriseService $recaptcha,
-    ): RedirectResponse
-    {
+    ): RedirectResponse {
         $rules = [
             'payload' => ['required', 'array'],
         ];
@@ -115,22 +114,29 @@ class WorkRequestEntryController extends Controller
         return back();
     }
 
-    public function storePublicEasterHolidayEntry(Request $request): RedirectResponse
-    {
-        return $this->storePublicHolidayEntryBySlug($request, 'easter-holidays');
+    public function storePublicEasterHolidayEntry(
+        Request $request,
+        RecaptchaEnterpriseService $recaptcha,
+    ): RedirectResponse {
+        return $this->storePublicHolidayEntryBySlug($request, 'easter-holidays', $recaptcha);
     }
 
-    public function storePublicChristmasHolidayEntry(Request $request): RedirectResponse
-    {
-        return $this->storePublicHolidayEntryBySlug($request, 'christmas-holidays');
+    public function storePublicChristmasHolidayEntry(
+        Request $request,
+        RecaptchaEnterpriseService $recaptcha,
+    ): RedirectResponse {
+        return $this->storePublicHolidayEntryBySlug($request, 'christmas-holidays', $recaptcha);
     }
 
-    private function storePublicHolidayEntryBySlug(Request $request, string $formSlug): RedirectResponse
-    {
+    private function storePublicHolidayEntryBySlug(
+        Request $request,
+        string $formSlug,
+        RecaptchaEnterpriseService $recaptcha,
+    ): RedirectResponse {
         $form = $this->findForm($formSlug);
         abort_if($form === null, 404);
 
-        $validated = $request->validate([
+        $rules = [
             'congregation' => ['required', 'string', 'max:255'],
             'firstName' => ['required', 'string', 'max:255'],
             'lastName' => ['required', 'string', 'max:255'],
@@ -142,7 +148,22 @@ class WorkRequestEntryController extends Controller
             'serviceTimes.*.date' => ['required', 'date', 'after_or_equal:today'],
             'serviceTimes.*.startTime' => ['required', 'string', 'max:255'],
             'serviceTimes.*.venue' => ['nullable', 'string', 'max:255'],
-        ]);
+        ];
+
+        if ($recaptcha->enabled()) {
+            $rules['recaptchaToken'] = ['required', 'string'];
+        }
+
+        $validated = $request->validate($rules);
+
+        if ($recaptcha->enabled()) {
+            $verification = $recaptcha->verifyToken((string) ($validated['recaptchaToken'] ?? ''));
+            if (! $verification['success']) {
+                return back()->withErrors([
+                    'recaptcha' => $verification['message'] ?? 'Could not verify spam protection. Please try again.',
+                ])->withInput();
+            }
+        }
 
         $serviceTimes = collect($validated['serviceTimes'])
             ->map(function (array $service): array {

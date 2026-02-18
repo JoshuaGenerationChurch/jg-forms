@@ -43,6 +43,32 @@ const REQUEST_TYPE_FILTER_OPTIONS = [
     { label: 'Signage', value: 'Signage' },
 ];
 
+function requestTypeBadgeClass(type: string): string {
+    const normalizedType = type.trim().toLowerCase();
+
+    if (normalizedType === 'event logistics') {
+        return 'border-green-200 bg-green-200 text-green-900';
+    }
+
+    if (normalizedType === 'registration form') {
+        return 'border-sky-200 bg-sky-200 text-sky-900';
+    }
+
+    if (normalizedType === 'digital media') {
+        return 'border-orange-200 bg-orange-200 text-orange-900';
+    }
+
+    if (normalizedType === 'print media') {
+        return 'border-cyan-200 bg-cyan-200 text-cyan-900';
+    }
+
+    if (normalizedType === 'signage') {
+        return 'border-violet-200 bg-violet-200 text-violet-900';
+    }
+
+    return 'border-slate-100 bg-slate-100 text-slate-700';
+}
+
 function formatEntryDate(dateValue: string | null): string {
     if (!dateValue) {
         return 'Unknown date';
@@ -435,39 +461,39 @@ export default function AdminFormEntries({ form, entries }: Props) {
 
                                     {filteredEntries.map((entry) => (
                                         <tr key={entry.id}>
-                                            <td className="px-4 py-4 align-top text-sm text-slate-900">
+                                            <td className="px-4 py-4 align-middle text-sm text-slate-900">
                                                 {entry.firstName?.trim() || 'N/A'}
                                             </td>
-                                            <td className="px-4 py-4 align-top text-sm text-slate-900">
+                                            <td className="px-4 py-4 align-middle text-sm text-slate-900">
                                                 {entry.lastName?.trim() || 'N/A'}
                                             </td>
-                                            <td className="px-4 py-4 align-top text-sm text-slate-700">
+                                            <td className="px-4 py-4 align-middle text-sm text-slate-700">
                                                 {formatEntryDate(entry.createdAt)}
                                             </td>
-                                            <td className="px-4 py-4 align-top">
-                                                <div className="flex flex-wrap gap-2">
+                                            <td className="py-4 pr-2 pl-4 align-middle">
+                                                <div className="grid grid-cols-3 gap-2">
                                                     {entry.requestTypes.length >
                                                     0 ? (
                                                         entry.requestTypes.map(
                                                             (type) => (
                                                                 <span
                                                                     key={type}
-                                                                    className="rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-xs text-slate-600"
+                                                                    className={`rounded-full border px-2 py-1 text-center text-xs whitespace-nowrap ${requestTypeBadgeClass(type)}`}
                                                                 >
                                                                     {type}
                                                                 </span>
                                                             ),
                                                         )
                                                     ) : (
-                                                        <span className="rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-xs text-slate-600">
+                                                        <span className="rounded-full border border-slate-100 bg-slate-100 px-2 py-1 text-center text-xs whitespace-nowrap text-slate-700">
                                                             General request
                                                         </span>
                                                     )}
                                                 </div>
                                             </td>
-                                            <td className="px-4 py-4 align-top">
-                                                <div className="flex flex-wrap items-center gap-2">
-                                                    <Button variant="outline" asChild>
+                                            <td className="px-4 py-4 align-middle">
+                                                <div className="flex flex-nowrap items-center gap-2">
+                                                    <Button className="whitespace-nowrap" variant="outline" asChild>
                                                         <Link
                                                             href={`/admin/forms/entries/${form.slug}/${entry.id}`}
                                                         >
@@ -475,7 +501,7 @@ export default function AdminFormEntries({ form, entries }: Props) {
                                                             View
                                                         </Link>
                                                     </Button>
-                                                    <Button variant="outline" asChild>
+                                                    <Button className="whitespace-nowrap" variant="outline" asChild>
                                                         <Link
                                                             href={`/admin/forms/entries/${form.slug}/${entry.id}/edit`}
                                                         >
@@ -484,6 +510,7 @@ export default function AdminFormEntries({ form, entries }: Props) {
                                                         </Link>
                                                     </Button>
                                                     <Button
+                                                        className="whitespace-nowrap"
                                                         variant="destructive"
                                                         type="button"
                                                         onClick={() =>

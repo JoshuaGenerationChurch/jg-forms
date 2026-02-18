@@ -5,8 +5,10 @@ use App\Http\Controllers\WorkRequest\WorkFormController;
 use App\Http\Controllers\WorkRequest\WorkRequestEntryController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
-use LaravelWebauthn\Http\Controllers\AuthenticateController;
-use LaravelWebauthn\Http\Controllers\WebauthnKeyController;
+
+$webauthnAuthenticateController = \LaravelWebauthn\Http\Controllers\AuthenticateController::class;
+$webauthnKeyController = \LaravelWebauthn\Http\Controllers\WebauthnKeyController::class;
+$webauthnAvailable = class_exists($webauthnAuthenticateController) && class_exists($webauthnKeyController);
 
 Route::get('/', function () {
     return redirect()->route('forms.index');
@@ -40,15 +42,17 @@ Route::post('work-request/entries', [WorkRequestEntryController::class, 'storePu
 Route::get('work-request/digital-media-options', DigitalMediaOptionsController::class)
     ->name('work-request.digital-media-options');
 
-// WebAuthn guest routes (for login)
-Route::middleware(['web', 'guest'])->group(function () {
-    Route::post('/webauthn/login/options', [AuthenticateController::class, 'create'])
-        ->name('webauthn.login.options');
-    Route::post('/webauthn/login', [AuthenticateController::class, 'store'])
-        ->name('webauthn.login');
-});
+if ($webauthnAvailable) {
+    // WebAuthn guest routes (for login)
+    Route::middleware(['web', 'guest'])->group(function () use ($webauthnAuthenticateController) {
+        Route::post('/webauthn/login/options', [$webauthnAuthenticateController, 'create'])
+            ->name('webauthn.login.options');
+        Route::post('/webauthn/login', [$webauthnAuthenticateController, 'store'])
+            ->name('webauthn.login');
+    });
+}
 
-Route::middleware(['auth', 'verified'])->group(function () {
+Route::middleware(['auth', 'verified'])->group(function () use ($webauthnAvailable, $webauthnKeyController) {
     Route::get('dashboard', function () {
         return Inertia::render('dashboard');
     })->name('dashboard');
@@ -59,20 +63,22 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('work-request/entries/{entry}', [WorkRequestEntryController::class, 'show'])
         ->name('work-request.entries.show');
 
-    // WebAuthn authenticated routes (for registration and management)
-    Route::post('/webauthn/register/options', [WebauthnKeyController::class, 'create'])
-        ->name('webauthn.register.options');
-    Route::post('/webauthn/register', [WebauthnKeyController::class, 'store'])
-        ->name('webauthn.register');
-    Route::delete('/webauthn/{id}', [WebauthnKeyController::class, 'destroy'])
-        ->name('webauthn.destroy');
+    if ($webauthnAvailable) {
+        // WebAuthn authenticated routes (for registration and management)
+        Route::post('/webauthn/register/options', [$webauthnKeyController, 'create'])
+            ->name('webauthn.register.options');
+        Route::post('/webauthn/register', [$webauthnKeyController, 'store'])
+            ->name('webauthn.register');
+        Route::delete('/webauthn/{id}', [$webauthnKeyController, 'destroy'])
+            ->name('webauthn.destroy');
 
-    // Passkey settings page
-    Route::get('/settings/passkeys', function () {
-        return Inertia::render('settings/passkeys', [
-            'credentials' => auth()->user()->webauthnKeys()->get()
-        ]);
-    })->name('settings.passkeys');
+        // Passkey settings page
+        Route::get('/settings/passkeys', function () {
+            return Inertia::render('settings/passkeys', [
+                'credentials' => auth()->user()->webauthnKeys()->get(),
+            ]);
+        })->name('settings.passkeys');
+    }
 });
 
 Route::middleware(['auth', 'verified', 'workforms.admin'])->group(function () {

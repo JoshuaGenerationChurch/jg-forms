@@ -1,9 +1,14 @@
 import { router, useForm } from '@inertiajs/react';
 import { Minus, Plus } from 'lucide-react';
-import { useEffect, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    DEFAULT_RECAPTCHA_ACTION,
+    executeRecaptcha,
+    recaptchaEnabled,
+} from '@/lib/recaptcha';
 
 type ServiceTime = {
     serviceName: string;
@@ -31,7 +36,15 @@ const blankServiceTime: ServiceTime = {
 
 export function ChristmasServiceTimesForm() {
     const formSlug = 'christmas-holidays';
-    const { data, setData, post, processing, errors, recentlySuccessful } =
+    const [recaptchaClientError, setRecaptchaClientError] = useState('');
+    const {
+        data,
+        setData,
+        processing,
+        errors,
+        recentlySuccessful,
+        transform,
+    } =
         useForm<ChristmasServiceTimesFormData>({
             congregation: '',
             firstName: '',
@@ -96,11 +109,31 @@ export function ChristmasServiceTimesForm() {
         return errors[`serviceTimes.${index}.${field}`];
     };
 
-    const submit = (event: FormEvent<HTMLFormElement>) => {
+    const submit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
+        setRecaptchaClientError('');
 
-        post('/forms/christmas-holidays/entries', {
+        let recaptchaToken: string | null = null;
+
+        if (recaptchaEnabled()) {
+            try {
+                recaptchaToken = await executeRecaptcha(DEFAULT_RECAPTCHA_ACTION);
+            } catch {
+                setRecaptchaClientError(
+                    'Spam protection could not load. Please refresh and try again.',
+                );
+                return;
+            }
+        }
+
+        transform((values) => ({
+            ...values,
+            recaptchaToken,
+        })).post('/forms/christmas-holidays/entries', {
             preserveScroll: true,
+            onFinish: () => {
+                transform((values) => values);
+            },
         });
     };
 
@@ -117,6 +150,16 @@ export function ChristmasServiceTimesForm() {
                 {recentlySuccessful ? (
                     <p className="mt-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
                         Submitted successfully.
+                    </p>
+                ) : null}
+                {recaptchaClientError !== '' ? (
+                    <p className="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                        {recaptchaClientError}
+                    </p>
+                ) : null}
+                {errors.recaptcha ? (
+                    <p className="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                        {errors.recaptcha}
                     </p>
                 ) : null}
             </div>

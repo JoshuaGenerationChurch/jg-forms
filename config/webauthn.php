@@ -2,6 +2,22 @@
 
 use LaravelWebauthn\Models\WebauthnKey;
 
+$publicKeyCredentialParameters = class_exists(\Cose\Algorithms::class)
+    ? [
+        \Cose\Algorithms::COSE_ALGORITHM_ES256, // ECDSA with SHA-256
+        \Cose\Algorithms::COSE_ALGORITHM_ES512, // ECDSA with SHA-512
+        \Cose\Algorithms::COSE_ALGORITHM_RS256, // RSASSA-PKCS1-v1_5 with SHA-256
+        \Cose\Algorithms::COSE_ALGORITHM_EDDSA, // EDDSA
+        \Cose\Algorithms::COSE_ALGORITHM_ES384, // ECDSA with SHA-384
+    ]
+    : [
+        -7, // ES256
+        -36, // ES512
+        -257, // RS256
+        -8, // EDDSA
+        -35, // ES384
+    ];
+
 return [
 
     /*
@@ -230,11 +246,7 @@ return [
     */
 
     'public_key_credential_parameters' => [
-        \Cose\Algorithms::COSE_ALGORITHM_ES256, // ECDSA with SHA-256
-        \Cose\Algorithms::COSE_ALGORITHM_ES512, // ECDSA with SHA-512
-        \Cose\Algorithms::COSE_ALGORITHM_RS256, // RSASSA-PKCS1-v1_5 with SHA-256
-        \Cose\Algorithms::COSE_ALGORITHM_EDDSA, // EDDSA
-        \Cose\Algorithms::COSE_ALGORITHM_ES384, // ECDSA with SHA-384
+        ...$publicKeyCredentialParameters,
     ],
 
     /*

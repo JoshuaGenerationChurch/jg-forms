@@ -421,10 +421,12 @@ function buildSections(
 function renderRows(rows: Array<{ label: string; value: string }>): ReactNode {
     return (
         <dl className="space-y-2 text-sm">
-            {rows.map((row) => (
+            {rows.map((row, index) => (
                 <div
                     key={`${row.label}-${row.value}`}
-                    className="flex flex-col gap-1 border-b border-slate-100 pb-2 last:border-b-0 last:pb-0 md:flex-row md:items-start md:justify-between md:gap-4"
+                    className={`flex flex-col gap-1 rounded-md px-2 py-2 md:flex-row md:items-start md:justify-between md:gap-4 ${
+                        index % 2 === 1 ? 'bg-slate-100/70' : ''
+                    }`}
                 >
                     <dt className="text-slate-500">{row.label}</dt>
                     <dd className="max-w-[70%] text-left text-slate-900 md:text-right">
@@ -439,10 +441,7 @@ function renderRows(rows: Array<{ label: string; value: string }>): ReactNode {
 export default function EntryResponseReport({ formSlug, payload }: Props) {
     if (!payload || Object.keys(payload).length === 0) {
         return (
-            <div className="mt-6 rounded-lg border border-slate-200 p-4">
-                <h2 className="text-sm font-semibold text-slate-900">
-                    Responses
-                </h2>
+            <div className="mt-6">
                 <p className="mt-3 text-sm text-slate-500">
                     No response data was captured for this entry.
                 </p>
@@ -454,10 +453,7 @@ export default function EntryResponseReport({ formSlug, payload }: Props) {
 
     if (sections.length === 0) {
         return (
-            <div className="mt-6 rounded-lg border border-slate-200 p-4">
-                <h2 className="text-sm font-semibold text-slate-900">
-                    Responses
-                </h2>
+            <div className="mt-6">
                 <p className="mt-3 text-sm text-slate-500">
                     No filled responses found in this submission.
                 </p>
@@ -466,21 +462,18 @@ export default function EntryResponseReport({ formSlug, payload }: Props) {
     }
 
     return (
-        <div className="mt-6 rounded-lg border border-slate-200 p-4">
-            <h2 className="text-sm font-semibold text-slate-900">Responses</h2>
-            <div className="mt-4 space-y-4">
-                {sections.map((section) => (
-                    <div
-                        key={section.title}
-                        className="rounded-lg border border-slate-200 p-4"
-                    >
-                        <h3 className="text-sm font-semibold text-slate-900">
-                            {section.title}
-                        </h3>
-                        <div className="mt-3">{renderRows(section.rows)}</div>
-                    </div>
-                ))}
-            </div>
+        <div className="mt-6 space-y-4">
+            {sections.map((section) => (
+                <div
+                    key={section.title}
+                    className="rounded-lg border border-slate-200 bg-white p-4"
+                >
+                    <h3 className="text-sm font-semibold text-slate-900">
+                        {section.title}
+                    </h3>
+                    <div className="mt-3">{renderRows(section.rows)}</div>
+                </div>
+            ))}
         </div>
     );
 }
