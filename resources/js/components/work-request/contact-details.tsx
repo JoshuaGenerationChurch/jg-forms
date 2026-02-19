@@ -1,4 +1,5 @@
 import { ChevronDown } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { Label } from '@/components/ui/label';
 import {
     FieldError,
@@ -15,6 +16,23 @@ import {
 import { congregationOptions, selectBase } from './types';
 import type { FormPageProps } from './types';
 
+type DirectoryResponse = {
+    congregations?: string[];
+};
+
+const sanitizeList = (values: unknown): string[] => {
+    if (!Array.isArray(values)) {
+        return [];
+    }
+
+    const cleanValues = values
+        .filter((value): value is string => typeof value === 'string')
+        .map((value) => value.trim())
+        .filter((value) => value.length > 0);
+
+    return Array.from(new Set(cleanValues));
+};
+
 export function ContactDetails({
     formData,
     updateFormData,
@@ -25,6 +43,69 @@ export function ContactDetails({
         cellphoneParts.countryCode,
     );
     const cellphoneInvalid = Boolean(errors.cellphone);
+    const [availableCongregations, setAvailableCongregations] =
+        useState<string[]>(congregationOptions);
+    const [isLoadingDirectory, setIsLoadingDirectory] = useState(false);
+    const [directoryWarning, setDirectoryWarning] = useState<string | null>(
+        null,
+    );
+
+    useEffect(() => {
+        let cancelled = false;
+
+        const loadDirectoryOptions = async () => {
+            setIsLoadingDirectory(true);
+            setDirectoryWarning(null);
+
+            try {
+                const response = await fetch(
+                    '/work-request/digital-media-options',
+                    {
+                        headers: {
+                            Accept: 'application/json',
+                        },
+                    },
+                );
+
+                if (!response.ok) {
+                    throw new Error(
+                        `Failed to load options: ${response.status}`,
+                    );
+                }
+
+                const payload = (await response.json()) as DirectoryResponse;
+                const congregations = sanitizeList(payload.congregations);
+
+                if (cancelled) {
+                    return;
+                }
+
+                if (congregations.length > 0) {
+                    setAvailableCongregations(congregations);
+                } else {
+                    setDirectoryWarning(
+                        'Using local fallback options while JG API data is unavailable.',
+                    );
+                }
+            } catch {
+                if (!cancelled) {
+                    setDirectoryWarning(
+                        'Could not load JG API options. Using local fallback options.',
+                    );
+                }
+            } finally {
+                if (!cancelled) {
+                    setIsLoadingDirectory(false);
+                }
+            }
+        };
+
+        void loadDirectoryOptions();
+
+        return () => {
+            cancelled = true;
+        };
+    }, []);
 
     return (
         <div className="space-y-6">
@@ -140,13 +221,20 @@ export function ContactDetails({
                         }
                     >
                         <option value="">Select an Option</option>
-                        {congregationOptions.map((cong) => (
+                        {availableCongregations.map((cong) => (
                             <option key={cong} value={cong}>
                                 {cong}
                             </option>
                         ))}
                     </select>
                     <FieldError error={errors.congregation} />
+                    {(isLoadingDirectory || directoryWarning) && (
+                        <p className="mt-1 text-xs text-slate-500">
+                            {isLoadingDirectory
+                                ? 'Loading JG directory options...'
+                                : directoryWarning}
+                        </p>
+                    )}
                 </div>
             </div>
         </div>

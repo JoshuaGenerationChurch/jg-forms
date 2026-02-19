@@ -8,12 +8,13 @@ use Throwable;
 class JgDirectoryService
 {
     /**
-     * @return array{hubs: array<int, string>, congregations: array<int, string>}
+     * @return array{hubs: array<int, string>, venues: array<int, string>, congregations: array<int, string>}
      */
     public function getDigitalMediaOptions(): array
     {
         return [
             'hubs' => $this->fetchList((string) config('services.jg.hubs_endpoint', '/hubs')),
+            'venues' => $this->fetchList((string) config('services.jg.venues_endpoint', '/venues')),
             'congregations' => $this->fetchList((string) config('services.jg.congregations_endpoint', '/congregations')),
         ];
     }
@@ -64,7 +65,7 @@ class JgDirectoryService
             return $this->normalizeListItems($payload);
         }
 
-        foreach (['data', 'items', 'results', 'hubs', 'congregations'] as $key) {
+        foreach (['data', 'items', 'results', 'hubs', 'venues', 'congregations'] as $key) {
             if (array_key_exists($key, $payload)) {
                 $normalized = $this->normalizeList($payload[$key]);
                 if ($normalized !== []) {
@@ -100,14 +101,29 @@ class JgDirectoryService
 
             foreach (['name', 'title', 'label', 'display_name'] as $field) {
                 $value = $item[$field] ?? null;
-                if (! is_string($value)) {
+                if (is_string($value)) {
+                    $value = trim($value);
+                    if ($value !== '') {
+                        $names[] = $value;
+                        break;
+                    }
+
                     continue;
                 }
 
-                $value = trim($value);
-                if ($value !== '') {
-                    $names[] = $value;
-                    break;
+                if (is_array($value)) {
+                    foreach (['rendered', 'raw'] as $nestedField) {
+                        $nestedValue = $value[$nestedField] ?? null;
+                        if (! is_string($nestedValue)) {
+                            continue;
+                        }
+
+                        $nestedValue = trim(strip_tags($nestedValue));
+                        if ($nestedValue !== '') {
+                            $names[] = $nestedValue;
+                            break 2;
+                        }
+                    }
                 }
             }
         }

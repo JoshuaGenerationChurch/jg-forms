@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
 import {
     FieldError,
     FloatingLabelInput,
@@ -40,6 +41,12 @@ export function PrintMedia({
     updateFormData,
     errors = {},
 }: FormPageProps) {
+    const shouldUseEventReachScope =
+        formData.includesDatesVenue && formData.eventReach !== '';
+    const effectivePrintScope = shouldUseEventReachScope
+        ? formData.eventReach
+        : formData.printScope;
+
     const [availableHubs, setAvailableHubs] = useState<string[]>(hubOptions);
     const [availableCongregations, setAvailableCongregations] =
         useState<string[]>(congregationOptions);
@@ -255,44 +262,55 @@ export function PrintMedia({
         <div className="space-y-6">
             <SectionHeader title="Print Media Details" />
 
-            <div>
-                <Label
-                    htmlFor="print-scope"
-                    className="text-sm font-medium text-slate-700"
-                >
-                    Scope <Required />
-                </Label>
-                <select
-                    id="print-scope"
-                    aria-invalid={Boolean(errors.printScope)}
-                    className={`${selectBase} ${
-                        errors.printScope
-                            ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500'
-                            : ''
-                    }`}
-                    value={formData.printScope}
-                    onChange={(event) => {
-                        const value = event.target.value;
-                        updateFormData('printScope', value);
+            {shouldUseEventReachScope ? (
+                <div>
+                    <Label className="text-sm font-medium text-slate-700">
+                        Scope
+                    </Label>
+                    <p className="mt-2 rounded-lg border border-slate-200 bg-slate-100/60 px-3 py-2 text-sm text-slate-700">
+                        Using Event Reach selection: {effectivePrintScope}
+                    </p>
+                </div>
+            ) : (
+                <div>
+                    <Label
+                        htmlFor="print-scope"
+                        className="text-sm font-medium text-slate-700"
+                    >
+                        Scope <Required />
+                    </Label>
+                    <select
+                        id="print-scope"
+                        aria-invalid={Boolean(errors.printScope)}
+                        className={`${selectBase} ${
+                            errors.printScope
+                                ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500'
+                                : ''
+                        }`}
+                        value={formData.printScope}
+                        onChange={(event) => {
+                            const value = event.target.value;
+                            updateFormData('printScope', value);
 
-                        if (value !== 'Hubs') {
-                            updateFormData('printHubs', []);
-                        }
+                            if (value !== 'Hubs') {
+                                updateFormData('printHubs', []);
+                            }
 
-                        if (value !== 'Congregations') {
-                            updateFormData('printCongregations', []);
-                        }
-                    }}
-                >
-                    <option value="">Select an Option</option>
-                    <option>South Africa</option>
-                    <option>Hubs</option>
-                    <option>Congregations</option>
-                </select>
-                <FieldError error={errors.printScope} />
-            </div>
+                            if (value !== 'Congregations') {
+                                updateFormData('printCongregations', []);
+                            }
+                        }}
+                    >
+                        <option value="">Select an Option</option>
+                        <option>South Africa</option>
+                        <option>Hubs</option>
+                        <option>Congregations</option>
+                    </select>
+                    <FieldError error={errors.printScope} />
+                </div>
+            )}
 
-            {formData.printScope === 'Hubs' && (
+            {effectivePrintScope === 'Hubs' && (
                 <div>
                     <Label className="text-sm font-medium text-slate-700">
                         Which hubs is this for? <Required />
@@ -301,7 +319,7 @@ export function PrintMedia({
                         {availableHubs.map((hub) => (
                             <label
                                 key={hub}
-                                className="flex items-center gap-2"
+                                className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2"
                             >
                                 <Checkbox
                                     checked={formData.printHubs.includes(hub)}
@@ -321,7 +339,7 @@ export function PrintMedia({
                 </div>
             )}
 
-            {formData.printScope === 'Congregations' && (
+            {effectivePrintScope === 'Congregations' && (
                 <div>
                     <Label className="text-sm font-medium text-slate-700">
                         Which congregations is this for? <Required />
@@ -330,7 +348,7 @@ export function PrintMedia({
                         {availableCongregations.map((congregation) => (
                             <label
                                 key={congregation}
-                                className="flex items-center gap-2"
+                                className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2"
                             >
                                 <Checkbox
                                     checked={formData.printCongregations.includes(
@@ -364,7 +382,7 @@ export function PrintMedia({
                 <Label className="text-sm font-medium text-slate-700">
                     Print <Required />
                 </Label>
-                <div className="mt-2 space-y-2 text-sm text-slate-700">
+                <div className="mt-2 grid grid-cols-2 gap-3 text-sm text-slate-700">
                     {printTypeOptions.map((type) => {
                         const isSelected = formData.printTypes.includes(type);
                         const quantityField = isSelected
@@ -372,8 +390,16 @@ export function PrintMedia({
                             : null;
 
                         return (
-                            <div key={type} className="space-y-2">
-                                <label className="flex items-center gap-2">
+                            <div
+                                key={type}
+                                className={cn(
+                                    'rounded-lg border p-3 transition-colors',
+                                    isSelected
+                                        ? 'border-blue-300 bg-blue-50/30'
+                                        : 'border-slate-200 bg-white hover:border-slate-300',
+                                )}
+                            >
+                                <label className="flex items-start gap-3">
                                     <Checkbox
                                         checked={isSelected}
                                         onCheckedChange={(checked) => {
@@ -391,11 +417,23 @@ export function PrintMedia({
                                                 );
                                             }
                                         }}
+                                        className="mt-0.5"
                                     />
-                                    <span>{type}</span>
+                                    <span
+                                        className={cn(
+                                            'leading-5',
+                                            isSelected
+                                                ? 'font-medium text-slate-900'
+                                                : 'text-slate-700',
+                                        )}
+                                    >
+                                        {type}
+                                    </span>
                                 </label>
                                 {quantityField ? (
-                                    <div className="pl-6">{quantityField}</div>
+                                    <div className="mt-3 border-t border-blue-100 pt-3">
+                                        {quantityField}
+                                    </div>
                                 ) : null}
                             </div>
                         );

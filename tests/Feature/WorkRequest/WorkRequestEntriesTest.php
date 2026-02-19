@@ -21,7 +21,12 @@ test('users can view their own entries index and show pages', function () {
         'first_name' => 'John',
         'last_name' => 'Smith',
         'email' => 'john@example.com',
-        'payload' => ['requestSummary' => 'Test'],
+        'payload' => [
+            'eventName' => 'Test Event',
+            'isUserOrganiser' => 'Yes',
+            'organiserFirstName' => 'John',
+            'organiserLastName' => 'Smith',
+        ],
     ]);
 
     $this->actingAs($user)
@@ -39,6 +44,7 @@ test('users can view their own entries index and show pages', function () {
         ->assertInertia(fn (Assert $page) => $page
             ->component('work-request-entries/show')
             ->where('entry.id', $entry->id)
+            ->where('entry.payload.isUserOrganiser', 'Yes')
         );
 });
 
@@ -49,7 +55,7 @@ test('users cannot view other users work request entries', function () {
     $entry = WorkRequestEntry::query()->create([
         'user_id' => $owner->id,
         'first_name' => 'Owner',
-        'payload' => ['requestSummary' => 'Private entry'],
+        'payload' => ['eventName' => 'Private entry'],
     ]);
 
     $this->actingAs($intruder)

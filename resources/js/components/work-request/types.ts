@@ -16,7 +16,6 @@ export interface FormData {
     roleInChurch: string;
     otherRole: string;
     congregation: string;
-    requestSummary: string;
     theme: string;
 
     // Page 3: Event Details
@@ -42,6 +41,7 @@ export interface FormData {
 
     // Page 4: Event Registration
     quicketDescription: string;
+    ticketCurrency: string;
     ticketPriceIncludesFee: string;
     ticketTypes: {
         adults18Plus: boolean;
@@ -242,7 +242,6 @@ export const initialFormData: FormData = {
     roleInChurch: '',
     otherRole: '',
     congregation: '',
-    requestSummary: '',
     theme: '',
     eventName: '',
     isUserOrganiser: '',
@@ -264,6 +263,7 @@ export const initialFormData: FormData = {
     childMinding: '',
     childMindingDescription: '',
     quicketDescription: '',
+    ticketCurrency: 'ZAR',
     ticketPriceIncludesFee: '',
     ticketTypes: {
         adults18Plus: false,

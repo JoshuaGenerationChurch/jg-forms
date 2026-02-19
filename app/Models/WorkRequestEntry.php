@@ -21,7 +21,6 @@ class WorkRequestEntry extends Model
         'email',
         'cellphone',
         'congregation',
-        'request_summary',
         'event_name',
         'includes_dates_venue',
         'includes_registration',

@@ -43,8 +43,12 @@ test('admin users can view forms and entries in forms admin', function () {
         'first_name' => 'Submitter',
         'last_name' => 'User',
         'email' => 'submitter@example.com',
-        'request_summary' => 'Please assist with this request.',
-        'payload' => ['requestSummary' => 'Please assist with this request.'],
+        'payload' => [
+            'eventName' => 'Admin Test Event',
+            'isUserOrganiser' => 'No',
+            'organiserFirstName' => 'Event',
+            'organiserLastName' => 'Owner',
+        ],
     ]);
 
     $this->actingAs($admin)
@@ -78,6 +82,18 @@ test('admin users can view forms and entries in forms admin', function () {
             ->has('entries', 1)
             ->where('entries.0.id', $entry->id)
         );
+
+    $this->actingAs($admin)
+        ->get(route('admin.forms.entries.entry.show', [
+            'formSlug' => 'work-request',
+            'entry' => $entry->id,
+        ]))
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('admin/forms/entry-show')
+            ->where('entry.id', $entry->id)
+            ->where('entry.payload.isUserOrganiser', 'No')
+        );
 });
 
 test('admin users can edit and delete form entries', function () {
@@ -90,7 +106,6 @@ test('admin users can edit and delete form entries', function () {
         'first_name' => 'Before',
         'last_name' => 'Entry',
         'email' => 'before@example.com',
-        'request_summary' => 'Before summary',
         'event_name' => 'Before Event',
         'payload' => ['eventName' => 'Before Event'],
     ]);
@@ -105,7 +120,6 @@ test('admin users can edit and delete form entries', function () {
             'email' => 'after@example.com',
             'cellphone' => '',
             'congregation' => '',
-            'requestSummary' => 'After summary',
             'eventName' => 'After Event',
             'payloadJson' => json_encode(['eventName' => 'After Event']),
         ])
@@ -118,7 +132,6 @@ test('admin users can edit and delete form entries', function () {
         'id' => $entry->id,
         'first_name' => 'After',
         'email' => 'after@example.com',
-        'request_summary' => 'After summary',
         'event_name' => 'After Event',
     ]);
 

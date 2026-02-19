@@ -25,6 +25,10 @@ export function EventRegistration({
     )
         .toISOString()
         .slice(0, 10);
+    const ticketPriceLabel =
+        formData.ticketCurrency !== ''
+            ? `Price (${formData.ticketCurrency})`
+            : 'Price';
 
     return (
         <div className="space-y-6">
@@ -50,6 +54,28 @@ export function EventRegistration({
 
             {/* Ticket Types Section */}
             <div>
+                <div className="mb-4 max-w-xs space-y-1">
+                    <Label
+                        htmlFor="ticket-currency"
+                        className="text-sm font-medium text-slate-700"
+                    >
+                        Ticket Currency <Required />
+                    </Label>
+                    <select
+                        id="ticket-currency"
+                        className="h-10 w-full rounded-md border border-slate-300 bg-white px-3 text-sm text-slate-900 outline-none focus-visible:border-blue-400 focus-visible:ring-1 focus-visible:ring-blue-400"
+                        value={formData.ticketCurrency}
+                        onChange={(event) =>
+                            updateFormData('ticketCurrency', event.target.value)
+                        }
+                    >
+                        <option value="">Select currency</option>
+                        <option value="ZAR">South African rand (ZAR)</option>
+                        <option value="USD">US dollar (USD)</option>
+                    </select>
+                    <FieldError error={errors.ticketCurrency} />
+                </div>
+
                 <Label className="text-sm font-medium text-slate-700">
                     Ticket Types <Required />
                 </Label>
@@ -76,7 +102,7 @@ export function EventRegistration({
                             <div className="ml-6 grid gap-4 md:grid-cols-2">
                                 <FloatingLabelInput
                                     id="adults18-price"
-                                    label="Price"
+                                    label={ticketPriceLabel}
                                     required
                                     type="number"
                                     inputMode="numeric"
@@ -132,7 +158,7 @@ export function EventRegistration({
                             <div className="ml-6 grid gap-4 md:grid-cols-2">
                                 <FloatingLabelInput
                                     id="adults13-price"
-                                    label="Price"
+                                    label={ticketPriceLabel}
                                     required
                                     type="number"
                                     inputMode="numeric"
@@ -190,7 +216,7 @@ export function EventRegistration({
                             <div className="ml-6 grid gap-4 md:grid-cols-2">
                                 <FloatingLabelInput
                                     id="children4-price"
-                                    label="Price"
+                                    label={ticketPriceLabel}
                                     required
                                     type="number"
                                     inputMode="numeric"
@@ -248,7 +274,7 @@ export function EventRegistration({
                             <div className="ml-6 grid gap-4 md:grid-cols-2">
                                 <FloatingLabelInput
                                     id="children0-price"
-                                    label="Price"
+                                    label={ticketPriceLabel}
                                     required
                                     type="number"
                                     inputMode="numeric"
@@ -328,7 +354,7 @@ export function EventRegistration({
 
                                         <FloatingLabelInput
                                             id={`other-ticket-${index}-price`}
-                                            label="Price"
+                                            label={ticketPriceLabel}
                                             required
                                             type="number"
                                             inputMode="numeric"

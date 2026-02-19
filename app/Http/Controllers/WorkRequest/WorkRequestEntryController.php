@@ -29,7 +29,6 @@ class WorkRequestEntryController extends Controller
                     'lastName' => $entry->last_name,
                     'email' => $entry->email,
                     'eventName' => $entry->event_name,
-                    'requestSummary' => $entry->request_summary,
                     'requestTypes' => $this->requestTypes($entry),
                 ];
             })
@@ -58,7 +57,6 @@ class WorkRequestEntryController extends Controller
                 'email' => $entry->email,
                 'cellphone' => $entry->cellphone,
                 'congregation' => $entry->congregation,
-                'requestSummary' => $entry->request_summary,
                 'eventName' => $entry->event_name,
                 'requestTypes' => $this->requestTypes($entry),
                 'payload' => $entry->payload,
@@ -100,7 +98,6 @@ class WorkRequestEntryController extends Controller
             'email' => Arr::get($payload, 'email'),
             'cellphone' => Arr::get($payload, 'cellphone'),
             'congregation' => Arr::get($payload, 'congregation'),
-            'request_summary' => Arr::get($payload, 'requestSummary'),
             'event_name' => Arr::get($payload, 'eventName'),
             'includes_dates_venue' => (bool) Arr::get($payload, 'includesDatesVenue', false),
             'includes_registration' => (bool) Arr::get($payload, 'includesRegistration', false),
@@ -195,7 +192,6 @@ class WorkRequestEntryController extends Controller
             'email' => $payload['email'],
             'cellphone' => $payload['cellphone'] !== '' ? $payload['cellphone'] : null,
             'congregation' => $payload['congregation'],
-            'request_summary' => (string) ($form['title'] ?? 'Holiday Service Times submission'),
             'event_name' => sprintf('%s - %s', (string) $payload['congregation'], (string) ($form['title'] ?? 'Service Times')),
             'payload' => $payload,
         ]);
@@ -280,7 +276,6 @@ class WorkRequestEntryController extends Controller
             'email' => ['nullable', 'email', 'max:255'],
             'cellphone' => ['nullable', 'string', 'max:255'],
             'congregation' => ['nullable', 'string', 'max:255'],
-            'requestSummary' => ['nullable', 'string', 'max:2000'],
             'eventName' => ['nullable', 'string', 'max:255'],
             'payloadJson' => ['required', 'string', 'json'],
         ]);
@@ -302,7 +297,6 @@ class WorkRequestEntryController extends Controller
             'email' => Arr::get($validated, 'email'),
             'cellphone' => Arr::get($validated, 'cellphone'),
             'congregation' => Arr::get($validated, 'congregation'),
-            'request_summary' => Arr::get($validated, 'requestSummary'),
             'event_name' => Arr::get($validated, 'eventName'),
             'includes_dates_venue' => (bool) Arr::get($payload, 'includesDatesVenue', $entry->includes_dates_venue),
             'includes_registration' => (bool) Arr::get($payload, 'includesRegistration', $entry->includes_registration),
@@ -433,7 +427,7 @@ class WorkRequestEntryController extends Controller
     }
 
     /**
-     * @return array{id:int,formSlug:string,createdAt:string|null,firstName:string|null,lastName:string|null,email:string|null,eventName:string|null,requestSummary:string|null,requestTypes:array<int,string>}
+     * @return array{id:int,formSlug:string,createdAt:string|null,firstName:string|null,lastName:string|null,email:string|null,eventName:string|null,requestTypes:array<int,string>}
      */
     private function entrySummary(WorkRequestEntry $entry): array
     {
@@ -445,13 +439,12 @@ class WorkRequestEntryController extends Controller
             'lastName' => $entry->last_name,
             'email' => $entry->email,
             'eventName' => $entry->event_name,
-            'requestSummary' => $entry->request_summary,
             'requestTypes' => $this->requestTypes($entry),
         ];
     }
 
     /**
-     * @return array{id:int,formSlug:string,createdAt:string|null,updatedAt:string|null,firstName:string|null,lastName:string|null,email:string|null,cellphone:string|null,congregation:string|null,requestSummary:string|null,eventName:string|null,requestTypes:array<int,string>,payload:array<string,mixed>|null,payloadJson:string}
+     * @return array{id:int,formSlug:string,createdAt:string|null,updatedAt:string|null,firstName:string|null,lastName:string|null,email:string|null,cellphone:string|null,congregation:string|null,eventName:string|null,requestTypes:array<int,string>,payload:array<string,mixed>|null,payloadJson:string}
      */
     private function entryDetail(WorkRequestEntry $entry): array
     {
@@ -467,7 +460,6 @@ class WorkRequestEntryController extends Controller
             'email' => $entry->email,
             'cellphone' => $entry->cellphone,
             'congregation' => $entry->congregation,
-            'requestSummary' => $entry->request_summary,
             'eventName' => $entry->event_name,
             'requestTypes' => $this->requestTypes($entry),
             'payload' => is_array($payload) ? $payload : null,

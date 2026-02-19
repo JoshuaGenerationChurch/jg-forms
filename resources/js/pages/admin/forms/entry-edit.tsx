@@ -21,7 +21,6 @@ type AdminEntry = {
     email: string | null;
     cellphone: string | null;
     congregation: string | null;
-    requestSummary: string | null;
     eventName: string | null;
     payloadJson: string;
 };
@@ -37,7 +36,6 @@ type EntryFormData = {
     email: string;
     cellphone: string;
     congregation: string;
-    requestSummary: string;
     eventName: string;
     payloadJson: string;
 };
@@ -63,7 +61,6 @@ export default function AdminFormEntryEdit({ form, entry }: Props) {
         email: entry.email ?? '',
         cellphone: entry.cellphone ?? '',
         congregation: entry.congregation ?? '',
-        requestSummary: entry.requestSummary ?? '',
         eventName: entry.eventName ?? '',
         payloadJson: entry.payloadJson,
     });
@@ -215,29 +212,6 @@ export default function AdminFormEntryEdit({ form, entry }: Props) {
                                         </p>
                                     ) : null}
                                 </div>
-                            </div>
-
-                            <div className="space-y-2">
-                                <Label htmlFor="entry-request-summary">
-                                    Request summary
-                                </Label>
-                                <textarea
-                                    id="entry-request-summary"
-                                    className="w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                                    rows={3}
-                                    value={data.requestSummary}
-                                    onChange={(event) =>
-                                        setData(
-                                            'requestSummary',
-                                            event.target.value,
-                                        )
-                                    }
-                                />
-                                {errors.requestSummary ? (
-                                    <p className="text-xs text-red-600">
-                                        {errors.requestSummary}
-                                    </p>
-                                ) : null}
                             </div>
 
                             <div className="space-y-2">

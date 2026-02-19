@@ -223,6 +223,10 @@ export function validateEventRegistration(
         errors.quicketDescription = 'Description is required';
     }
 
+    if (formData.ticketCurrency !== 'ZAR' && formData.ticketCurrency !== 'USD') {
+        errors.ticketCurrency = 'Please select a ticket currency';
+    }
+
     // Check if at least one ticket type is selected
     const hasTicketType =
         formData.ticketTypes.adults18Plus ||
@@ -650,17 +654,21 @@ export function validateSignage(formData: FormData): ValidationErrors {
 // Validate print media page
 export function validatePrintMedia(formData: FormData): ValidationErrors {
     const errors: ValidationErrors = {};
+    const effectivePrintScope =
+        formData.includesDatesVenue && formData.eventReach !== ''
+            ? formData.eventReach
+            : formData.printScope;
 
-    if (!formData.printScope) {
+    if (!effectivePrintScope) {
         errors.printScope = 'Please select a scope';
     }
 
-    if (formData.printScope === 'Hubs' && formData.printHubs.length === 0) {
+    if (effectivePrintScope === 'Hubs' && formData.printHubs.length === 0) {
         errors.printHubs = 'Please select at least one hub';
     }
 
     if (
-        formData.printScope === 'Congregations' &&
+        effectivePrintScope === 'Congregations' &&
         formData.printCongregations.length === 0
     ) {
         errors.printCongregations = 'Please select at least one congregation';

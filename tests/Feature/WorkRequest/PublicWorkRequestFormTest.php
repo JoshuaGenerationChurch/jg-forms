@@ -10,14 +10,16 @@ test('work request form is publicly accessible', function () {
 });
 
 test('guest can submit a public work request entry', function () {
+    config()->set('services.recaptcha.enabled', false);
+
     $payload = [
         'firstName' => 'Jane',
         'lastName' => 'Doe',
         'email' => 'jane@example.com',
         'cellphone' => '+27820000000',
         'congregation' => 'City Bowl AM',
-        'requestSummary' => 'Sunday event assets',
         'eventName' => 'Sunday Service',
+        'ticketCurrency' => 'ZAR',
         'includesDatesVenue' => true,
         'includesRegistration' => true,
         'includesGraphics' => true,
@@ -54,4 +56,5 @@ test('guest can submit a public work request entry', function () {
     expect($entry)->not->toBeNull();
     expect($entry->payload)->toBeArray();
     expect($entry->payload['eventName'])->toBe('Sunday Service');
+    expect($entry->payload['ticketCurrency'])->toBe('ZAR');
 });

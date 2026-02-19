@@ -11,7 +11,6 @@ type EntrySummary = {
     lastName: string | null;
     email: string | null;
     eventName: string | null;
-    requestSummary: string | null;
     requestTypes: string[];
 };
 
@@ -74,7 +73,6 @@ export default function WorkRequestEntriesIndex({ entries }: Props) {
                                             <div className="min-w-0 space-y-2">
                                                 <p className="text-sm font-medium text-slate-900">
                                                     {entry.eventName?.trim() ||
-                                                        entry.requestSummary?.trim() ||
                                                         `Entry #${entry.id}`}
                                                 </p>
                                                 <div className="flex flex-wrap gap-2">
