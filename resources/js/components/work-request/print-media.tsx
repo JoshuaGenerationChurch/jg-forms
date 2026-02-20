@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
@@ -9,37 +8,20 @@ import {
     SectionHeader,
 } from './form-components';
 import {
-    congregationOptions,
-    hubOptions,
     printTypeOptions,
     selectBase,
 } from './types';
 import type { FormPageProps } from './types';
 
-type DirectoryResponse = {
-    hubs?: string[];
-    congregations?: string[];
-};
-
 type MultiSelectField = 'printHubs' | 'printCongregations';
-
-const sanitizeList = (values: unknown): string[] => {
-    if (!Array.isArray(values)) {
-        return [];
-    }
-
-    const cleanValues = values
-        .filter((value): value is string => typeof value === 'string')
-        .map((value) => value.trim())
-        .filter((value) => value.length > 0);
-
-    return Array.from(new Set(cleanValues));
-};
 
 export function PrintMedia({
     formData,
     updateFormData,
     errors = {},
+    directoryOptions,
+    isDirectoryLoading = false,
+    directoryWarning = null,
 }: FormPageProps) {
     const shouldUseEventReachScope =
         formData.includesDatesVenue && formData.eventReach !== '';
@@ -47,77 +29,8 @@ export function PrintMedia({
         ? formData.eventReach
         : formData.printScope;
 
-    const [availableHubs, setAvailableHubs] = useState<string[]>(hubOptions);
-    const [availableCongregations, setAvailableCongregations] =
-        useState<string[]>(congregationOptions);
-    const [isLoadingDirectory, setIsLoadingDirectory] = useState(false);
-    const [directoryWarning, setDirectoryWarning] = useState<string | null>(
-        null,
-    );
-
-    useEffect(() => {
-        let cancelled = false;
-
-        const loadDirectoryOptions = async () => {
-            setIsLoadingDirectory(true);
-            setDirectoryWarning(null);
-
-            try {
-                const response = await fetch(
-                    '/work-request/digital-media-options',
-                    {
-                        headers: {
-                            Accept: 'application/json',
-                        },
-                    },
-                );
-
-                if (!response.ok) {
-                    throw new Error(
-                        `Failed to load options: ${response.status}`,
-                    );
-                }
-
-                const payload = (await response.json()) as DirectoryResponse;
-                const hubs = sanitizeList(payload.hubs);
-                const congregations = sanitizeList(payload.congregations);
-
-                if (cancelled) {
-                    return;
-                }
-
-                if (hubs.length > 0) {
-                    setAvailableHubs(hubs);
-                }
-
-                if (congregations.length > 0) {
-                    setAvailableCongregations(congregations);
-                }
-
-                if (hubs.length === 0 || congregations.length === 0) {
-                    setDirectoryWarning(
-                        'Using local fallback options while JG API data is unavailable.',
-                    );
-                }
-            } catch {
-                if (!cancelled) {
-                    setDirectoryWarning(
-                        'Could not load JG API options. Using local fallback options.',
-                    );
-                }
-            } finally {
-                if (!cancelled) {
-                    setIsLoadingDirectory(false);
-                }
-            }
-        };
-
-        void loadDirectoryOptions();
-
-        return () => {
-            cancelled = true;
-        };
-    }, []);
+    const availableHubs = directoryOptions?.hubs ?? [];
+    const availableCongregations = directoryOptions?.congregations ?? [];
 
     const toggleSelection = (
         field: MultiSelectField,
@@ -370,9 +283,9 @@ export function PrintMedia({
                 </div>
             )}
 
-            {(isLoadingDirectory || directoryWarning) && (
+            {(isDirectoryLoading || directoryWarning) && (
                 <p className="text-xs text-slate-500">
-                    {isLoadingDirectory
+                    {isDirectoryLoading
                         ? 'Loading JG directory options...'
                         : directoryWarning}
                 </p>

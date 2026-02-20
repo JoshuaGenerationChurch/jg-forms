@@ -225,6 +225,15 @@ export interface FormPageProps {
         value: FormData[K],
     ) => void;
     errors?: Record<string, string | undefined>;
+    directoryOptions?: DirectoryOptions;
+    isDirectoryLoading?: boolean;
+    directoryWarning?: string | null;
+}
+
+export interface DirectoryOptions {
+    hubs: string[];
+    venues: string[];
+    congregations: string[];
 }
 
 // Initial form state
@@ -442,75 +451,6 @@ export const roleOptions = [
     "Elder's wife",
     'Elder',
     'Other',
-];
-
-export const hubOptions = [
-    'Central RSA',
-    'City Central',
-    'Helderberg Basin',
-    'Northern Suburbs',
-    'Overberg',
-    'Southern Cape',
-    'Western Seaboard',
-    'Winelands',
-    'Zimbabwe',
-];
-
-export const congregationOptions = [
-    'Bethlehem',
-    'Bloemfontein',
-    'Bonnievale',
-    'Bredasdorp',
-    'City Bowl AM',
-    'De Doorns',
-    'Dunoon',
-    'Durbanville AM',
-    'Durbanville Central',
-    'Durbanville PM',
-    'Edgemead 08:30',
-    'Edgemead 11 AM',
-    'Edgemead PM',
-    'George AM',
-    'George PM',
-    'Gordons Bay',
-    'Grabouw',
-    'Hartbees',
-    'Hermanus',
-    'Khayelitsha',
-    'Kimberley',
-    'Langebaan',
-    'Malmesbury',
-    'Melkbosstrand',
-    'Milnerton',
-    'Montagu',
-    'Mossel Bay AM',
-    'Mossel Bay PM',
-    'Muizenberg',
-    'Oudtshoorn',
-    'Paarl',
-    'Pinehurst PM',
-    'Potchefstroom',
-    'Robertson',
-    'Sea Point',
-    'Somerset West',
-    'Sonskyn Vallei',
-    'Stellenbosch AM',
-    'Stellenbosch Central',
-    'Stellenbosch PM',
-    'Stilbaai',
-    'Sunningdale 11AM',
-    'Sunningdale 8:30AM',
-    'Sunningdale PM',
-    'Swellendam',
-    'Wellington AM',
-    'Wellington PM',
-    'Willowmore',
-    'Woodstock PM',
-    'Worcester',
-    'Wynberg',
-    'Yzerfontein',
-    'Zim - Harare - CBD',
-    'Zim - Tafara',
 ];
 
 export const printTypeOptions = [

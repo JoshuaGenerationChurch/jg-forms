@@ -1,5 +1,4 @@
 import { ChevronDown, Minus, Plus } from 'lucide-react';
-import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -18,38 +17,18 @@ import {
     splitPhoneNumber,
 } from './phone';
 import {
-    congregationOptions,
     dateInputBase,
-    hubOptions,
     selectBase,
 } from './types';
 import type { FormPageProps } from './types';
-
-type DirectoryResponse = {
-    hubs?: string[];
-    venues?: string[];
-    congregations?: string[];
-};
-
-const defaultVenueOptions = ['Venue 1', 'Venue 2', 'Venue 3'];
-
-const sanitizeList = (values: unknown): string[] => {
-    if (!Array.isArray(values)) {
-        return [];
-    }
-
-    const cleanValues = values
-        .filter((value): value is string => typeof value === 'string')
-        .map((value) => value.trim())
-        .filter((value) => value.length > 0);
-
-    return Array.from(new Set(cleanValues));
-};
 
 export function EventDetails({
     formData,
     updateFormData,
     errors = {},
+    directoryOptions,
+    isDirectoryLoading = false,
+    directoryWarning = null,
 }: FormPageProps) {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -63,88 +42,9 @@ export function EventDetails({
         organiserCellParts.countryCode,
     );
     const organiserCellInvalid = Boolean(errors.organiserCell);
-    const [availableHubs, setAvailableHubs] = useState<string[]>(hubOptions);
-    const [availableCongregations, setAvailableCongregations] =
-        useState<string[]>(congregationOptions);
-    const [availableVenues, setAvailableVenues] =
-        useState<string[]>(defaultVenueOptions);
-    const [isLoadingDirectory, setIsLoadingDirectory] = useState(false);
-    const [directoryWarning, setDirectoryWarning] = useState<string | null>(
-        null,
-    );
-
-    useEffect(() => {
-        let cancelled = false;
-
-        const loadDirectoryOptions = async () => {
-            setIsLoadingDirectory(true);
-            setDirectoryWarning(null);
-
-            try {
-                const response = await fetch(
-                    '/work-request/digital-media-options',
-                    {
-                        headers: {
-                            Accept: 'application/json',
-                        },
-                    },
-                );
-
-                if (!response.ok) {
-                    throw new Error(
-                        `Failed to load options: ${response.status}`,
-                    );
-                }
-
-                const payload = (await response.json()) as DirectoryResponse;
-                const hubs = sanitizeList(payload.hubs);
-                const venues = sanitizeList(payload.venues);
-                const congregations = sanitizeList(payload.congregations);
-
-                if (cancelled) {
-                    return;
-                }
-
-                if (hubs.length > 0) {
-                    setAvailableHubs(hubs);
-                }
-
-                if (venues.length > 0) {
-                    setAvailableVenues(venues);
-                }
-
-                if (congregations.length > 0) {
-                    setAvailableCongregations(congregations);
-                }
-
-                if (
-                    hubs.length === 0 ||
-                    venues.length === 0 ||
-                    congregations.length === 0
-                ) {
-                    setDirectoryWarning(
-                        'Using local fallback options while JG API data is unavailable.',
-                    );
-                }
-            } catch {
-                if (!cancelled) {
-                    setDirectoryWarning(
-                        'Could not load JG API options. Using local fallback options.',
-                    );
-                }
-            } finally {
-                if (!cancelled) {
-                    setIsLoadingDirectory(false);
-                }
-            }
-        };
-
-        void loadDirectoryOptions();
-
-        return () => {
-            cancelled = true;
-        };
-    }, []);
+    const availableHubs = directoryOptions?.hubs ?? [];
+    const availableCongregations = directoryOptions?.congregations ?? [];
+    const availableVenues = directoryOptions?.venues ?? [];
 
     return (
         <div className="space-y-6">
@@ -765,9 +665,9 @@ export function EventDetails({
                 </div>
             )}
 
-            {(isLoadingDirectory || directoryWarning) && (
+            {(isDirectoryLoading || directoryWarning) && (
                 <p className="text-xs text-slate-500">
-                    {isLoadingDirectory
+                    {isDirectoryLoading
                         ? 'Loading JG directory options...'
                         : directoryWarning}
                 </p>

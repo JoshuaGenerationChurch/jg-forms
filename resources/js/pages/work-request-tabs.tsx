@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import {
     ContactDetails,
     DigitalMedia,
+    type DirectoryOptions,
     EventDetails,
     EventRegistration,
     hasErrors,
@@ -54,6 +55,31 @@ function clampEndDateToStartMonth(
     return `${adjustedEndDate}T${endTime}`;
 }
 
+type DirectoryResponse = {
+    hubs?: unknown;
+    venues?: unknown;
+    congregations?: unknown;
+};
+
+const emptyDirectoryOptions: DirectoryOptions = {
+    hubs: [],
+    venues: [],
+    congregations: [],
+};
+
+function sanitizeDirectoryList(values: unknown): string[] {
+    if (!Array.isArray(values)) {
+        return [];
+    }
+
+    const cleanValues = values
+        .filter((value): value is string => typeof value === 'string')
+        .map((value) => value.trim())
+        .filter((value) => value.length > 0);
+
+    return Array.from(new Set(cleanValues));
+}
+
 export default function WorkRequestTabs() {
     const [stepIndex, setStepIndex] = useState(0);
     const [formData, setFormData] = useState<FormData>(initialFormData);
@@ -62,6 +88,13 @@ export default function WorkRequestTabs() {
     const [submitState, setSubmitState] = useState<
         'idle' | 'success' | 'error'
     >('idle');
+    const [directoryOptions, setDirectoryOptions] = useState<DirectoryOptions>(
+        emptyDirectoryOptions,
+    );
+    const [isDirectoryLoading, setIsDirectoryLoading] = useState(true);
+    const [directoryWarning, setDirectoryWarning] = useState<string | null>(
+        null,
+    );
 
     useEffect(() => {
         if (submitState !== 'success') {
@@ -74,6 +107,67 @@ export default function WorkRequestTabs() {
 
         return () => window.clearTimeout(timeout);
     }, [submitState]);
+
+    useEffect(() => {
+        let cancelled = false;
+
+        const loadDirectoryOptions = async () => {
+            setIsDirectoryLoading(true);
+            setDirectoryWarning(null);
+
+            try {
+                const response = await fetch('/work-request/digital-media-options', {
+                    headers: {
+                        Accept: 'application/json',
+                    },
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Failed to load options: ${response.status}`);
+                }
+
+                const payload = (await response.json()) as DirectoryResponse;
+                const nextOptions: DirectoryOptions = {
+                    hubs: sanitizeDirectoryList(payload.hubs),
+                    venues: sanitizeDirectoryList(payload.venues),
+                    congregations: sanitizeDirectoryList(payload.congregations),
+                };
+
+                if (cancelled) {
+                    return;
+                }
+
+                setDirectoryOptions(nextOptions);
+
+                if (
+                    nextOptions.hubs.length === 0 ||
+                    nextOptions.venues.length === 0 ||
+                    nextOptions.congregations.length === 0
+                ) {
+                    setDirectoryWarning(
+                        'Some JG directory options are currently unavailable. Please try again.',
+                    );
+                }
+            } catch {
+                if (!cancelled) {
+                    setDirectoryOptions(emptyDirectoryOptions);
+                    setDirectoryWarning(
+                        'Could not load JG directory options. Please refresh and try again.',
+                    );
+                }
+            } finally {
+                if (!cancelled) {
+                    setIsDirectoryLoading(false);
+                }
+            }
+        };
+
+        void loadDirectoryOptions();
+
+        return () => {
+            cancelled = true;
+        };
+    }, []);
 
     const updateFormData = useCallback(
         <K extends keyof FormData>(key: K, value: FormData[K]) => {
@@ -209,6 +303,9 @@ export default function WorkRequestTabs() {
                         formData={formData}
                         updateFormData={updateFormData}
                         errors={errors}
+                        directoryOptions={directoryOptions}
+                        isDirectoryLoading={isDirectoryLoading}
+                        directoryWarning={directoryWarning}
                     />
                 ),
             },
@@ -231,6 +328,9 @@ export default function WorkRequestTabs() {
                         formData={formData}
                         updateFormData={updateFormData}
                         errors={errors}
+                        directoryOptions={directoryOptions}
+                        isDirectoryLoading={isDirectoryLoading}
+                        directoryWarning={directoryWarning}
                     />
                 ),
             },
@@ -257,6 +357,20 @@ export default function WorkRequestTabs() {
                 ),
             },
             {
+                id: 'print',
+                title: 'Print Media',
+                content: (
+                    <PrintMedia
+                        formData={formData}
+                        updateFormData={updateFormData}
+                        errors={errors}
+                        directoryOptions={directoryOptions}
+                        isDirectoryLoading={isDirectoryLoading}
+                        directoryWarning={directoryWarning}
+                    />
+                ),
+            },
+            {
                 id: 'signage',
                 title: 'Signage',
                 content: (
@@ -267,21 +381,18 @@ export default function WorkRequestTabs() {
                     />
                 ),
             },
-            {
-                id: 'print',
-                title: 'Print Media',
-                content: (
-                    <PrintMedia
-                        formData={formData}
-                        updateFormData={updateFormData}
-                        errors={errors}
-                    />
-                ),
-            },
         ];
 
         return allPages.filter((page) => visiblePages.includes(page.id));
-    }, [errors, formData, updateFormData, visiblePages]);
+    }, [
+        directoryOptions,
+        directoryWarning,
+        errors,
+        formData,
+        isDirectoryLoading,
+        updateFormData,
+        visiblePages,
+    ]);
 
     const validationState = (() => {
         if (steps.length === 0) {

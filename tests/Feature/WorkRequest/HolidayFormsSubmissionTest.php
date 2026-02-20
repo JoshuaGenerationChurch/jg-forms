@@ -1,7 +1,9 @@
 <?php
 
+use App\Mail\WorkFormSubmissionNotificationMail;
 use App\Models\User;
 use App\Models\WorkRequestEntry;
+use Illuminate\Support\Facades\Mail;
 use Inertia\Testing\AssertableInertia as Assert;
 
 test('holiday forms pages are publicly accessible', function () {
@@ -16,7 +18,13 @@ test('holiday forms pages are publicly accessible', function () {
 
 test('guest can submit easter holidays service times and admin can view entry', function () {
     $admin = User::factory()->create(['email' => 'admin@example.com']);
+    config(['services.recaptcha.enabled' => false]);
     config(['workforms.admin_emails' => ['admin@example.com']]);
+    config(['workforms.notification_recipients' => [
+        ['email' => 'notify@example.com', 'name' => null],
+        ['email' => 'trello@example.com', 'name' => 'JG Design'],
+    ]]);
+    Mail::fake();
 
     $payload = [
         'congregation' => 'City Bowl AM',
@@ -61,6 +69,17 @@ test('guest can submit easter holidays service times and admin can view entry', 
     expect($entry)->not->toBeNull();
     expect($entry->payload)->toBeArray();
     expect($entry->payload['serviceTimes'])->toHaveCount(2);
+
+    Mail::assertSent(WorkFormSubmissionNotificationMail::class, function (WorkFormSubmissionNotificationMail $mail): bool {
+        return $mail->hasTo('notify@example.com')
+            && $mail->entry->form_slug === 'easter-holidays';
+    });
+
+    Mail::assertSent(WorkFormSubmissionNotificationMail::class, function (WorkFormSubmissionNotificationMail $mail): bool {
+        return $mail->hasTo('trello@example.com')
+            && $mail->entry->form_slug === 'easter-holidays';
+    });
+    Mail::assertSentCount(2);
 
     $this->actingAs($admin)
         ->get(route('admin.forms.entries.show', 'easter-holidays'))

@@ -3,14 +3,18 @@
 namespace App\Http\Controllers\WorkRequest;
 
 use App\Http\Controllers\Controller;
+use App\Mail\WorkFormSubmissionNotificationMail;
 use App\Models\WorkForm;
 use App\Models\WorkRequestEntry;
 use App\Services\RecaptchaEnterpriseService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Mail;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\Mime\Address;
+use Throwable;
 
 class WorkRequestEntryController extends Controller
 {
@@ -90,7 +94,7 @@ class WorkRequestEntryController extends Controller
         /** @var array<string, mixed> $payload */
         $payload = $validated['payload'];
 
-        WorkRequestEntry::query()->create([
+        $entry = WorkRequestEntry::query()->create([
             'user_id' => null,
             'form_slug' => 'work-request',
             'first_name' => Arr::get($payload, 'firstName'),
@@ -107,6 +111,8 @@ class WorkRequestEntryController extends Controller
             'includes_signage' => (bool) Arr::get($payload, 'includesSignage', false),
             'payload' => $payload,
         ]);
+
+        $this->sendSubmissionNotifications($entry, $this->findForm('work-request'));
 
         return back();
     }
@@ -184,7 +190,7 @@ class WorkRequestEntryController extends Controller
             'serviceTimes' => $serviceTimes,
         ];
 
-        WorkRequestEntry::query()->create([
+        $entry = WorkRequestEntry::query()->create([
             'user_id' => null,
             'form_slug' => $formSlug,
             'first_name' => $payload['firstName'],
@@ -195,6 +201,8 @@ class WorkRequestEntryController extends Controller
             'event_name' => sprintf('%s - %s', (string) $payload['congregation'], (string) ($form['title'] ?? 'Service Times')),
             'payload' => $payload,
         ]);
+
+        $this->sendSubmissionNotifications($entry, $form);
 
         return back();
     }
@@ -400,6 +408,44 @@ class WorkRequestEntryController extends Controller
     {
         return collect($this->formsConfig())
             ->first(fn (array $form): bool => ($form['slug'] ?? null) === $slug);
+    }
+
+    /**
+     * @param  array{slug?: string, title?: string, description?: string, url?: string}|null  $form
+     */
+    private function sendSubmissionNotifications(
+        WorkRequestEntry $entry,
+        ?array $form = null,
+    ): void {
+        $recipients = config('workforms.notification_recipients', []);
+        if (! is_array($recipients) || count($recipients) === 0) {
+            return;
+        }
+
+        foreach ($recipients as $recipient) {
+            if (! is_array($recipient)) {
+                continue;
+            }
+
+            $email = strtolower(trim((string) ($recipient['email'] ?? '')));
+            if ($email === '') {
+                continue;
+            }
+
+            $name = trim((string) ($recipient['name'] ?? ''));
+
+            try {
+                $recipientAddress = $name !== ''
+                    ? new Address($email, $name)
+                    : new Address($email);
+
+                Mail::to($recipientAddress)->send(
+                    new WorkFormSubmissionNotificationMail($entry, $form),
+                );
+            } catch (Throwable $exception) {
+                report($exception);
+            }
+        }
     }
 
     private function isAdmin(Request $request): bool

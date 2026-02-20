@@ -1,6 +1,8 @@
 <?php
 
+use App\Mail\WorkFormSubmissionNotificationMail;
 use App\Models\WorkRequestEntry;
+use Illuminate\Support\Facades\Mail;
 use Inertia\Testing\AssertableInertia as Assert;
 
 test('work request form is publicly accessible', function () {
@@ -11,6 +13,10 @@ test('work request form is publicly accessible', function () {
 
 test('guest can submit a public work request entry', function () {
     config()->set('services.recaptcha.enabled', false);
+    config()->set('workforms.notification_recipients', [
+        ['email' => 'notify@example.com', 'name' => 'Notify'],
+    ]);
+    Mail::fake();
 
     $payload = [
         'firstName' => 'Jane',
@@ -57,4 +63,10 @@ test('guest can submit a public work request entry', function () {
     expect($entry->payload)->toBeArray();
     expect($entry->payload['eventName'])->toBe('Sunday Service');
     expect($entry->payload['ticketCurrency'])->toBe('ZAR');
+
+    Mail::assertSent(WorkFormSubmissionNotificationMail::class, function (WorkFormSubmissionNotificationMail $mail): bool {
+        return $mail->hasTo('notify@example.com')
+            && $mail->entry->form_slug === 'work-request';
+    });
+    Mail::assertSentCount(1);
 });

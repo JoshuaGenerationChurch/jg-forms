@@ -87,7 +87,7 @@ class JgDirectoryService
 
         foreach ($items as $item) {
             if (is_string($item)) {
-                $name = trim($item);
+                $name = $this->sanitizeName($item);
                 if ($name !== '') {
                     $names[] = $name;
                 }
@@ -102,7 +102,7 @@ class JgDirectoryService
             foreach (['name', 'title', 'label', 'display_name'] as $field) {
                 $value = $item[$field] ?? null;
                 if (is_string($value)) {
-                    $value = trim($value);
+                    $value = $this->sanitizeName($value);
                     if ($value !== '') {
                         $names[] = $value;
                         break;
@@ -118,7 +118,7 @@ class JgDirectoryService
                             continue;
                         }
 
-                        $nestedValue = trim(strip_tags($nestedValue));
+                        $nestedValue = $this->sanitizeName($nestedValue);
                         if ($nestedValue !== '') {
                             $names[] = $nestedValue;
                             break 2;
@@ -128,6 +128,27 @@ class JgDirectoryService
             }
         }
 
-        return array_values(array_unique($names));
+        $uniqueNames = array_values(array_unique($names));
+
+        sort($uniqueNames, SORT_NATURAL | SORT_FLAG_CASE);
+
+        return $uniqueNames;
+    }
+
+    private function sanitizeName(string $value): string
+    {
+        $sanitizedValue = trim(strip_tags($value));
+        $sanitizedValue = html_entity_decode(
+            $sanitizedValue,
+            ENT_QUOTES | ENT_HTML5,
+            'UTF-8',
+        );
+        $sanitizedValue = str_replace(
+            ["\u{2018}", "\u{2019}"],
+            "'",
+            $sanitizedValue,
+        );
+
+        return trim($sanitizedValue);
     }
 }

@@ -48,17 +48,19 @@ test('authenticated users can fetch digital media options from the jg api', func
 
     Http::fake([
         'https://jg-api.test/hubs' => Http::response([
-            ['name' => 'Central RSA'],
             ['name' => 'Northern Suburbs'],
+            ['name' => 'Central RSA'],
         ], 200),
         'https://jg-api.test/venues' => Http::response([
-            ['title' => ['rendered' => 'Centurion Hall']],
+            ['title' => ['rendered' => 'Malmesbury Piet Retief &#038; Hill Str']],
             ['title' => ['rendered' => 'Durbanville PM Hall']],
+            ['title' => ['rendered' => 'Centurion Hall']],
         ], 200),
         'https://jg-api.test/congregations' => Http::response([
             'data' => [
-                ['name' => 'City Bowl AM'],
+                ['name' => 'Gordon&#8217;s Bay'],
                 ['name' => 'Durbanville AM'],
+                ['name' => 'City Bowl AM'],
             ],
         ], 200),
     ]);
@@ -71,7 +73,15 @@ test('authenticated users can fetch digital media options from the jg api', func
         ->assertOk()
         ->assertJson([
             'hubs' => ['Central RSA', 'Northern Suburbs'],
-            'venues' => ['Centurion Hall', 'Durbanville PM Hall'],
-            'congregations' => ['City Bowl AM', 'Durbanville AM'],
+            'venues' => [
+                'Centurion Hall',
+                'Durbanville PM Hall',
+                'Malmesbury Piet Retief & Hill Str',
+            ],
+            'congregations' => [
+                'City Bowl AM',
+                'Durbanville AM',
+                "Gordon's Bay",
+            ],
         ]);
 });
