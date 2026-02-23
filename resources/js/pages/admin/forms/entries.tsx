@@ -4,6 +4,7 @@ import {
     CalendarDays,
     ChevronDown,
     Eye,
+    Mail,
     Pencil,
     Trash2,
     X,
@@ -225,12 +226,22 @@ export default function AdminFormEntries({ form, entries }: Props) {
                                     {form.title} Entries
                                 </h1>
                             </div>
-                            <Button variant="outline" asChild>
-                                <Link href="/admin/forms/entries">
-                                    <ArrowLeft className="size-4" />
-                                    Back to forms entries
-                                </Link>
-                            </Button>
+                            <div className="flex flex-wrap items-center gap-2">
+                                <Button variant="outline" asChild>
+                                    <Link
+                                        href={`/admin/forms/email-templates/${form.slug}`}
+                                    >
+                                        <Mail className="size-4" />
+                                        Email templates
+                                    </Link>
+                                </Button>
+                                <Button variant="outline" asChild>
+                                    <Link href="/admin/forms/entries">
+                                        <ArrowLeft className="size-4" />
+                                        Back to forms entries
+                                    </Link>
+                                </Button>
+                            </div>
                         </div>
 
                         <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-5">

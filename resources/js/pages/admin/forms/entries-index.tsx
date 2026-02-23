@@ -1,5 +1,5 @@
 import { Head, Link } from '@inertiajs/react';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
@@ -37,6 +37,14 @@ export default function AdminFormsEntriesIndex({ forms }: Props) {
                         <p className="mt-1 text-sm text-slate-500">
                             View entries for each form.
                         </p>
+                        <div className="mt-4">
+                            <Button variant="outline" asChild>
+                                <Link href="/admin/forms/email-templates">
+                                    <Mail className="size-4" />
+                                    Email templates
+                                </Link>
+                            </Button>
+                        </div>
 
                         <div className="mt-8 space-y-3">
                             {forms.map((form) => (
@@ -59,14 +67,24 @@ export default function AdminFormsEntriesIndex({ forms }: Props) {
                                                     : ''}
                                             </p>
                                         </div>
-                                        <Button variant="outline" asChild>
-                                            <Link
-                                                href={`/admin/forms/entries/${form.slug}`}
-                                            >
-                                                View entries
-                                                <ArrowRight className="size-4" />
-                                            </Link>
-                                        </Button>
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <Button variant="outline" asChild>
+                                                <Link
+                                                    href={`/admin/forms/email-templates/${form.slug}`}
+                                                >
+                                                    <Mail className="size-4" />
+                                                    Email templates
+                                                </Link>
+                                            </Button>
+                                            <Button variant="outline" asChild>
+                                                <Link
+                                                    href={`/admin/forms/entries/${form.slug}`}
+                                                >
+                                                    View entries
+                                                    <ArrowRight className="size-4" />
+                                                </Link>
+                                            </Button>
+                                        </div>
                                     </div>
                                 </div>
                             ))}

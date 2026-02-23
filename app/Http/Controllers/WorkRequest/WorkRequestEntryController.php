@@ -4,9 +4,12 @@ namespace App\Http\Controllers\WorkRequest;
 
 use App\Http\Controllers\Controller;
 use App\Mail\WorkFormSubmissionNotificationMail;
+use App\Mail\WorkFormTemplateNotificationMail;
 use App\Models\WorkForm;
+use App\Models\WorkFormEmailTemplate;
 use App\Models\WorkRequestEntry;
 use App\Services\RecaptchaEnterpriseService;
+use App\Services\WorkFormEmailTemplateService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
@@ -417,6 +420,33 @@ class WorkRequestEntryController extends Controller
         WorkRequestEntry $entry,
         ?array $form = null,
     ): void {
+        $templateService = app(WorkFormEmailTemplateService::class);
+        $workForm = WorkForm::query()
+            ->where('slug', $entry->form_slug)
+            ->first();
+
+        if ($workForm) {
+            $templates = $workForm->emailTemplates()
+                ->where('is_active', true)
+                ->where('trigger_event', 'submission_created')
+                ->orderBy('position')
+                ->orderBy('id')
+                ->get();
+
+            if ($templates->isNotEmpty()) {
+                foreach ($templates as $template) {
+                    $this->sendTemplateNotification(
+                        $template,
+                        $entry,
+                        $form,
+                        $templateService,
+                    );
+                }
+
+                return;
+            }
+        }
+
         $recipients = config('workforms.notification_recipients', []);
         if (! is_array($recipients) || count($recipients) === 0) {
             return;
@@ -446,6 +476,79 @@ class WorkRequestEntryController extends Controller
                 report($exception);
             }
         }
+    }
+
+    /**
+     * @param  array{slug?: string, title?: string, description?: string, url?: string}|null  $form
+     */
+    private function sendTemplateNotification(
+        WorkFormEmailTemplate $template,
+        WorkRequestEntry $entry,
+        ?array $form,
+        WorkFormEmailTemplateService $templateService,
+    ): void {
+        $toRecipients = $templateService->mergeRecipientsWithDefaults(
+            is_array($template->to_recipients) ? $template->to_recipients : [],
+            $template->use_default_recipients,
+        );
+
+        if (count($toRecipients) === 0) {
+            return;
+        }
+
+        $ccRecipients = $templateService->normalizeRecipientsArray(
+            is_array($template->cc_recipients) ? $template->cc_recipients : [],
+        );
+        $bccRecipients = $templateService->normalizeRecipientsArray(
+            is_array($template->bcc_recipients) ? $template->bcc_recipients : [],
+        );
+
+        $placeholderMap = $templateService->buildPlaceholderMap($entry, $form);
+        $subject = $templateService->renderWithPlaceholders($template->subject, $placeholderMap);
+        $headingTemplate = $template->heading ?? $template->name;
+        $heading = $templateService->renderWithPlaceholders($headingTemplate, $placeholderMap);
+        $body = $templateService->renderWithPlaceholders($template->body, $placeholderMap);
+
+        try {
+            $pendingMail = Mail::to($this->mapRecipientsToAddresses($toRecipients));
+
+            if ($ccRecipients !== []) {
+                $pendingMail->cc($this->mapRecipientsToAddresses($ccRecipients));
+            }
+
+            if ($bccRecipients !== []) {
+                $pendingMail->bcc($this->mapRecipientsToAddresses($bccRecipients));
+            }
+
+            $pendingMail->send(new WorkFormTemplateNotificationMail(
+                $subject,
+                $heading,
+                $body,
+            ));
+        } catch (Throwable $exception) {
+            report($exception);
+        }
+    }
+
+    /**
+     * @param  array<int, array{email:string,name:string|null}>  $recipients
+     * @return array<int, Address>
+     */
+    private function mapRecipientsToAddresses(array $recipients): array
+    {
+        return collect($recipients)
+            ->map(static function (array $recipient): Address {
+                $name = trim((string) ($recipient['name'] ?? ''));
+                $email = trim((string) ($recipient['email'] ?? ''));
+
+                if ($name !== '') {
+                    return new Address($email, $name);
+                }
+
+                return new Address($email);
+            })
+            ->values()
+            ->all();
     }
 
     private function isAdmin(Request $request): bool

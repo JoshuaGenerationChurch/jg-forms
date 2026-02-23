@@ -9,7 +9,7 @@ $notificationRecipientsRaw = array_filter(array_map(
     static fn (string $recipient): string => trim($recipient),
     explode(';', (string) env(
         'WORK_FORMS_NOTIFICATION_RECIPIENTS',
-        'hanri.delafontyn@joshgen.org.za;milo.bridgens@joshgen.org.za;carinerugorirwera@gmail.com;"JG Design" <hanridelafontyn+ywj7ndnvhphschkmhmsf@boards.trello.com>;"JG Dev" <hanridelafontyn+3s3aaui7fwhyk4itwphz@boards.trello.com>'
+        'hanri.delafontyn@joshgen.org.za;carinerugorirwera@gmail.com;"JG Design" <hanridelafontyn+ywj7ndnvhphschkmhmsf@boards.trello.com>;"JG Dev" <hanridelafontyn+3s3aaui7fwhyk4itwphz@boards.trello.com>'
     ))
 ));
 

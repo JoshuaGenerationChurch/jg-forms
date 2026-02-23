@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\WorkRequest\DigitalMediaOptionsController;
 use App\Http\Controllers\WorkRequest\WorkFormController;
+use App\Http\Controllers\WorkRequest\WorkFormEmailTemplateController;
 use App\Http\Controllers\WorkRequest\WorkRequestEntryController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
@@ -87,6 +88,25 @@ Route::middleware(['auth', 'verified', 'workforms.admin'])->group(function () {
 
     Route::get('admin/forms/entries', [WorkRequestEntryController::class, 'adminFormsEntriesIndex'])
         ->name('admin.forms.entries.index');
+
+    Route::get('admin/forms/email-templates', [WorkFormEmailTemplateController::class, 'index'])
+        ->name('admin.forms.email-templates.index');
+
+    Route::get('admin/forms/email-templates/{formSlug}', [WorkFormEmailTemplateController::class, 'show'])
+        ->where('formSlug', '[A-Za-z0-9\-]+')
+        ->name('admin.forms.email-templates.show');
+
+    Route::post('admin/forms/email-templates/{formSlug}', [WorkFormEmailTemplateController::class, 'store'])
+        ->where('formSlug', '[A-Za-z0-9\-]+')
+        ->name('admin.forms.email-templates.store');
+
+    Route::put('admin/forms/email-templates/{formSlug}/{template}', [WorkFormEmailTemplateController::class, 'update'])
+        ->where('formSlug', '[A-Za-z0-9\-]+')
+        ->name('admin.forms.email-templates.update');
+
+    Route::delete('admin/forms/email-templates/{formSlug}/{template}', [WorkFormEmailTemplateController::class, 'destroy'])
+        ->where('formSlug', '[A-Za-z0-9\-]+')
+        ->name('admin.forms.email-templates.destroy');
 
     Route::get('admin/forms/entries/{formSlug}', [WorkRequestEntryController::class, 'adminFormEntries'])
         ->where('formSlug', '[A-Za-z0-9\-]+')

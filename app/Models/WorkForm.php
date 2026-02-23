@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class WorkForm extends Model
 {
@@ -28,5 +29,13 @@ class WorkForm extends Model
         return [
             'is_active' => 'boolean',
         ];
+    }
+
+    /**
+     * @return HasMany<WorkFormEmailTemplate, $this>
+     */
+    public function emailTemplates(): HasMany
+    {
+        return $this->hasMany(WorkFormEmailTemplate::class, 'work_form_id');
     }
 }
