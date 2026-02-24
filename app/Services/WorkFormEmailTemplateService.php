@@ -111,6 +111,8 @@ class WorkFormEmailTemplateService
         ?array $form = null,
     ): array {
         $payload = is_array($entry->payload) ? $entry->payload : [];
+        $payload = $this->normalizeEventDatePlaceholders($payload);
+        $payload = $this->normalizeEventReachPlaceholders($payload);
         $placeholderMap = [
             'form.slug' => (string) ($form['slug'] ?? $entry->form_slug),
             'form.title' => (string) ($form['title'] ?? ''),
@@ -128,8 +130,23 @@ class WorkFormEmailTemplateService
             'entry.request_types' => implode(', ', $this->requestTypes($entry)),
         ];
 
+        if (($form['slug'] ?? $entry->form_slug) === 'work-request') {
+            $placeholderMap['entry.auto_subject'] = $this->workRequestAutoSubject($entry);
+            $placeholderMap = array_merge(
+                $placeholderMap,
+                $this->workRequestBoardRoutingPlaceholders($entry),
+            );
+        }
+
         foreach ($this->flattenPayload($payload, 'payload') as $key => $value) {
             $placeholderMap[$key] = $value;
+        }
+
+        if (($form['slug'] ?? $entry->form_slug) === 'work-request') {
+            $placeholderMap = array_merge(
+                $placeholderMap,
+                $this->buildWorkRequestAllFieldsPlaceholderMap($payload),
+            );
         }
 
         return $placeholderMap;
@@ -154,11 +171,13 @@ class WorkFormEmailTemplateService
             ['key' => 'entry.event_name', 'sample' => 'Sunday Service'],
             ['key' => 'entry.created_at', 'sample' => now()->toDateTimeString()],
             ['key' => 'entry.request_types', 'sample' => 'Event logistics, Digital media'],
+            ['key' => 'entry.auto_subject', 'sample' => 'Youth Night - Congregations - '.now()->toDateString()],
         ];
 
         if ($form->slug === 'work-request') {
             $placeholders = array_merge(
                 $placeholders,
+                $this->workRequestBoardRoutingPlaceholderSamples(),
                 $this->workRequestSchemaPlaceholders(),
             );
         }
@@ -212,6 +231,12 @@ class WorkFormEmailTemplateService
             'includesGraphicsDigital',
             'includesGraphicsPrint',
             'includesSignage',
+            'allFields.contact',
+            'allFields.event',
+            'allFields.registration',
+            'allFields.graphicsDigital',
+            'allFields.graphicsPrint',
+            'allFields.signage',
             'firstName',
             'lastName',
             'cellphone',
@@ -239,6 +264,11 @@ class WorkFormEmailTemplateService
             'otherVenueAddress',
             'eventReach',
             'hubs.0',
+            'eventCongregations.0',
+            'outreachCampStartDate',
+            'outreachCampStartTime',
+            'outreachCampEndDate',
+            'outreachCampEndTime',
             'childMinding',
             'childMindingDescription',
             'quicketDescription',
@@ -399,10 +429,21 @@ class WorkFormEmailTemplateService
                 'email', 'organiserEmail' => 'jane@example.com',
                 'cellphone', 'organiserCell' => '+27820000000',
                 'eventName' => 'Youth Night',
+                'allFields.contact' => '<strong>firstName</strong>: Jane<br><strong>lastName</strong>: Doe<br><strong>email</strong>: jane@example.com',
+                'allFields.event' => '<strong>eventName</strong>: Youth Night<br><strong>eventReach</strong>: Congregations',
+                'allFields.registration' => '<strong>includesRegistration</strong>: Yes<br><strong>ticketCurrency</strong>: ZAR',
+                'allFields.graphicsDigital' => '<strong>includesGraphicsDigital</strong>: Yes<br><strong>digitalGraphicType</strong>: Event branding',
+                'allFields.graphicsPrint' => '<strong>includesGraphicsPrint</strong>: Yes<br><strong>printScope</strong>: Hubs',
+                'allFields.signage' => '<strong>includesSignage</strong>: Yes<br><strong>signageScope</strong>: Congregations',
                 'eventDates.0.date' => now()->toDateString(),
                 'eventDates.0.startTime' => '18:00',
                 'eventDates.0.endTime' => '20:00',
+                'outreachCampStartDate' => now()->toDateString(),
+                'outreachCampStartTime' => '18:00',
+                'outreachCampEndDate' => now()->addDay()->toDateString(),
+                'outreachCampEndTime' => '16:00',
                 'congregation', 'signageCongregations.0', 'printCongregations.0' => 'City Bowl AM',
+                'eventCongregations.0' => 'City Bowl AM',
                 'hubs.0', 'signageHubs.0', 'printHubs.0' => 'Cape Town',
                 'ticketCurrency' => 'ZAR',
                 default => '',
@@ -413,6 +454,35 @@ class WorkFormEmailTemplateService
                 'sample' => $sample,
             ];
         }, $keys);
+    }
+
+    /**
+     * @return array<int, array{key:string,sample:string}>
+     */
+    private function workRequestBoardRoutingPlaceholderSamples(): array
+    {
+        return [
+            [
+                'key' => 'entry.route_dev_board',
+                'sample' => 'Yes',
+            ],
+            [
+                'key' => 'entry.route_design_board',
+                'sample' => 'Yes',
+            ],
+            [
+                'key' => 'entry.route_targets',
+                'sample' => 'JG Dev Board, JG Design Board',
+            ],
+            [
+                'key' => 'entry.route_message',
+                'sample' => 'This request is being routed to the JG Dev Board and JG Design Board.',
+            ],
+            [
+                'key' => 'entry.route_instruction',
+                'sample' => 'JG Dev and Design Trello Boards',
+            ],
+        ];
     }
 
     /**
@@ -433,6 +503,75 @@ class WorkFormEmailTemplateService
         }
 
         return $renderedValue;
+    }
+
+    public function workRequestAutoSubject(WorkRequestEntry $entry): string
+    {
+        $payload = is_array($entry->payload) ? $entry->payload : [];
+        $payload = $this->normalizeEventDatePlaceholders($payload);
+        $payload = $this->normalizeEventReachPlaceholders($payload);
+
+        $submittedDate = $this->formatDateForSouthAfricaSubject(
+            (string) ($entry->created_at?->toDateString() ?? now()->toDateString()),
+        );
+        $congregation = trim((string) ($payload['congregation'] ?? $entry->congregation ?? ''));
+        $congregation = $congregation !== '' ? $congregation : 'Unknown Congregation';
+
+        if ($entry->includes_dates_venue) {
+            $eventName = trim((string) ($payload['eventName'] ?? $entry->event_name ?? ''));
+            $eventName = $eventName !== '' ? $eventName : 'Event Request';
+
+            $eventReach = trim((string) ($payload['eventReach'] ?? ''));
+            $eventReach = $eventReach !== '' ? $eventReach : $congregation;
+
+            $eventStartDateRaw = trim((string) ($payload['eventStartDate'] ?? ''));
+            $eventStartDate = str_contains($eventStartDateRaw, 'T')
+                ? (string) explode('T', $eventStartDateRaw, 2)[0]
+                : $eventStartDateRaw;
+            $eventStartDate = $eventStartDate !== '' ? $eventStartDate : $submittedDate;
+            $eventStartDate = $this->formatDateForSouthAfricaSubject($eventStartDate);
+
+            return sprintf(
+                '%s - %s - %s',
+                $eventName,
+                $eventReach,
+                $eventStartDate,
+            );
+        }
+
+        $hasDigital = $entry->includes_graphics_digital;
+        $hasPrint = $entry->includes_graphics_print;
+        $hasSignage = $entry->includes_signage;
+
+        $label = match (true) {
+            $hasDigital && $hasPrint && ! $hasSignage => 'Graphics',
+            $hasDigital && ! $hasPrint && ! $hasSignage => 'Digital Media',
+            ! $hasDigital && $hasPrint && ! $hasSignage => 'Print Media',
+            ! $hasDigital && ! $hasPrint && $hasSignage => 'Signage',
+            $hasSignage && ($hasDigital || $hasPrint) => 'Graphics & Signage',
+            $entry->includes_registration => 'Registration Request',
+            default => 'Work Request',
+        };
+
+        return sprintf('%s - %s - %s', $label, $congregation, $submittedDate);
+    }
+
+    private function formatDateForSouthAfricaSubject(string $rawDate): string
+    {
+        $date = trim($rawDate);
+        if ($date === '') {
+            return $date;
+        }
+
+        $normalizedDate = str_contains($date, 'T')
+            ? (string) explode('T', $date, 2)[0]
+            : $date;
+
+        if (preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $normalizedDate, $matches) !== 1) {
+            return $rawDate;
+        }
+
+        return $matches[3].'-'.$matches[2].'-'.$matches[1];
     }
 
     /**
@@ -472,6 +611,304 @@ class WorkFormEmailTemplateService
         }
 
         return $flattenedPayload;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function workRequestBoardRoutingPlaceholders(WorkRequestEntry $entry): array
+    {
+        $routeDev = $entry->includes_dates_venue && $entry->includes_registration;
+        $routeDesign = $entry->includes_graphics
+            || $entry->includes_graphics_digital
+            || $entry->includes_graphics_print
+            || $entry->includes_signage;
+
+        $targets = [];
+        if ($routeDev) {
+            $targets[] = 'JG Dev Board';
+        }
+        if ($routeDesign) {
+            $targets[] = 'JG Design Board';
+        }
+
+        $routeMessage = match (count($targets)) {
+            2 => 'This request is being routed to the JG Dev Board and JG Design Board.',
+            1 => 'This request is being routed to the '.$targets[0].'.',
+            default => 'This request is not being routed to a Trello board.',
+        };
+        $routeInstruction = match (count($targets)) {
+            2 => 'JG Dev and Design Trello Boards',
+            1 => $routeDev ? 'JG Dev Trello Board' : 'JG Design Trello Board',
+            default => 'No Trello board',
+        };
+
+        return [
+            'entry.route_dev_board' => $routeDev ? 'Yes' : 'No',
+            'entry.route_design_board' => $routeDesign ? 'Yes' : 'No',
+            'entry.route_targets' => implode(', ', $targets),
+            'entry.route_message' => $routeMessage,
+            'entry.route_instruction' => $routeInstruction,
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, string>
+     */
+    private function buildWorkRequestAllFieldsPlaceholderMap(array $payload): array
+    {
+        $stepRules = $this->workRequestAllFieldStepRules();
+        $flattenedPayload = $this->flattenPayload($payload, 'payload');
+        $allFieldMap = [];
+
+        foreach ($stepRules as $stepKey => $rule) {
+            $lines = [];
+
+            foreach ($flattenedPayload as $flatKey => $flatValue) {
+                if (! str_starts_with($flatKey, 'payload.')) {
+                    continue;
+                }
+
+                $payloadKey = substr($flatKey, 8);
+                if ($payloadKey === false || $payloadKey === '') {
+                    continue;
+                }
+
+                if (! $this->payloadKeyMatchesStepRule($payloadKey, $rule)) {
+                    continue;
+                }
+
+                if (! $this->isMeaningfulAllFieldsValue($flatValue)) {
+                    continue;
+                }
+
+                $lines[] = sprintf(
+                    '<strong>%s</strong>: %s',
+                    $this->escapeHtml($payloadKey),
+                    $this->escapeHtml($this->presentAllFieldsValue($flatValue)),
+                );
+            }
+
+            $allFieldMap['payload.allFields.'.$stepKey] = implode('<br>', $lines);
+        }
+
+        return $allFieldMap;
+    }
+
+    /**
+     * @return array<string, array{exact:array<int,string>, prefixes:array<int,string>}>
+     */
+    private function workRequestAllFieldStepRules(): array
+    {
+        return [
+            'contact' => [
+                'exact' => [
+                    'firstName',
+                    'lastName',
+                    'cellphone',
+                    'email',
+                    'roleInChurch',
+                    'otherRole',
+                    'congregation',
+                    'termsAccepted',
+                ],
+                'prefixes' => [],
+            ],
+            'event' => [
+                'exact' => [
+                    'includesDatesVenue',
+                    'theme',
+                    'eventName',
+                    'isUserOrganiser',
+                    'organiserFirstName',
+                    'organiserLastName',
+                    'organiserEmail',
+                    'organiserCell',
+                    'eventDuration',
+                    'eventStartDate',
+                    'eventEndDate',
+                    'announcementDate',
+                    'venueType',
+                    'jgVenue',
+                    'otherVenueName',
+                    'otherVenueAddress',
+                    'eventReach',
+                    'outreachCampStartDate',
+                    'outreachCampStartTime',
+                    'outreachCampEndDate',
+                    'outreachCampEndTime',
+                    'childMinding',
+                    'childMindingDescription',
+                ],
+                'prefixes' => [
+                    'eventDates.',
+                    'hubs.',
+                    'eventCongregations.',
+                ],
+            ],
+            'registration' => [
+                'exact' => [
+                    'includesRegistration',
+                ],
+                'prefixes' => [
+                    'quicket',
+                    'ticket',
+                    'otherTickets.',
+                    'infoToCollect.',
+                    'otherInfoFields.',
+                    'allowDonations',
+                    'registrationClosingDate',
+                ],
+            ],
+            'graphicsDigital' => [
+                'exact' => [
+                    'includesGraphics',
+                    'includesGraphicsDigital',
+                    'graphicsWhatsApp',
+                    'graphicsInstagram',
+                    'graphicsAVSlide',
+                    'graphicsOther',
+                    'digitalGraphicType',
+                    'digitalBankName',
+                    'digitalBranchCode',
+                    'digitalAccountNumber',
+                    'digitalReference',
+                    'digitalOtherGraphicDescription',
+                    'digitalFormatWhatsapp',
+                    'digitalFormatAVSlide',
+                    'digitalFormatOther',
+                    'digitalOtherFormatDescription',
+                ],
+                'prefixes' => [],
+            ],
+            'graphicsPrint' => [
+                'exact' => [
+                    'includesGraphicsPrint',
+                ],
+                'prefixes' => [
+                    'print',
+                ],
+            ],
+            'signage' => [
+                'exact' => [
+                    'includesSignage',
+                ],
+                'prefixes' => [
+                    'signage',
+                    'sharkfin',
+                    'temporaryFence',
+                    'toilets',
+                    'moms',
+                    'toddlers',
+                    'firstAid',
+                    'internal',
+                    'external',
+                    'sandwichBoards',
+                    'permanentExternal',
+                    'otherSignage',
+                ],
+            ],
+        ];
+    }
+
+    /**
+     * @param  array{exact:array<int,string>, prefixes:array<int,string>}  $rule
+     */
+    private function payloadKeyMatchesStepRule(string $payloadKey, array $rule): bool
+    {
+        if (in_array($payloadKey, $rule['exact'], true)) {
+            return true;
+        }
+
+        foreach ($rule['prefixes'] as $prefix) {
+            if (str_starts_with($payloadKey, $prefix)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function isMeaningfulAllFieldsValue(string $value): bool
+    {
+        $normalized = strtolower(trim($value));
+
+        return $normalized !== '' && $normalized !== 'false';
+    }
+
+    private function presentAllFieldsValue(string $value): string
+    {
+        return match (strtolower(trim($value))) {
+            'true' => 'Yes',
+            'false' => 'No',
+            default => $value,
+        };
+    }
+
+    private function escapeHtml(string $value): string
+    {
+        return htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+    }
+
+    /**
+     * Ensure commonly used event date placeholders are populated even when
+     * multi-day event data is stored in eventDates[].
+     *
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private function normalizeEventDatePlaceholders(array $payload): array
+    {
+        $eventStartDate = trim((string) ($payload['eventStartDate'] ?? ''));
+        $eventEndDate = trim((string) ($payload['eventEndDate'] ?? ''));
+        $eventDates = $payload['eventDates'] ?? null;
+
+        if (! is_array($eventDates) || $eventDates === []) {
+            return $payload;
+        }
+
+        $firstEventDate = is_array($eventDates[0] ?? null)
+            ? trim((string) (($eventDates[0]['date'] ?? '') ?: ''))
+            : '';
+        $lastEventDateValue = $eventDates[array_key_last($eventDates)] ?? null;
+        $lastEventDate = is_array($lastEventDateValue)
+            ? trim((string) (($lastEventDateValue['date'] ?? '') ?: ''))
+            : '';
+
+        if ($eventStartDate === '' && $firstEventDate !== '') {
+            $payload['eventStartDate'] = $firstEventDate;
+        }
+
+        if ($eventEndDate === '' && $lastEventDate !== '') {
+            $payload['eventEndDate'] = $lastEventDate;
+        }
+
+        return $payload;
+    }
+
+    /**
+     * Backward compatible mapping for event reach scopes.
+     *
+     * Older entries stored both hub and congregation selections in payload.hubs.
+     * Ensure congregation selections are exposed via payload.eventCongregations.*
+     *
+     * @param  array<string, mixed>  $payload
+     * @return array<string, mixed>
+     */
+    private function normalizeEventReachPlaceholders(array $payload): array
+    {
+        $eventReach = trim((string) ($payload['eventReach'] ?? ''));
+        $hubs = $payload['hubs'] ?? null;
+        $eventCongregations = $payload['eventCongregations'] ?? null;
+
+        if ($eventReach === 'Congregations' && is_array($hubs)) {
+            if (! is_array($eventCongregations) || $eventCongregations === []) {
+                $payload['eventCongregations'] = $hubs;
+            }
+        }
+
+        return $payload;
     }
 
     /**

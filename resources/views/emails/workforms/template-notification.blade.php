@@ -1,4 +1,6 @@
-<h2>{{ $heading }}</h2>
+@if (! empty(trim((string) $heading)))
+    <h2>{{ $heading }}</h2>
+@endif
 
 @php
     $containsHtml = preg_match('/<[^>]+>/', $body) === 1;

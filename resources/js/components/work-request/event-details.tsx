@@ -16,10 +16,7 @@ import {
     phonePlaceholderByCountryCode,
     splitPhoneNumber,
 } from './phone';
-import {
-    dateInputBase,
-    selectBase,
-} from './types';
+import { dateInputBase, selectBase } from './types';
 import type { FormPageProps } from './types';
 
 export function EventDetails({
@@ -45,6 +42,38 @@ export function EventDetails({
     const availableHubs = directoryOptions?.hubs ?? [];
     const availableCongregations = directoryOptions?.congregations ?? [];
     const availableVenues = directoryOptions?.venues ?? [];
+    const eventScheduleLabel =
+        formData.eventDates.length > 1
+            ? 'Multiple Day Event'
+            : 'Single Day Event';
+    const applyEventDates = (
+        nextDates: Array<{ date: string; startTime: string; endTime: string }>,
+    ) => {
+        updateFormData('eventDates', nextDates);
+
+        const firstDate = nextDates[0];
+        const lastDate = nextDates[nextDates.length - 1];
+
+        const derivedStartDateTime =
+            firstDate?.date && firstDate?.startTime
+                ? `${firstDate.date}T${firstDate.startTime}`
+                : '';
+        const derivedEndDateTime =
+            lastDate?.date && lastDate?.endTime
+                ? `${lastDate.date}T${lastDate.endTime}`
+                : '';
+
+        updateFormData(
+            'eventDuration',
+            nextDates.length > 1
+                ? 'Multiple Day Event'
+                : nextDates.length === 1
+                  ? 'One Day Event'
+                  : '',
+        );
+        updateFormData('eventStartDate', derivedStartDateTime);
+        updateFormData('eventEndDate', derivedEndDateTime);
+    };
 
     return (
         <div className="space-y-6">
@@ -162,7 +191,7 @@ export function EventDetails({
                                     <select
                                         id="organiser-cell-country-code"
                                         aria-label="Organiser cell number country code"
-                                        className={`h-12 w-full appearance-none rounded-lg border-2 bg-slate-100/50 pl-4 pr-12 text-sm text-slate-900 shadow-sm transition focus-visible:border-blue-400 focus-visible:ring-1 focus-visible:ring-blue-400 focus-visible:outline-none ${organiserCellInvalid ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500' : 'border-slate-200'}`}
+                                        className={`h-12 w-full appearance-none rounded-lg border-2 bg-slate-100/50 pr-12 pl-4 text-sm text-slate-900 shadow-sm transition focus-visible:border-blue-400 focus-visible:ring-1 focus-visible:ring-blue-400 focus-visible:outline-none ${organiserCellInvalid ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500' : 'border-slate-200'}`}
                                         value={organiserCellParts.countryCode}
                                         onChange={(e) =>
                                             updateFormData(
@@ -235,129 +264,33 @@ export function EventDetails({
                             {formData.cellphone}
                         </div>
                     </div>
-                    <FieldError error={errors.eventStartDate} />
                 </div>
             )}
 
-            {/* Event Duration */}
+            {/* Event Schedule - Repeater */}
             <div>
-                <Label className="text-sm font-medium text-slate-700">
-                    Event Duration <Required />
-                </Label>
-                <RadioGroup
-                    name="event-duration"
-                    options={['One Day Event', 'Multiple Day Event']}
-                    columns={2}
-                    value={formData.eventDuration}
-                    onChange={(value) => updateFormData('eventDuration', value)}
-                    error={errors.eventDuration}
-                />
-            </div>
-
-            {/* One Day Event - Date and Time Fields */}
-            {formData.eventDuration === 'One Day Event' && (
-                <div>
+                <div className="flex items-center justify-between gap-3">
                     <Label className="text-sm font-medium text-slate-700">
-                        Event Date & Time <Required />
+                        Event Schedule <Required />
                     </Label>
-                    <div className="mt-2 flex gap-4">
-                        <div className="flex-1">
-                            <Label className="text-xs text-slate-600">
-                                Date
-                            </Label>
-                            <input
-                                type="date"
-                                min={todayIsoDate}
-                                aria-invalid={Boolean(errors.eventStartDate)}
-                                className={`${dateInputBase} ${
-                                    errors.eventStartDate
-                                        ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500'
-                                        : ''
-                                }`}
-                                value={
-                                    formData.eventStartDate?.split('T')[0] || ''
-                                }
-                                onChange={(e) => {
-                                    const startTime =
-                                        formData.eventStartDate?.split(
-                                            'T',
-                                        )[1] || '09:00';
-                                    const endTime =
-                                        formData.eventEndDate?.split('T')[1] ||
-                                        '17:00';
-                                    updateFormData(
-                                        'eventStartDate',
-                                        `${e.target.value}T${startTime}`,
-                                    );
-                                    updateFormData(
-                                        'eventEndDate',
-                                        `${e.target.value}T${endTime}`,
-                                    );
-                                }}
-                            />
-                        </div>
-                        <div className="flex-1">
-                            <Label className="text-xs text-slate-600">
-                                Start Time
-                            </Label>
-                            <input
-                                id="start-time"
-                                type="time"
-                                className={dateInputBase}
-                                value={
-                                    formData.eventStartDate?.split('T')[1] || ''
-                                }
-                                onChange={(e) => {
-                                    const date =
-                                        formData.eventStartDate?.split(
-                                            'T',
-                                        )[0] || '';
-                                    updateFormData(
-                                        'eventStartDate',
-                                        `${date}T${e.target.value}`,
-                                    );
-                                }}
-                            />
-                        </div>
-                        <div className="flex-1">
-                            <Label className="text-xs text-slate-600">
-                                End Time
-                            </Label>
-                            <input
-                                id="end-time"
-                                type="time"
-                                className={dateInputBase}
-                                value={
-                                    formData.eventEndDate?.split('T')[1] || ''
-                                }
-                                onChange={(e) => {
-                                    const date =
-                                        formData.eventStartDate?.split(
-                                            'T',
-                                        )[0] || '';
-                                    updateFormData(
-                                        'eventEndDate',
-                                        `${date}T${e.target.value}`,
-                                    );
-                                }}
-                            />
-                        </div>
-                    </div>
+                    <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">
+                        {eventScheduleLabel}
+                    </span>
                 </div>
-            )}
-
-            {/* Multiple Day Event - Repeater Fields */}
-            {formData.eventDuration === 'Multiple Day Event' && (
-                <div>
-                    <Label className="text-sm font-medium text-slate-700">
-                        Event Dates and Times <Required />
-                    </Label>
-                    <div className="mt-3 space-y-3">
-                        {formData.eventDates.map((dateEntry, index) => (
-                            <div key={index} className="flex items-end gap-4">
+                <p className="mt-1 text-xs text-slate-500">
+                    Add one schedule for a single-day event. Add more schedules
+                    and this becomes a multiple-day event.
+                </p>
+                <div className="mt-3 space-y-3">
+                    {formData.eventDates.map((dateEntry, index) => (
+                        <div
+                            key={index}
+                            className="rounded-lg border border-slate-200 bg-slate-50 p-3"
+                        >
+                            <div className="flex items-end gap-4">
                                 <div className="flex-1">
                                     <Label className="text-xs text-slate-600">
-                                        Date
+                                        Start Date
                                     </Label>
                                     <input
                                         type="date"
@@ -368,12 +301,11 @@ export function EventDetails({
                                             const newDates = [
                                                 ...formData.eventDates,
                                             ];
-                                            newDates[index].date =
-                                                e.target.value;
-                                            updateFormData(
-                                                'eventDates',
-                                                newDates,
-                                            );
+                                            newDates[index] = {
+                                                ...newDates[index],
+                                                date: e.target.value,
+                                            };
+                                            applyEventDates(newDates);
                                         }}
                                     />
                                 </div>
@@ -389,12 +321,11 @@ export function EventDetails({
                                             const newDates = [
                                                 ...formData.eventDates,
                                             ];
-                                            newDates[index].startTime =
-                                                e.target.value;
-                                            updateFormData(
-                                                'eventDates',
-                                                newDates,
-                                            );
+                                            newDates[index] = {
+                                                ...newDates[index],
+                                                startTime: e.target.value,
+                                            };
+                                            applyEventDates(newDates);
                                         }}
                                     />
                                 </div>
@@ -410,12 +341,11 @@ export function EventDetails({
                                             const newDates = [
                                                 ...formData.eventDates,
                                             ];
-                                            newDates[index].endTime =
-                                                e.target.value;
-                                            updateFormData(
-                                                'eventDates',
-                                                newDates,
-                                            );
+                                            newDates[index] = {
+                                                ...newDates[index],
+                                                endTime: e.target.value,
+                                            };
+                                            applyEventDates(newDates);
                                         }}
                                     />
                                 </div>
@@ -428,31 +358,131 @@ export function EventDetails({
                                             formData.eventDates.filter(
                                                 (_, i) => i !== index,
                                             );
-                                        updateFormData('eventDates', newDates);
+                                        applyEventDates(newDates);
                                     }}
+                                    disabled={formData.eventDates.length <= 1}
                                 >
                                     <Minus className="size-4 text-red-600" />
                                 </Button>
                             </div>
-                        ))}
+                        </div>
+                    ))}
+
+                    {formData.eventDates.length === 0 ? (
                         <Button
                             variant="outline"
                             size="sm"
                             type="button"
                             onClick={() =>
-                                updateFormData('eventDates', [
+                                applyEventDates([
+                                    { date: '', startTime: '', endTime: '' },
+                                ])
+                            }
+                        >
+                            <Plus className="mr-2 size-4" />
+                            Add Event Schedule
+                        </Button>
+                    ) : (
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            type="button"
+                            onClick={() =>
+                                applyEventDates([
                                     ...formData.eventDates,
                                     { date: '', startTime: '', endTime: '' },
                                 ])
                             }
                         >
                             <Plus className="mr-2 size-4" />
-                            Add Another Date
+                            Add Another Schedule
                         </Button>
-                        <FieldError error={errors.eventDates} />
+                    )}
+
+                    <FieldError error={errors.eventDates} />
+                </div>
+            </div>
+
+            {/* Outreach / Camp Date Range */}
+            <div>
+                <Label className="text-sm font-medium text-slate-700">
+                    Outreach / Camp Range
+                </Label>
+                <p className="mt-1 text-xs text-slate-500">
+                    Optional date range for camps/outreach: start date/time and
+                    end date/time.
+                </p>
+                <div className="mt-2 grid gap-4 md:grid-cols-2">
+                    <div>
+                        <Label className="text-xs text-slate-600">
+                            Start Date
+                        </Label>
+                        <input
+                            type="date"
+                            min={todayIsoDate}
+                            className={dateInputBase}
+                            value={formData.outreachCampStartDate}
+                            onChange={(e) =>
+                                updateFormData(
+                                    'outreachCampStartDate',
+                                    e.target.value,
+                                )
+                            }
+                        />
+                    </div>
+                    <div>
+                        <Label className="text-xs text-slate-600">
+                            Start Time
+                        </Label>
+                        <input
+                            type="time"
+                            className={dateInputBase}
+                            value={formData.outreachCampStartTime}
+                            onChange={(e) =>
+                                updateFormData(
+                                    'outreachCampStartTime',
+                                    e.target.value,
+                                )
+                            }
+                        />
+                    </div>
+                    <div>
+                        <Label className="text-xs text-slate-600">
+                            End Date
+                        </Label>
+                        <input
+                            type="date"
+                            min={todayIsoDate}
+                            className={dateInputBase}
+                            value={formData.outreachCampEndDate}
+                            onChange={(e) =>
+                                updateFormData(
+                                    'outreachCampEndDate',
+                                    e.target.value,
+                                )
+                            }
+                        />
+                    </div>
+                    <div>
+                        <Label className="text-xs text-slate-600">
+                            End Time
+                        </Label>
+                        <input
+                            type="time"
+                            className={dateInputBase}
+                            value={formData.outreachCampEndTime}
+                            onChange={(e) =>
+                                updateFormData(
+                                    'outreachCampEndTime',
+                                    e.target.value,
+                                )
+                            }
+                        />
                     </div>
                 </div>
-            )}
+                <FieldError error={errors.outreachCampStartDate} />
+                <FieldError error={errors.outreachCampEndDate} />
+            </div>
 
             {/* Announcement Date */}
             <div>
@@ -577,9 +607,19 @@ export function EventDetails({
                             : ''
                     }`}
                     value={formData.eventReach}
-                    onChange={(e) =>
-                        updateFormData('eventReach', e.target.value)
-                    }
+                    onChange={(e) => {
+                        const value = e.target.value;
+                        updateFormData('eventReach', value);
+                        if (value !== 'Hubs' && formData.hubs.length > 0) {
+                            updateFormData('hubs', []);
+                        }
+                        if (
+                            value !== 'Congregations' &&
+                            formData.eventCongregations.length > 0
+                        ) {
+                            updateFormData('eventCongregations', []);
+                        }
+                    }}
                 >
                     <option value="">Select an Option</option>
                     <option>South Africa</option>
@@ -640,18 +680,25 @@ export function EventDetails({
                                 className="flex items-center gap-2"
                             >
                                 <Checkbox
-                                    checked={formData.hubs.includes(cong)}
+                                    checked={formData.eventCongregations.includes(
+                                        cong,
+                                    )}
                                     onCheckedChange={(checked) => {
                                         if (checked) {
-                                            updateFormData('hubs', [
-                                                ...formData.hubs,
-                                                cong,
-                                            ]);
+                                            updateFormData(
+                                                'eventCongregations',
+                                                [
+                                                    ...formData.eventCongregations,
+                                                    cong,
+                                                ],
+                                            );
                                         } else {
                                             updateFormData(
-                                                'hubs',
-                                                formData.hubs.filter(
-                                                    (h) => h !== cong,
+                                                'eventCongregations',
+                                                formData.eventCongregations.filter(
+                                                    (selectedCongregation) =>
+                                                        selectedCongregation !==
+                                                        cong,
                                                 ),
                                             );
                                         }
@@ -661,7 +708,7 @@ export function EventDetails({
                             </label>
                         ))}
                     </div>
-                    <FieldError error={errors.hubs} />
+                    <FieldError error={errors.eventCongregations} />
                 </div>
             )}
 

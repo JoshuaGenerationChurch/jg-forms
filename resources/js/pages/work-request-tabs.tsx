@@ -25,36 +25,6 @@ import {
     recaptchaEnabled,
 } from '@/lib/recaptcha';
 
-function getDatePart(dateTime: string): string {
-    return dateTime.split('T')[0] ?? '';
-}
-
-function getTimePart(dateTime: string, fallback: string): string {
-    const timePart = dateTime.split('T')[1] ?? '';
-    return timePart !== '' ? timePart : fallback;
-}
-
-function clampEndDateToStartMonth(
-    startDateTime: string,
-    endDateTime: string,
-): string {
-    const startDate = getDatePart(startDateTime);
-    const endDate = getDatePart(endDateTime);
-
-    if (startDate === '' || endDate === '') {
-        return endDateTime;
-    }
-
-    if (endDate.slice(0, 7) >= startDate.slice(0, 7)) {
-        return endDateTime;
-    }
-
-    const adjustedEndDate = `${startDate.slice(0, 7)}-01`;
-    const endTime = getTimePart(endDateTime, '17:00');
-
-    return `${adjustedEndDate}T${endTime}`;
-}
-
 type DirectoryResponse = {
     hubs?: unknown;
     venues?: unknown;
@@ -116,14 +86,19 @@ export default function WorkRequestTabs() {
             setDirectoryWarning(null);
 
             try {
-                const response = await fetch('/work-request/digital-media-options', {
-                    headers: {
-                        Accept: 'application/json',
+                const response = await fetch(
+                    '/work-request/digital-media-options',
+                    {
+                        headers: {
+                            Accept: 'application/json',
+                        },
                     },
-                });
+                );
 
                 if (!response.ok) {
-                    throw new Error(`Failed to load options: ${response.status}`);
+                    throw new Error(
+                        `Failed to load options: ${response.status}`,
+                    );
                 }
 
                 const payload = (await response.json()) as DirectoryResponse;
@@ -183,13 +158,6 @@ export default function WorkRequestTabs() {
                 if (requiresDigital) {
                     next.includesGraphics = true;
                     next.includesGraphicsDigital = true;
-                }
-
-                if (next.eventStartDate && next.eventEndDate) {
-                    next.eventEndDate = clampEndDateToStartMonth(
-                        next.eventStartDate,
-                        next.eventEndDate,
-                    );
                 }
 
                 return next;

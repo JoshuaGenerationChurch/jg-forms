@@ -428,7 +428,6 @@ class WorkRequestEntryController extends Controller
         if ($workForm) {
             $templates = $workForm->emailTemplates()
                 ->where('is_active', true)
-                ->where('trigger_event', 'submission_created')
                 ->orderBy('position')
                 ->orderBy('id')
                 ->get();
@@ -478,6 +477,72 @@ class WorkRequestEntryController extends Controller
         }
     }
 
+    private function matchesDevBoardRoutingRule(WorkRequestEntry $entry): bool
+    {
+        return $entry->includes_dates_venue && $entry->includes_registration;
+    }
+
+    private function matchesDesignBoardRoutingRule(WorkRequestEntry $entry): bool
+    {
+        return $entry->includes_graphics
+            || $entry->includes_graphics_digital
+            || $entry->includes_graphics_print
+            || $entry->includes_signage;
+    }
+
+    /**
+     * Detect routing tags from template identity and Trello-recipient metadata.
+     *
+     * @return array<int, string>
+     */
+    private function inferTemplateRoutingTags(WorkFormEmailTemplate $template): array
+    {
+        $tags = [];
+        $templateIdentity = strtolower(
+            trim(sprintf('%s %s', (string) $template->name, (string) $template->subject)),
+        );
+
+        if (str_contains($templateIdentity, 'trello') && str_contains($templateIdentity, 'dev')) {
+            $tags[] = 'dev';
+        }
+
+        if (str_contains($templateIdentity, 'trello') && str_contains($templateIdentity, 'design')) {
+            $tags[] = 'design';
+        }
+
+        $recipientLists = [
+            is_array($template->to_recipients) ? $template->to_recipients : [],
+            is_array($template->cc_recipients) ? $template->cc_recipients : [],
+            is_array($template->bcc_recipients) ? $template->bcc_recipients : [],
+        ];
+
+        foreach ($recipientLists as $recipientList) {
+            foreach ($recipientList as $recipient) {
+                if (! is_array($recipient)) {
+                    continue;
+                }
+
+                $email = strtolower(trim((string) ($recipient['email'] ?? '')));
+                if ($email === '' || ! str_contains($email, 'boards.trello.com')) {
+                    continue;
+                }
+
+                $name = strtolower(trim((string) ($recipient['name'] ?? '')));
+                $identity = trim($name.' '.$email);
+
+                if (str_contains($identity, 'dev')) {
+                    $tags[] = 'dev';
+                }
+
+                if (str_contains($identity, 'design')) {
+                    $tags[] = 'design';
+                }
+            }
+        }
+
+        return array_values(array_unique($tags));
+    }
+
     /**
      * @param  array{slug?: string, title?: string, description?: string, url?: string}|null  $form
      */
@@ -487,9 +552,16 @@ class WorkRequestEntryController extends Controller
         ?array $form,
         WorkFormEmailTemplateService $templateService,
     ): void {
+        $templateTags = $this->inferTemplateRoutingTags($template);
         $toRecipients = $templateService->mergeRecipientsWithDefaults(
             is_array($template->to_recipients) ? $template->to_recipients : [],
             $template->use_default_recipients,
+        );
+        $toRecipients = $this->filterTemplateRecipientsForEntry(
+            $toRecipients,
+            $entry,
+            $template,
+            $templateTags,
         );
 
         if (count($toRecipients) === 0) {
@@ -499,15 +571,36 @@ class WorkRequestEntryController extends Controller
         $ccRecipients = $templateService->normalizeRecipientsArray(
             is_array($template->cc_recipients) ? $template->cc_recipients : [],
         );
+        $ccRecipients = $this->filterTemplateRecipientsForEntry(
+            $ccRecipients,
+            $entry,
+            $template,
+            $templateTags,
+        );
         $bccRecipients = $templateService->normalizeRecipientsArray(
             is_array($template->bcc_recipients) ? $template->bcc_recipients : [],
         );
+        $bccRecipients = $this->filterTemplateRecipientsForEntry(
+            $bccRecipients,
+            $entry,
+            $template,
+            $templateTags,
+        );
 
         $placeholderMap = $templateService->buildPlaceholderMap($entry, $form);
-        $subject = $templateService->renderWithPlaceholders($template->subject, $placeholderMap);
-        $headingTemplate = $template->heading ?? $template->name;
+        $subject = $entry->form_slug === 'work-request'
+            ? $templateService->workRequestAutoSubject($entry)
+            : $templateService->renderWithPlaceholders($template->subject, $placeholderMap);
+        $headingTemplate = (string) ($template->heading ?? '');
         $heading = $templateService->renderWithPlaceholders($headingTemplate, $placeholderMap);
         $body = $templateService->renderWithPlaceholders($template->body, $placeholderMap);
+        $body = $this->appendWorkRequestRoutingSummaryForHumanRecipients(
+            $body,
+            $entry,
+            $toRecipients,
+            $ccRecipients,
+            $bccRecipients,
+        );
 
         try {
             $pendingMail = Mail::to($this->mapRecipientsToAddresses($toRecipients));
@@ -528,6 +621,205 @@ class WorkRequestEntryController extends Controller
         } catch (Throwable $exception) {
             report($exception);
         }
+    }
+
+    /**
+     * @param  array<int, array{email:string,name:string|null}>  $recipients
+     * @param  array<int, string>  $templateTags
+     * @return array<int, array{email:string,name:string|null}>
+     */
+    private function filterTemplateRecipientsForEntry(
+        array $recipients,
+        WorkRequestEntry $entry,
+        WorkFormEmailTemplate $template,
+        array $templateTags,
+    ): array {
+        if ($entry->form_slug !== 'work-request') {
+            return $recipients;
+        }
+
+        $triggerEvent = strtolower(trim((string) $template->trigger_event));
+        if ($triggerEvent === 'work_request_dev') {
+            return $this->matchesDevBoardRoutingRule($entry) ? $recipients : [];
+        }
+
+        if ($triggerEvent === 'work_request_design') {
+            return $this->matchesDesignBoardRoutingRule($entry) ? $recipients : [];
+        }
+
+        $devMatches = $this->matchesDevBoardRoutingRule($entry);
+        $designMatches = $this->matchesDesignBoardRoutingRule($entry);
+        $filteredRecipients = [];
+
+        foreach ($recipients as $recipient) {
+            $recipientTag = $this->inferRecipientRoutingTag($recipient, $templateTags);
+
+            if ($recipientTag === 'blocked') {
+                continue;
+            }
+
+            if ($recipientTag === 'dev' && ! $devMatches) {
+                continue;
+            }
+
+            if ($recipientTag === 'design' && ! $designMatches) {
+                continue;
+            }
+
+            $filteredRecipients[] = $recipient;
+        }
+
+        return $filteredRecipients;
+    }
+
+    /**
+     * @param  array{email:string,name:string|null}  $recipient
+     * @param  array<int, string>  $templateTags
+     */
+    private function inferRecipientRoutingTag(array $recipient, array $templateTags): string
+    {
+        $email = strtolower(trim((string) ($recipient['email'] ?? '')));
+        $name = strtolower(trim((string) ($recipient['name'] ?? '')));
+        $identity = trim($name.' '.$email);
+
+        if (! str_contains($email, 'boards.trello.com')) {
+            return 'always';
+        }
+
+        $strictDevEmails = $this->configuredRecipientEmails('workforms.trello_dev_recipient_emails');
+        $strictDesignEmails = $this->configuredRecipientEmails('workforms.trello_design_recipient_emails');
+        $strictRoutingEnabled = $strictDevEmails !== [] || $strictDesignEmails !== [];
+
+        if ($strictRoutingEnabled) {
+            if (in_array($email, $strictDevEmails, true)) {
+                return 'dev';
+            }
+
+            if (in_array($email, $strictDesignEmails, true)) {
+                return 'design';
+            }
+
+            return 'blocked';
+        }
+
+        if (str_contains($identity, 'dev')) {
+            return 'dev';
+        }
+
+        if (str_contains($identity, 'design')) {
+            return 'design';
+        }
+
+        $hasDevTag = in_array('dev', $templateTags, true);
+        $hasDesignTag = in_array('design', $templateTags, true);
+
+        if ($hasDevTag && ! $hasDesignTag) {
+            return 'dev';
+        }
+
+        if ($hasDesignTag && ! $hasDevTag) {
+            return 'design';
+        }
+
+        return 'always';
+    }
+
+    /**
+     * @param  array<int, array{email:string,name:string|null}>  $toRecipients
+     * @param  array<int, array{email:string,name:string|null}>  $ccRecipients
+     * @param  array<int, array{email:string,name:string|null}>  $bccRecipients
+     */
+    private function appendWorkRequestRoutingSummaryForHumanRecipients(
+        string $body,
+        WorkRequestEntry $entry,
+        array $toRecipients,
+        array $ccRecipients,
+        array $bccRecipients,
+    ): string {
+        if ($entry->form_slug !== 'work-request') {
+            return $body;
+        }
+
+        $allRecipients = array_merge($toRecipients, $ccRecipients, $bccRecipients);
+        if (! $this->hasNonTrelloRecipient($allRecipients)) {
+            return $body;
+        }
+
+        $routeDev = $this->matchesDevBoardRoutingRule($entry);
+        $routeDesign = $this->matchesDesignBoardRoutingRule($entry);
+        $targets = [];
+        if ($routeDev) {
+            $targets[] = 'JG Dev Board';
+        }
+        if ($routeDesign) {
+            $targets[] = 'JG Design Board';
+        }
+
+        $targetText = $targets === [] ? 'None' : implode(', ', $targets);
+        $hasHtml = preg_match('/<[^>]+>/', $body) === 1;
+
+        if ($hasHtml) {
+            $summary = '<hr><p><strong>Routing Summary</strong></p><ul>'
+                .'<li><strong>Dev board:</strong> '.($routeDev ? 'Yes' : 'No').'</li>'
+                .'<li><strong>Design board:</strong> '.($routeDesign ? 'Yes' : 'No').'</li>'
+                .'<li><strong>Targets:</strong> '.$targetText.'</li>'
+                .'</ul>';
+
+            return rtrim($body).$summary;
+        }
+
+        $summary = "\n\nRouting Summary\n"
+            .'Dev board: '.($routeDev ? 'Yes' : 'No')."\n"
+            .'Design board: '.($routeDesign ? 'Yes' : 'No')."\n"
+            .'Targets: '.$targetText;
+
+        return rtrim($body).$summary;
+    }
+
+    /**
+     * @param  array<int, array{email:string,name:string|null}>  $recipients
+     */
+    private function hasNonTrelloRecipient(array $recipients): bool
+    {
+        foreach ($recipients as $recipient) {
+            $email = strtolower(trim((string) ($recipient['email'] ?? '')));
+            if ($email === '') {
+                continue;
+            }
+
+            if (! str_contains($email, 'boards.trello.com')) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function configuredRecipientEmails(string $configKey): array
+    {
+        $configured = config($configKey, []);
+        if (! is_array($configured)) {
+            return [];
+        }
+
+        $emails = [];
+        foreach ($configured as $value) {
+            if (! is_string($value)) {
+                continue;
+            }
+
+            $email = strtolower(trim($value));
+            if ($email === '' || filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
+                continue;
+            }
+
+            $emails[$email] = $email;
+        }
+
+        return array_values($emails);
     }
 
     /**

@@ -24,20 +24,6 @@ function isBeforeToday(value: string): boolean {
     return date < todayIsoDate();
 }
 
-function isEndMonthBeforeStartMonth(
-    startDateTime: string,
-    endDateTime: string,
-): boolean {
-    const startDate = datePart(startDateTime);
-    const endDate = datePart(endDateTime);
-
-    if (startDate === '' || endDate === '') {
-        return false;
-    }
-
-    return endDate.slice(0, 7) < startDate.slice(0, 7);
-}
-
 function hasInternationalCountryCode(value: string): boolean {
     return /^\+[1-9]\d{0,3}(?:[\s-]?\d){4,}$/.test(value.trim());
 }
@@ -132,41 +118,73 @@ export function validateEventDetails(formData: FormData): ValidationErrors {
                 'Please enter a full cellphone number with country code (for example: +27 82 123 4567)';
         }
     }
-    if (!formData.eventDuration) {
-        errors.eventDuration = 'Please select event duration';
+    if (formData.eventDates.length === 0) {
+        errors.eventDates =
+            'Please add at least one event schedule (date, start time, and end time)';
+    } else {
+        const hasEmptyDate = formData.eventDates.some(
+            (d) => !d.date || !d.startTime || !d.endTime,
+        );
+        const hasPastDate = formData.eventDates.some((d) =>
+            isBeforeToday(d.date),
+        );
+        const hasInvalidTimeRange = formData.eventDates.some((d) => {
+            if (!d.date || !d.startTime || !d.endTime) {
+                return false;
+            }
+
+            const start = new Date(`${d.date}T${d.startTime}`);
+            const end = new Date(`${d.date}T${d.endTime}`);
+
+            return Number.isNaN(start.getTime())
+                ? false
+                : Number.isNaN(end.getTime()) || end <= start;
+        });
+
+        if (hasEmptyDate) {
+            errors.eventDates = 'Please complete all date and time fields';
+        } else if (hasPastDate) {
+            errors.eventDates = 'Event dates cannot be in the past';
+        } else if (hasInvalidTimeRange) {
+            errors.eventDates =
+                'Each schedule must have an end time later than start time';
+        }
     }
-    if (formData.eventDuration === 'One Day Event') {
-        if (!formData.eventStartDate) {
-            errors.eventStartDate = 'Event date is required';
-        } else if (isBeforeToday(formData.eventStartDate)) {
-            errors.eventStartDate = 'Event date cannot be in the past';
+
+    const hasAnyOutreachCampField =
+        formData.outreachCampStartDate !== '' ||
+        formData.outreachCampStartTime !== '' ||
+        formData.outreachCampEndDate !== '' ||
+        formData.outreachCampEndTime !== '';
+    const hasAllOutreachCampFields =
+        formData.outreachCampStartDate !== '' &&
+        formData.outreachCampStartTime !== '' &&
+        formData.outreachCampEndDate !== '' &&
+        formData.outreachCampEndTime !== '';
+
+    if (hasAnyOutreachCampField && !hasAllOutreachCampFields) {
+        errors.outreachCampStartDate =
+            'Complete all Outreach/Camp range fields or leave all blank';
+    } else if (hasAllOutreachCampFields) {
+        if (isBeforeToday(formData.outreachCampStartDate)) {
+            errors.outreachCampStartDate =
+                'Outreach/Camp start date cannot be in the past';
         }
 
+        const start = new Date(
+            `${formData.outreachCampStartDate}T${formData.outreachCampStartTime}`,
+        );
+        const end = new Date(
+            `${formData.outreachCampEndDate}T${formData.outreachCampEndTime}`,
+        );
+
         if (
-            isEndMonthBeforeStartMonth(
-                formData.eventStartDate,
-                formData.eventEndDate,
-            )
+            !Number.isNaN(start.getTime()) &&
+            !Number.isNaN(end.getTime()) &&
+            end <= start
         ) {
-            errors.eventStartDate =
-                'End date must be in the same month or later than the start date';
-        }
-    }
-    if (formData.eventDuration === 'Multiple Day Event') {
-        if (formData.eventDates.length === 0) {
-            errors.eventDates = 'Please add at least one event date';
-        } else {
-            const hasEmptyDate = formData.eventDates.some(
-                (d) => !d.date || !d.startTime || !d.endTime,
-            );
-            const hasPastDate = formData.eventDates.some((d) =>
-                isBeforeToday(d.date),
-            );
-            if (hasEmptyDate) {
-                errors.eventDates = 'Please complete all date and time fields';
-            } else if (hasPastDate) {
-                errors.eventDates = 'Event dates cannot be in the past';
-            }
+            errors.outreachCampEndDate =
+                'Outreach/Camp end date and time must be later than start';
         }
     }
     if (!formData.announcementDate) {
@@ -191,12 +209,14 @@ export function validateEventDetails(formData: FormData): ValidationErrors {
     if (!formData.eventReach) {
         errors.eventReach = 'Please select event reach';
     }
-    if (
-        (formData.eventReach === 'Hubs' ||
-            formData.eventReach === 'Congregations') &&
-        formData.hubs.length === 0
-    ) {
+    if (formData.eventReach === 'Hubs' && formData.hubs.length === 0) {
         errors.hubs = 'Please select at least one option';
+    }
+    if (
+        formData.eventReach === 'Congregations' &&
+        formData.eventCongregations.length === 0
+    ) {
+        errors.eventCongregations = 'Please select at least one congregation';
     }
     if (!formData.childMinding) {
         errors.childMinding =
@@ -223,7 +243,10 @@ export function validateEventRegistration(
         errors.quicketDescription = 'Description is required';
     }
 
-    if (formData.ticketCurrency !== 'ZAR' && formData.ticketCurrency !== 'USD') {
+    if (
+        formData.ticketCurrency !== 'ZAR' &&
+        formData.ticketCurrency !== 'USD'
+    ) {
         errors.ticketCurrency = 'Please select a ticket currency';
     }
 

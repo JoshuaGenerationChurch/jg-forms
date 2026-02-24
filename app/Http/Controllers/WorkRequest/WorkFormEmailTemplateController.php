@@ -80,6 +80,9 @@ class WorkFormEmailTemplateController extends Controller
         $ccRecipients = $emailTemplateService->parseRecipientsString((string) ($validated['ccRecipients'] ?? ''));
         $bccRecipients = $emailTemplateService->parseRecipientsString((string) ($validated['bccRecipients'] ?? ''));
         $useDefaultRecipients = (bool) $validated['useDefaultRecipients'];
+        $subject = $form->slug === 'work-request'
+            ? '{{entry.auto_subject}}'
+            : trim((string) $validated['subject']);
 
         if ($toRecipients === [] && ! $useDefaultRecipients) {
             return back()->withErrors([
@@ -90,7 +93,7 @@ class WorkFormEmailTemplateController extends Controller
         $form->emailTemplates()->create([
             'trigger_event' => (string) $validated['triggerEvent'],
             'name' => trim((string) $validated['name']),
-            'subject' => trim((string) $validated['subject']),
+            'subject' => $subject,
             'heading' => trim((string) ($validated['heading'] ?? '')) ?: null,
             'body' => (string) $validated['body'],
             'to_recipients' => $toRecipients,
@@ -119,6 +122,9 @@ class WorkFormEmailTemplateController extends Controller
         $ccRecipients = $emailTemplateService->parseRecipientsString((string) ($validated['ccRecipients'] ?? ''));
         $bccRecipients = $emailTemplateService->parseRecipientsString((string) ($validated['bccRecipients'] ?? ''));
         $useDefaultRecipients = (bool) $validated['useDefaultRecipients'];
+        $subject = $form->slug === 'work-request'
+            ? '{{entry.auto_subject}}'
+            : trim((string) $validated['subject']);
 
         if ($toRecipients === [] && ! $useDefaultRecipients) {
             return back()->withErrors([
@@ -129,7 +135,7 @@ class WorkFormEmailTemplateController extends Controller
         $template->update([
             'trigger_event' => (string) $validated['triggerEvent'],
             'name' => trim((string) $validated['name']),
-            'subject' => trim((string) $validated['subject']),
+            'subject' => $subject,
             'heading' => trim((string) ($validated['heading'] ?? '')) ?: null,
             'body' => (string) $validated['body'],
             'to_recipients' => $toRecipients,

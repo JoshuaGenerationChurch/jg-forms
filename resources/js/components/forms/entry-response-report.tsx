@@ -61,6 +61,11 @@ const WORK_REQUEST_SECTION_RULES: Array<{
             'otherVenueAddress',
             'eventReach',
             'hubs',
+            'eventCongregations',
+            'outreachCampStartDate',
+            'outreachCampStartTime',
+            'outreachCampEndDate',
+            'outreachCampEndTime',
             'childMinding',
             'childMindingDescription',
             'isUserOrganiser',
@@ -129,11 +134,16 @@ const LABEL_OVERRIDES: Record<string, string> = {
     includesSignage: 'Signage selected',
     eventReach: 'Event reach',
     hubs: 'Selected hubs',
+    eventCongregations: 'Selected congregations',
     childMinding: 'Child minding',
     childMindingDescription: 'Child minding details',
     eventStartDate: 'Event start',
     eventEndDate: 'Event end',
     eventDates: 'Event dates',
+    outreachCampStartDate: 'Outreach/Camp start date',
+    outreachCampStartTime: 'Outreach/Camp start time',
+    outreachCampEndDate: 'Outreach/Camp end date',
+    outreachCampEndTime: 'Outreach/Camp end time',
     announcementDate: 'Announcement date',
     jgVenue: 'JG venue',
     isUserOrganiser: 'Is requester organiser?',
@@ -209,11 +219,19 @@ function parseYesNoValue(value: unknown): boolean | null {
 
     const normalizedValue = value.trim().toLowerCase();
 
-    if (normalizedValue === 'yes' || normalizedValue === 'true' || normalizedValue === '1') {
+    if (
+        normalizedValue === 'yes' ||
+        normalizedValue === 'true' ||
+        normalizedValue === '1'
+    ) {
         return true;
     }
 
-    if (normalizedValue === 'no' || normalizedValue === 'false' || normalizedValue === '0') {
+    if (
+        normalizedValue === 'no' ||
+        normalizedValue === 'false' ||
+        normalizedValue === '0'
+    ) {
         return false;
     }
 
@@ -327,19 +345,14 @@ function keyValueSummary(
                     ? `${options.ticketCurrency} ${primitiveValue}`
                     : primitiveValue;
 
-            selectedLabels.push(
-                `${formatLabel(key)}: ${formattedValue}`,
-            );
+            selectedLabels.push(`${formatLabel(key)}: ${formattedValue}`);
         }
     }
 
     return selectedLabels.join(', ');
 }
 
-function formatArray(
-    value: unknown[],
-    options: FormatOptions = {},
-): string {
+function formatArray(value: unknown[], options: FormatOptions = {}): string {
     const meaningfulItems = value.filter((item) => isMeaningful(item));
     if (meaningfulItems.length === 0) {
         return '';
@@ -623,7 +636,7 @@ function buildWorkRequestSections(
                           ? typeof value === 'string'
                               ? formatDateTimeValue(value)
                               : formatValue(value, { ticketCurrency })
-                        : formatValue(value, { ticketCurrency });
+                          : formatValue(value, { ticketCurrency });
                 if (formattedValue === '') {
                     continue;
                 }
@@ -758,9 +771,7 @@ function sectionIcon(title: string): LucideIcon {
     return FileText;
 }
 
-function renderRows(
-    rows: ReportRow[],
-): ReactNode {
+function renderRows(rows: ReportRow[]): ReactNode {
     return (
         <dl className="space-y-2 text-sm">
             {rows.map((row, index) => (
@@ -770,9 +781,7 @@ function renderRows(
                         row.fullWidth
                             ? 'flex flex-col gap-2'
                             : 'flex flex-col gap-1 md:flex-row md:items-start md:justify-between md:gap-4'
-                    } ${
-                        index % 2 === 1 ? 'bg-slate-100/70' : 'bg-white'
-                    }`}
+                    } ${index % 2 === 1 ? 'bg-slate-100/70' : 'bg-white'}`}
                 >
                     <dt className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
                         {row.label}

@@ -1,8 +1,12 @@
 import { Head, Link, router, useForm } from '@inertiajs/react';
 import {
     ArrowLeft,
+    Bold,
     Check,
+    ChevronDown,
+    ChevronRight,
     Copy,
+    Italic,
     Link2,
     List,
     ListOrdered,
@@ -11,10 +15,10 @@ import {
     Save,
     Send,
     Trash2,
-    Type,
+    Underline,
 } from 'lucide-react';
 import type { FormEvent } from 'react';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import DeleteConfirmDialog from '@/components/forms/delete-confirm-dialog';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -47,9 +51,11 @@ type Placeholder = {
     sample: string;
 };
 
-type TriggerOption = {
-    value: string;
-    label: string;
+type PlaceholderGroup = {
+    id: string;
+    title: string;
+    description: string;
+    placeholders: Placeholder[];
 };
 
 type AdminForm = {
@@ -64,7 +70,6 @@ type Props = {
     templates: EmailTemplate[];
     defaultRecipients: Recipient[];
     placeholders: Placeholder[];
-    triggerOptions: TriggerOption[];
 };
 
 type TemplateFormData = {
@@ -82,7 +87,7 @@ type TemplateFormData = {
 };
 
 type EditorCommand = {
-    icon: typeof Type;
+    icon: typeof Bold;
     label: string;
     command: string;
     value?: string;
@@ -92,22 +97,71 @@ const initialTemplateFormData: TemplateFormData = {
     triggerEvent: 'submission_created',
     name: '',
     subject: '[JG Forms] New submission: {{form.title}}',
-    heading: 'New submission for {{form.title}}',
+    heading: '',
     body: '<p><strong>Form:</strong> {{form.title}}</p><p><strong>Entry ID:</strong> {{entry.id}}</p><p><strong>Requester:</strong> {{entry.first_name}} {{entry.last_name}}</p><p><strong>Email:</strong> {{entry.email}}</p><p><strong>View:</strong> {{form.url}}</p>',
     toRecipients: '',
     ccRecipients: '',
     bccRecipients: '',
-    useDefaultRecipients: true,
+    useDefaultRecipients: false,
     isActive: true,
     position: 0,
 };
 
 const editorCommands: EditorCommand[] = [
-    { icon: Type, label: 'Bold', command: 'bold' },
-    { icon: Type, label: 'Italic', command: 'italic' },
-    { icon: Type, label: 'Underline', command: 'underline' },
+    { icon: Bold, label: 'Bold', command: 'bold' },
+    { icon: Italic, label: 'Italic', command: 'italic' },
+    { icon: Underline, label: 'Underline', command: 'underline' },
     { icon: List, label: 'Bulleted list', command: 'insertUnorderedList' },
     { icon: ListOrdered, label: 'Numbered list', command: 'insertOrderedList' },
+];
+
+const placeholderGroupMeta: Record<
+    string,
+    { title: string; description: string }
+> = {
+    contact: {
+        title: 'Contact Step',
+        description: 'Requester details and core profile fields.',
+    },
+    event: {
+        title: 'Event Details',
+        description: 'Event info, dates, venue and organiser details.',
+    },
+    registration: {
+        title: 'Registration Form',
+        description: 'Tickets, pricing, fields to collect and donations.',
+    },
+    graphicsDigital: {
+        title: 'Graphics (Digital)',
+        description: 'Digital graphics requests and bank/format fields.',
+    },
+    graphicsPrint: {
+        title: 'Graphics (Print)',
+        description: 'Print scope, sizes, quantities and outputs.',
+    },
+    signage: {
+        title: 'Signage',
+        description: 'Signage scope and quantity fields.',
+    },
+    system: {
+        title: 'System / Meta',
+        description: 'Form and entry metadata fields.',
+    },
+    other: {
+        title: 'Other',
+        description: 'Additional payload fields that do not match a step.',
+    },
+};
+
+const placeholderGroupOrder = [
+    'contact',
+    'event',
+    'registration',
+    'graphicsDigital',
+    'graphicsPrint',
+    'signage',
+    'system',
+    'other',
 ];
 
 function recipientsToString(recipients: Recipient[]): string {
@@ -157,6 +211,179 @@ function placeholderToken(key: string): string {
     return `{{${key}}}`;
 }
 
+function normalizePlaceholderInput(value: string): string {
+    const trimmed = value.trim();
+    if (trimmed.startsWith('{{') && trimmed.endsWith('}}')) {
+        return trimmed.slice(2, -2).trim();
+    }
+
+    return trimmed;
+}
+
+function fallbackCopyToClipboard(value: string): boolean {
+    if (typeof document === 'undefined') {
+        return false;
+    }
+
+    const textArea = document.createElement('textarea');
+    textArea.value = value;
+    textArea.setAttribute('readonly', '');
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-9999px';
+    textArea.style.top = '0';
+    document.body.append(textArea);
+    textArea.select();
+
+    let copied = false;
+    try {
+        copied = document.execCommand('copy');
+    } catch {
+        copied = false;
+    }
+
+    textArea.remove();
+    return copied;
+}
+
+function startsWithAny(value: string, prefixes: string[]): boolean {
+    return prefixes.some((prefix) => value.startsWith(prefix));
+}
+
+function classifyPlaceholderGroup(key: string): string {
+    if (key.startsWith('form.') || key.startsWith('entry.')) {
+        return 'system';
+    }
+
+    const payloadKey = key.startsWith('payload.') ? key.slice(8) : key;
+
+    if (
+        [
+            'firstName',
+            'lastName',
+            'cellphone',
+            'email',
+            'roleInChurch',
+            'otherRole',
+            'congregation',
+            'termsAccepted',
+            'allFields.contact',
+        ].includes(payloadKey)
+    ) {
+        return 'contact';
+    }
+
+    if (
+        [
+            'includesDatesVenue',
+            'theme',
+            'eventName',
+            'isUserOrganiser',
+            'organiserFirstName',
+            'organiserLastName',
+            'organiserEmail',
+            'organiserCell',
+            'eventDuration',
+            'eventStartDate',
+            'eventEndDate',
+            'announcementDate',
+            'venueType',
+            'jgVenue',
+            'otherVenueName',
+            'otherVenueAddress',
+            'eventReach',
+            'outreachCampStartDate',
+            'outreachCampStartTime',
+            'outreachCampEndDate',
+            'outreachCampEndTime',
+            'childMinding',
+            'childMindingDescription',
+            'allFields.event',
+        ].includes(payloadKey) ||
+        startsWithAny(payloadKey, [
+            'eventDates.',
+            'hubs.',
+            'eventCongregations.',
+        ])
+    ) {
+        return 'event';
+    }
+
+    if (
+        payloadKey === 'includesRegistration' ||
+        payloadKey === 'allFields.registration' ||
+        startsWithAny(payloadKey, [
+            'quicket',
+            'ticket',
+            'otherTickets.',
+            'infoToCollect.',
+            'otherInfoFields.',
+            'allowDonations',
+            'registrationClosingDate',
+        ])
+    ) {
+        return 'registration';
+    }
+
+    if (
+        [
+            'includesGraphics',
+            'includesGraphicsDigital',
+            'graphicsWhatsApp',
+            'graphicsInstagram',
+            'graphicsAVSlide',
+            'graphicsOther',
+            'digitalGraphicType',
+            'digitalBankName',
+            'digitalBranchCode',
+            'digitalAccountNumber',
+            'digitalReference',
+            'digitalOtherGraphicDescription',
+            'digitalFormatWhatsapp',
+            'digitalFormatAVSlide',
+            'digitalFormatOther',
+            'digitalOtherFormatDescription',
+            'allFields.graphicsDigital',
+        ].includes(payloadKey)
+    ) {
+        return 'graphicsDigital';
+    }
+
+    if (
+        payloadKey === 'includesGraphicsPrint' ||
+        payloadKey === 'allFields.graphicsPrint' ||
+        startsWithAny(payloadKey, ['print'])
+    ) {
+        return 'graphicsPrint';
+    }
+
+    if (
+        payloadKey === 'includesSignage' ||
+        payloadKey === 'allFields.signage' ||
+        startsWithAny(payloadKey, [
+            'signage',
+            'sharkfin',
+            'temporaryFence',
+            'toilets',
+            'moms',
+            'toddlers',
+            'firstAid',
+            'internal',
+            'external',
+            'sandwichBoards',
+            'permanentExternal',
+            'otherSignage',
+        ])
+    ) {
+        return 'signage';
+    }
+
+    if (key.startsWith('payload.')) {
+        return 'other';
+    }
+
+    return 'system';
+}
+
 function escapeHtml(value: string): string {
     return value
         .replaceAll('&', '&amp;')
@@ -191,8 +418,8 @@ export default function AdminFormEmailTemplates({
     templates,
     defaultRecipients,
     placeholders,
-    triggerOptions,
 }: Props) {
+    const isWorkRequestForm = form.slug === 'work-request';
     const [editingTemplateId, setEditingTemplateId] = useState<number | null>(
         null,
     );
@@ -203,8 +430,18 @@ export default function AdminFormEmailTemplates({
     const [selectedPlaceholderKey, setSelectedPlaceholderKey] = useState(
         placeholders[0]?.key ?? '',
     );
+    const [toolbarPlaceholderInput, setToolbarPlaceholderInput] = useState(
+        placeholders[0]?.key ?? '',
+    );
+    const [editorResetCounter, setEditorResetCounter] = useState(0);
+    const [openPlaceholderGroupId, setOpenPlaceholderGroupId] = useState<
+        string | null | undefined
+    >(undefined);
+    const [selectedPlaceholderByGroup, setSelectedPlaceholderByGroup] =
+        useState<Record<string, string>>({});
 
     const editorRef = useRef<HTMLDivElement | null>(null);
+    const editorSeedBodyRef = useRef(initialTemplateFormData.body);
 
     const { data, setData, processing, errors, reset, post, put } =
         useForm<TemplateFormData>(initialTemplateFormData);
@@ -224,8 +461,86 @@ export default function AdminFormEmailTemplates({
         [currentToRecipients],
     );
 
-    const activePlaceholderKey =
-        selectedPlaceholderKey || placeholders[0]?.key || '';
+    const activePlaceholderKey = useMemo(() => {
+        const normalizedInput = normalizePlaceholderInput(toolbarPlaceholderInput)
+            .toLowerCase();
+
+        if (normalizedInput !== '') {
+            const exactMatch = placeholders.find(
+                (placeholder) => placeholder.key.toLowerCase() === normalizedInput,
+            );
+            if (exactMatch) {
+                return exactMatch.key;
+            }
+
+            const containsMatch = placeholders.find((placeholder) =>
+                placeholder.key.toLowerCase().includes(normalizedInput),
+            );
+            if (containsMatch) {
+                return containsMatch.key;
+            }
+
+            return '';
+        }
+
+        return selectedPlaceholderKey || placeholders[0]?.key || '';
+    }, [placeholders, selectedPlaceholderKey, toolbarPlaceholderInput]);
+    const toolbarHasInput = normalizePlaceholderInput(toolbarPlaceholderInput) !== '';
+    const toolbarHasNoMatch = toolbarHasInput && activePlaceholderKey === '';
+
+    const placeholderGroups = useMemo<PlaceholderGroup[]>(() => {
+        const grouped = new Map<string, Placeholder[]>();
+
+        for (const placeholder of placeholders) {
+            const groupId = classifyPlaceholderGroup(placeholder.key);
+            const groupPlaceholders = grouped.get(groupId) ?? [];
+            groupPlaceholders.push(placeholder);
+            grouped.set(groupId, groupPlaceholders);
+        }
+
+        return placeholderGroupOrder
+            .map((groupId) => {
+                const groupPlaceholders = (grouped.get(groupId) ?? []).sort(
+                    (a, b) => a.key.localeCompare(b.key),
+                );
+                if (groupPlaceholders.length === 0) {
+                    return null;
+                }
+
+                const meta = placeholderGroupMeta[groupId];
+
+                return {
+                    id: groupId,
+                    title: meta.title,
+                    description: meta.description,
+                    placeholders: groupPlaceholders,
+                };
+            })
+            .filter((group): group is PlaceholderGroup => group !== null);
+    }, [placeholders]);
+
+    const effectiveOpenPlaceholderGroupId =
+        openPlaceholderGroupId === undefined
+            ? (placeholderGroups[0]?.id ?? null)
+            : openPlaceholderGroupId;
+
+    useEffect(() => {
+        if (!editorRef.current) {
+            return;
+        }
+
+        editorRef.current.innerHTML = toEditorHtml(editorSeedBodyRef.current);
+    }, [editorResetCounter]);
+
+    useEffect(() => {
+        if (!isWorkRequestForm) {
+            return;
+        }
+
+        if (data.subject !== '{{entry.auto_subject}}') {
+            setData('subject', '{{entry.auto_subject}}');
+        }
+    }, [data.subject, isWorkRequestForm, setData]);
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Dashboard', href: '/dashboard' },
@@ -236,21 +551,12 @@ export default function AdminFormEmailTemplates({
         },
     ];
 
-    const syncEditorFromBody = (body: string) => {
-        if (!editorRef.current) {
-            return;
-        }
-
-        editorRef.current.innerHTML = toEditorHtml(body);
-    };
-
     const setEditingTemplate = (template: EmailTemplate | null) => {
         if (!template) {
             setEditingTemplateId(null);
             reset();
-            window.requestAnimationFrame(() => {
-                syncEditorFromBody(initialTemplateFormData.body);
-            });
+            editorSeedBodyRef.current = initialTemplateFormData.body;
+            setEditorResetCounter((value) => value + 1);
             return;
         }
 
@@ -258,20 +564,20 @@ export default function AdminFormEmailTemplates({
         setData({
             triggerEvent: template.triggerEvent,
             name: template.name,
-            subject: template.subject,
-            heading: template.heading ?? '',
+            subject: isWorkRequestForm
+                ? '{{entry.auto_subject}}'
+                : template.subject,
+            heading: '',
             body: template.body,
             toRecipients: recipientsToString(template.toRecipients),
             ccRecipients: recipientsToString(template.ccRecipients),
             bccRecipients: recipientsToString(template.bccRecipients),
-            useDefaultRecipients: template.useDefaultRecipients,
+            useDefaultRecipients: false,
             isActive: template.isActive,
             position: template.position,
         });
-
-        window.requestAnimationFrame(() => {
-            syncEditorFromBody(template.body);
-        });
+        editorSeedBodyRef.current = template.body;
+        setEditorResetCounter((value) => value + 1);
     };
 
     const updateBodyFromEditor = () => {
@@ -294,15 +600,27 @@ export default function AdminFormEmailTemplates({
         updateBodyFromEditor();
     };
 
-    const insertPlaceholderTokenInEditor = () => {
-        if (activePlaceholderKey === '') {
+    const insertPlaceholderTokenInEditor = (placeholderKey?: string) => {
+        const key = placeholderKey ?? activePlaceholderKey;
+        if (key === '') {
             return;
         }
 
-        executeEditorCommand(
-            'insertText',
-            placeholderToken(activePlaceholderKey),
-        );
+        setSelectedPlaceholderKey(key);
+        setToolbarPlaceholderInput(key);
+        executeEditorCommand('insertText', placeholderToken(key));
+    };
+
+    const handlePlaceholderGroupSelection = (
+        groupId: string,
+        placeholderKey: string,
+    ) => {
+        setSelectedPlaceholderByGroup((current) => ({
+            ...current,
+            [groupId]: placeholderKey,
+        }));
+        setSelectedPlaceholderKey(placeholderKey);
+        setToolbarPlaceholderInput(placeholderKey);
     };
 
     const addLink = () => {
@@ -362,20 +680,25 @@ export default function AdminFormEmailTemplates({
     };
 
     const copyTokenToClipboard = async (key: string) => {
-        if (typeof navigator === 'undefined' || !navigator.clipboard) {
-            return;
-        }
-
         const token = placeholderToken(key);
+        let copied = false;
 
         try {
-            await navigator.clipboard.writeText(token);
+            if (typeof navigator !== 'undefined' && navigator.clipboard) {
+                await navigator.clipboard.writeText(token);
+                copied = true;
+            } else {
+                copied = fallbackCopyToClipboard(token);
+            }
+        } catch {
+            copied = fallbackCopyToClipboard(token);
+        }
+
+        if (copied) {
             setCopiedToken(key);
             window.setTimeout(() => {
                 setCopiedToken((current) => (current === key ? null : current));
-            }, 1200);
-        } catch {
-            // no-op
+            }, 2200);
         }
     };
 
@@ -487,10 +810,11 @@ export default function AdminFormEmailTemplates({
                                                 <p className="text-sm font-medium text-slate-900">
                                                     {template.name}
                                                 </p>
-                                                <p className="mt-1 text-xs text-slate-500">
-                                                    {template.triggerEvent} •
-                                                    Position {template.position}
-                                                </p>
+                                                {!isWorkRequestForm ? (
+                                                    <p className="mt-1 text-xs text-slate-500">
+                                                        {template.subject}
+                                                    </p>
+                                                ) : null}
                                                 <div className="mt-2 flex items-center justify-between">
                                                     <span
                                                         className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${
@@ -520,12 +844,25 @@ export default function AdminFormEmailTemplates({
                             className="rounded-xl border border-slate-200 bg-white shadow-sm"
                         >
                             <div className="space-y-5 p-5 md:p-6">
-                                <label className="space-y-1.5">
+                                <label className="block w-full space-y-1.5 rounded-lg border border-slate-200 bg-slate-50 p-4">
                                     <span className="text-sm font-medium text-slate-700">
                                         Email Subject
                                     </span>
+                                    {isWorkRequestForm ? (
+                                        <p className="text-xs text-blue-700">
+                                            Auto-generated for Work Request based
+                                            on selected request type(s). Subject
+                                            is locked to{' '}
+                                            <code>{'{{entry.auto_subject}}'}</code>.
+                                        </p>
+                                    ) : null}
                                     <Input
-                                        value={data.subject}
+                                        className="bg-white"
+                                        value={
+                                            isWorkRequestForm
+                                                ? '{{entry.auto_subject}}'
+                                                : data.subject
+                                        }
                                         onChange={(event) =>
                                             setData(
                                                 'subject',
@@ -533,6 +870,7 @@ export default function AdminFormEmailTemplates({
                                             )
                                         }
                                         placeholder="Message from JG Forms"
+                                        disabled={isWorkRequestForm}
                                     />
                                     {errors.subject ? (
                                         <p className="text-xs text-red-600">
@@ -541,50 +879,13 @@ export default function AdminFormEmailTemplates({
                                     ) : null}
                                 </label>
 
-                                <div className="rounded-lg border border-slate-200 p-4">
-                                    <div className="flex items-center justify-between gap-3">
-                                        <div>
-                                            <p className="text-sm font-medium text-slate-800">
-                                                Active
-                                            </p>
-                                            <p className="text-xs text-slate-500">
-                                                Enable or disable this email
-                                                template.
-                                            </p>
-                                        </div>
-                                        <button
-                                            type="button"
-                                            role="switch"
-                                            aria-checked={data.isActive}
-                                            className={`relative h-6 w-11 rounded-full transition ${
-                                                data.isActive
-                                                    ? 'bg-blue-600'
-                                                    : 'bg-slate-300'
-                                            }`}
-                                            onClick={() =>
-                                                setData(
-                                                    'isActive',
-                                                    !data.isActive,
-                                                )
-                                            }
-                                        >
-                                            <span
-                                                className={`absolute top-0.5 size-5 rounded-full bg-white transition ${
-                                                    data.isActive
-                                                        ? 'left-[22px]'
-                                                        : 'left-0.5'
-                                                }`}
-                                            />
-                                        </button>
-                                    </div>
-                                </div>
-
-                                <div className="grid gap-4 md:grid-cols-3">
-                                    <label className="space-y-1.5">
+                                <div className="grid gap-4 md:grid-cols-2">
+                                    <label className="space-y-1.5 rounded-lg border border-slate-200 bg-slate-50 p-4">
                                         <span className="text-sm font-medium text-slate-700">
                                             Template Name
                                         </span>
                                         <Input
+                                            className="bg-white"
                                             value={data.name}
                                             onChange={(event) =>
                                                 setData(
@@ -601,65 +902,44 @@ export default function AdminFormEmailTemplates({
                                         ) : null}
                                     </label>
 
-                                    <label className="space-y-1.5">
-                                        <span className="text-sm font-medium text-slate-700">
-                                            Trigger Event
-                                        </span>
-                                        <select
-                                            className="h-9 w-full rounded-md border border-slate-300 bg-white px-3 text-sm"
-                                            value={data.triggerEvent}
-                                            onChange={(event) =>
-                                                setData(
-                                                    'triggerEvent',
-                                                    event.target.value,
-                                                )
-                                            }
-                                        >
-                                            {triggerOptions.map((option) => (
-                                                <option
-                                                    key={option.value}
-                                                    value={option.value}
-                                                >
-                                                    {option.label}
-                                                </option>
-                                            ))}
-                                        </select>
-                                    </label>
-
-                                    <label className="space-y-1.5">
-                                        <span className="text-sm font-medium text-slate-700">
-                                            Position
-                                        </span>
-                                        <Input
-                                            type="number"
-                                            min={0}
-                                            value={data.position}
-                                            onChange={(event) =>
-                                                setData(
-                                                    'position',
-                                                    Number(
-                                                        event.target.value || 0,
-                                                    ),
-                                                )
-                                            }
-                                        />
-                                    </label>
+                                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                                        <div className="flex items-center justify-between gap-3">
+                                            <div>
+                                                <p className="text-sm font-medium text-slate-800">
+                                                    Active
+                                                </p>
+                                                <p className="text-xs text-slate-500">
+                                                    Enable or disable this email
+                                                    template.
+                                                </p>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                role="switch"
+                                                aria-checked={data.isActive}
+                                                className={`relative h-6 w-11 rounded-full transition ${
+                                                    data.isActive
+                                                        ? 'bg-blue-600'
+                                                        : 'bg-slate-300'
+                                                }`}
+                                                onClick={() =>
+                                                    setData(
+                                                        'isActive',
+                                                        !data.isActive,
+                                                    )
+                                                }
+                                            >
+                                                <span
+                                                    className={`absolute top-0.5 size-5 rounded-full bg-white transition ${
+                                                        data.isActive
+                                                            ? 'left-[22px]'
+                                                            : 'left-0.5'
+                                                    }`}
+                                                />
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
-
-                                <label className="space-y-1.5">
-                                    <span className="text-sm font-medium text-slate-700">
-                                        Heading (optional)
-                                    </span>
-                                    <Input
-                                        value={data.heading}
-                                        onChange={(event) =>
-                                            setData(
-                                                'heading',
-                                                event.target.value,
-                                            )
-                                        }
-                                    />
-                                </label>
 
                                 <div className="space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-4">
                                     <div>
@@ -709,13 +989,55 @@ export default function AdminFormEmailTemplates({
                                     )}
                                 </div>
 
-                                <div className="grid gap-4 md:grid-cols-3">
-                                    <label className="space-y-1.5 md:col-span-2">
+                                <div className="grid gap-4 md:grid-cols-2">
+                                    <div className="space-y-3 rounded-lg border border-slate-200 bg-slate-50 p-4">
+                                        <label className="space-y-1.5">
+                                            <span className="text-sm font-medium text-slate-700">
+                                                Cc Recipients
+                                            </span>
+                                            <Input
+                                                className="bg-white"
+                                                value={data.ccRecipients}
+                                                onChange={(event) =>
+                                                    setData(
+                                                        'ccRecipients',
+                                                        event.target.value,
+                                                    )
+                                                }
+                                                placeholder="design-leads@jgchurch.org"
+                                            />
+                                        </label>
+
+                                        <label className="space-y-1.5">
+                                            <span className="text-sm font-medium text-slate-700">
+                                                Bcc Recipients
+                                            </span>
+                                            <Input
+                                                className="bg-white"
+                                                value={data.bccRecipients}
+                                                onChange={(event) =>
+                                                    setData(
+                                                        'bccRecipients',
+                                                        event.target.value,
+                                                    )
+                                                }
+                                                placeholder="audit-log@jgchurch.org"
+                                            />
+                                        </label>
+
+                                        <p className="text-xs text-slate-500">
+                                            Add optional carbon-copy and blind
+                                            carbon-copy recipients for this
+                                            template.
+                                        </p>
+                                    </div>
+
+                                    <label className="space-y-1.5 rounded-lg border border-slate-200 bg-slate-50 p-4">
                                         <span className="text-sm font-medium text-slate-700">
                                             To Recipients (semicolon separated)
                                         </span>
                                         <textarea
-                                            rows={3}
+                                            rows={5}
                                             className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
                                             value={data.toRecipients}
                                             onChange={(event) =>
@@ -725,64 +1047,19 @@ export default function AdminFormEmailTemplates({
                                                 )
                                             }
                                             placeholder={
-                                                '"Name" <email@example.com>; second@example.com'
+                                                'dev-board@jgchurch.org; "Design Board" <design-board@jgchurch.org>'
                                             }
                                         />
+                                        <p className="text-xs text-slate-500">
+                                            Use semicolons to separate multiple
+                                            addresses.
+                                        </p>
                                         {errors.toRecipients ? (
                                             <p className="text-xs text-red-600">
                                                 {errors.toRecipients}
                                             </p>
                                         ) : null}
                                     </label>
-
-                                    <div className="space-y-3">
-                                        <label className="flex items-center gap-2 rounded-md border border-slate-200 bg-slate-50 p-2 text-sm">
-                                            <Checkbox
-                                                checked={
-                                                    data.useDefaultRecipients
-                                                }
-                                                onCheckedChange={(checked) =>
-                                                    setData(
-                                                        'useDefaultRecipients',
-                                                        checked === true,
-                                                    )
-                                                }
-                                            />
-                                            Include all default recipients
-                                        </label>
-
-                                        <label className="space-y-1.5">
-                                            <span className="text-sm font-medium text-slate-700">
-                                                Cc
-                                            </span>
-                                            <Input
-                                                value={data.ccRecipients}
-                                                onChange={(event) =>
-                                                    setData(
-                                                        'ccRecipients',
-                                                        event.target.value,
-                                                    )
-                                                }
-                                                placeholder="cc@example.com"
-                                            />
-                                        </label>
-
-                                        <label className="space-y-1.5">
-                                            <span className="text-sm font-medium text-slate-700">
-                                                Bcc
-                                            </span>
-                                            <Input
-                                                value={data.bccRecipients}
-                                                onChange={(event) =>
-                                                    setData(
-                                                        'bccRecipients',
-                                                        event.target.value,
-                                                    )
-                                                }
-                                                placeholder="bcc@example.com"
-                                            />
-                                        </label>
-                                    </div>
                                 </div>
 
                                 <div className="space-y-2">
@@ -797,7 +1074,7 @@ export default function AdminFormEmailTemplates({
                                     </div>
 
                                     <div className="rounded-md border border-slate-200">
-                                        <div className="flex flex-wrap items-center gap-1 border-b border-slate-200 bg-slate-50 p-2">
+                                        <div className="flex items-center gap-1 overflow-x-auto border-b border-slate-200 bg-slate-50 p-2 whitespace-nowrap">
                                             {editorCommands.map((command) => (
                                                 <Button
                                                     key={command.label}
@@ -834,15 +1111,22 @@ export default function AdminFormEmailTemplates({
 
                                             <div className="mx-1 h-6 w-px bg-slate-300" />
 
-                                            <select
-                                                value={activePlaceholderKey}
+                                            <Input
+                                                list="form-template-slugs"
+                                                className={`h-8 min-w-[14rem] flex-1 font-mono text-xs ${
+                                                    toolbarHasNoMatch
+                                                        ? 'border-amber-400 focus-visible:border-amber-500 focus-visible:ring-amber-500'
+                                                        : ''
+                                                }`}
+                                                value={toolbarPlaceholderInput}
                                                 onChange={(event) =>
-                                                    setSelectedPlaceholderKey(
+                                                    setToolbarPlaceholderInput(
                                                         event.target.value,
                                                     )
                                                 }
-                                                className="h-8 min-w-72 rounded-md border border-slate-300 bg-white px-2 text-xs"
-                                            >
+                                                placeholder="Search slug (e.g. payload.eventName)"
+                                            />
+                                            <datalist id="form-template-slugs">
                                                 {placeholders.map(
                                                     (placeholder) => (
                                                         <option
@@ -852,21 +1136,23 @@ export default function AdminFormEmailTemplates({
                                                             value={
                                                                 placeholder.key
                                                             }
-                                                        >
-                                                            {placeholder.key}
-                                                        </option>
+                                                        />
                                                     ),
                                                 )}
-                                            </select>
+                                            </datalist>
 
                                             <Button
                                                 type="button"
                                                 variant="outline"
                                                 size="sm"
+                                                className="shrink-0"
                                                 onMouseDown={(event) => {
                                                     event.preventDefault();
                                                     insertPlaceholderTokenInEditor();
                                                 }}
+                                                disabled={
+                                                    activePlaceholderKey === ''
+                                                }
                                             >
                                                 Insert slug
                                             </Button>
@@ -883,14 +1169,23 @@ export default function AdminFormEmailTemplates({
                                                 disabled={
                                                     activePlaceholderKey === ''
                                                 }
+                                                className={`shrink-0 ${
+                                                    copiedToken ===
+                                                    activePlaceholderKey
+                                                        ? 'border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                                                        : ''
+                                                }`}
                                             >
                                                 {copiedToken ===
                                                 activePlaceholderKey ? (
-                                                    <Check className="size-4" />
+                                                    <Check className="size-4 text-emerald-600" />
                                                 ) : (
                                                     <Copy className="size-4" />
                                                 )}
-                                                Copy slug
+                                                {copiedToken ===
+                                                activePlaceholderKey
+                                                    ? 'Copied'
+                                                    : 'Copy slug'}
                                             </Button>
                                         </div>
 
@@ -898,11 +1193,8 @@ export default function AdminFormEmailTemplates({
                                             ref={editorRef}
                                             contentEditable
                                             suppressContentEditableWarning
-                                            className="min-h-72 w-full px-3 py-3 text-sm leading-relaxed text-slate-800 outline-none"
+                                            className="min-h-72 w-full px-3 py-3 text-sm leading-relaxed text-slate-800 outline-none [&_a]:text-blue-600 [&_a]:underline [&_blockquote]:my-2 [&_blockquote]:border-l-4 [&_blockquote]:border-slate-300 [&_blockquote]:pl-3 [&_code]:rounded [&_code]:bg-slate-100 [&_code]:px-1 [&_code]:py-0.5 [&_h1]:my-3 [&_h1]:text-2xl [&_h1]:font-bold [&_h2]:my-2 [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:my-2 [&_h3]:text-lg [&_h3]:font-semibold [&_li]:my-1 [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:my-2 [&_strong]:font-semibold [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-6"
                                             onInput={updateBodyFromEditor}
-                                            dangerouslySetInnerHTML={{
-                                                __html: toEditorHtml(data.body),
-                                            }}
                                         />
                                     </div>
                                     {errors.body ? (
@@ -946,49 +1238,169 @@ export default function AdminFormEmailTemplates({
                                 Form Data Slugs
                             </h2>
                             <p className="mt-1 text-xs text-slate-500">
-                                All available work-request payload slugs are
-                                listed below.
+                                Expand a step, choose a field slug, then copy or
+                                insert it into the email body.
                             </p>
 
-                            <div className="mt-4 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
-                                {placeholders.map((placeholder) => {
-                                    const token = placeholderToken(
-                                        placeholder.key,
-                                    );
+                            <div className="mt-4 space-y-3">
+                                {placeholderGroups.map((group) => {
+                                    const isOpen =
+                                        effectiveOpenPlaceholderGroupId ===
+                                        group.id;
+                                    const selectedKey =
+                                        selectedPlaceholderByGroup[group.id] ??
+                                        group.placeholders[0]?.key ??
+                                        '';
+                                    const selectedPlaceholder =
+                                        group.placeholders.find(
+                                            (placeholder) =>
+                                                placeholder.key === selectedKey,
+                                        ) ?? group.placeholders[0];
+                                    const selectedToken =
+                                        selectedPlaceholder?.key
+                                            ? placeholderToken(
+                                                  selectedPlaceholder.key,
+                                              )
+                                            : '';
                                     const isCopied =
-                                        copiedToken === placeholder.key;
+                                        selectedPlaceholder?.key &&
+                                        copiedToken === selectedPlaceholder.key;
 
                                     return (
                                         <div
-                                            key={placeholder.key}
-                                            className="rounded-md border border-slate-200 bg-slate-50 p-2"
+                                            key={group.id}
+                                            className="overflow-hidden rounded-lg border border-slate-200"
                                         >
-                                            <div className="flex items-start justify-between gap-2">
-                                                <p className="font-mono text-xs text-slate-800">
-                                                    {token}
-                                                </p>
-                                                <Button
-                                                    type="button"
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="h-7 px-2"
-                                                    onClick={() =>
-                                                        copyTokenToClipboard(
-                                                            placeholder.key,
-                                                        )
-                                                    }
-                                                >
-                                                    {isCopied ? (
-                                                        <Check className="size-4 text-emerald-600" />
+                                            <button
+                                                type="button"
+                                                className="flex w-full items-center justify-between gap-3 bg-slate-50 px-4 py-3 text-left hover:bg-slate-100"
+                                                onClick={() =>
+                                                    setOpenPlaceholderGroupId(
+                                                        isOpen
+                                                            ? null
+                                                            : group.id,
+                                                    )
+                                                }
+                                            >
+                                                <div>
+                                                    <p className="text-sm font-semibold text-slate-800">
+                                                        {group.title}
+                                                    </p>
+                                                    <p className="text-xs text-slate-500">
+                                                        {group.description}
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-center gap-2 text-xs text-slate-500">
+                                                    <span>
+                                                        {
+                                                            group.placeholders
+                                                                .length
+                                                        }{' '}
+                                                        fields
+                                                    </span>
+                                                    {isOpen ? (
+                                                        <ChevronDown className="size-4" />
                                                     ) : (
-                                                        <Copy className="size-4" />
+                                                        <ChevronRight className="size-4" />
                                                     )}
-                                                </Button>
-                                            </div>
-                                            <p className="mt-1 truncate text-xs text-slate-500">
-                                                Example:{' '}
-                                                {placeholder.sample || '—'}
-                                            </p>
+                                                </div>
+                                            </button>
+
+                                            {isOpen ? (
+                                                <div className="space-y-3 border-t border-slate-200 bg-white p-4">
+                                                    <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto_auto]">
+                                                        <select
+                                                            className="h-9 rounded-md border border-slate-300 bg-white px-3 text-sm"
+                                                            value={selectedKey}
+                                                            onChange={(event) =>
+                                                                handlePlaceholderGroupSelection(
+                                                                    group.id,
+                                                                    event.target
+                                                                        .value,
+                                                                )
+                                                            }
+                                                        >
+                                                            {group.placeholders.map(
+                                                                (
+                                                                    placeholder,
+                                                                ) => (
+                                                                    <option
+                                                                        key={
+                                                                            placeholder.key
+                                                                        }
+                                                                        value={
+                                                                            placeholder.key
+                                                                        }
+                                                                    >
+                                                                        {
+                                                                            placeholder.key
+                                                                        }
+                                                                    </option>
+                                                                ),
+                                                            )}
+                                                        </select>
+
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            onClick={() =>
+                                                                insertPlaceholderTokenInEditor(
+                                                                    selectedPlaceholder?.key,
+                                                                )
+                                                            }
+                                                            disabled={
+                                                                selectedToken ===
+                                                                ''
+                                                            }
+                                                        >
+                                                            Insert slug
+                                                        </Button>
+
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            className={
+                                                                isCopied
+                                                                    ? 'border-emerald-300 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                                                                    : ''
+                                                            }
+                                                            onClick={() => {
+                                                                if (
+                                                                    selectedPlaceholder?.key
+                                                                ) {
+                                                                    copyTokenToClipboard(
+                                                                        selectedPlaceholder.key,
+                                                                    );
+                                                                }
+                                                            }}
+                                                            disabled={
+                                                                !selectedPlaceholder?.key
+                                                            }
+                                                        >
+                                                            {isCopied ? (
+                                                                <Check className="size-4 text-emerald-600" />
+                                                            ) : (
+                                                                <Copy className="size-4" />
+                                                            )}
+                                                            {isCopied
+                                                                ? 'Copied'
+                                                                : 'Copy'}
+                                                        </Button>
+                                                    </div>
+
+                                                    <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
+                                                        <p className="font-mono text-xs text-slate-800">
+                                                            {selectedToken ||
+                                                                'No slug selected'}
+                                                        </p>
+                                                        <p className="mt-1 text-xs text-slate-500">
+                                                            Example:{' '}
+                                                            {selectedPlaceholder?.sample ||
+                                                                '—'}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            ) : null}
                                         </div>
                                     );
                                 })}

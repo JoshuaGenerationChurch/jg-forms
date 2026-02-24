@@ -36,9 +36,27 @@ foreach ($notificationRecipientsRaw as $recipient) {
     ];
 }
 
+$trelloDevRecipientEmails = array_values(array_filter(array_unique(array_filter(array_map(
+    static fn (string $email): string => strtolower(trim($email)),
+    preg_split('/[;,]/', (string) env(
+        'WORK_FORMS_TRELLO_DEV_RECIPIENTS',
+        'hanridelafontyn+3s3aaui7fwhyk4itwphz@boards.trello.com'
+    )) ?: []
+), static fn (string $email): bool => filter_var($email, FILTER_VALIDATE_EMAIL) !== false))));
+
+$trelloDesignRecipientEmails = array_values(array_filter(array_unique(array_filter(array_map(
+    static fn (string $email): string => strtolower(trim($email)),
+    preg_split('/[;,]/', (string) env(
+        'WORK_FORMS_TRELLO_DESIGN_RECIPIENTS',
+        'hanridelafontyn+ywj7ndnvhphschkmhmsf@boards.trello.com'
+    )) ?: []
+), static fn (string $email): bool => filter_var($email, FILTER_VALIDATE_EMAIL) !== false))));
+
 return [
     'admin_emails' => array_values(array_unique($adminEmails)),
     'notification_recipients' => array_values($notificationRecipientsByEmail),
+    'trello_dev_recipient_emails' => $trelloDevRecipientEmails,
+    'trello_design_recipient_emails' => $trelloDesignRecipientEmails,
     'forms' => [
         [
             'slug' => 'work-request',

@@ -29,6 +29,10 @@ export interface FormData {
     eventStartDate: string;
     eventEndDate: string;
     eventDates: Array<{ date: string; startTime: string; endTime: string }>;
+    outreachCampStartDate: string;
+    outreachCampStartTime: string;
+    outreachCampEndDate: string;
+    outreachCampEndTime: string;
     announcementDate: string;
     venueType: string;
     jgVenue: string;
@@ -36,6 +40,7 @@ export interface FormData {
     otherVenueAddress: string;
     eventReach: string;
     hubs: string[];
+    eventCongregations: string[];
     childMinding: string;
     childMindingDescription: string;
 
@@ -261,7 +266,11 @@ export const initialFormData: FormData = {
     eventDuration: '',
     eventStartDate: '',
     eventEndDate: '',
-    eventDates: [],
+    eventDates: [{ date: '', startTime: '', endTime: '' }],
+    outreachCampStartDate: '',
+    outreachCampStartTime: '',
+    outreachCampEndDate: '',
+    outreachCampEndTime: '',
     announcementDate: '',
     venueType: '',
     jgVenue: '',
@@ -269,6 +278,7 @@ export const initialFormData: FormData = {
     otherVenueAddress: '',
     eventReach: '',
     hubs: [],
+    eventCongregations: [],
     childMinding: '',
     childMindingDescription: '',
     quicketDescription: '',
