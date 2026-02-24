@@ -567,11 +567,40 @@ class WorkFormEmailTemplateService
             ? (string) explode('T', $date, 2)[0]
             : $date;
 
-        if (preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $normalizedDate, $matches) !== 1) {
+        $day = '';
+        $month = '';
+
+        if (preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $normalizedDate, $matches) === 1) {
+            $month = $matches[2];
+            $day = $matches[3];
+        } elseif (preg_match('/^(\d{2})-(\d{2})-(\d{4})$/', $normalizedDate, $matches) === 1) {
+            $day = $matches[1];
+            $month = $matches[2];
+        } else {
             return $rawDate;
         }
 
-        return $matches[3].'-'.$matches[2].'-'.$matches[1];
+        $monthName = match ($month) {
+            '01' => 'Jan',
+            '02' => 'Feb',
+            '03' => 'Mar',
+            '04' => 'Apr',
+            '05' => 'May',
+            '06' => 'Jun',
+            '07' => 'Jul',
+            '08' => 'Aug',
+            '09' => 'Sep',
+            '10' => 'Oct',
+            '11' => 'Nov',
+            '12' => 'Dec',
+            default => '',
+        };
+
+        if ($monthName === '') {
+            return $rawDate;
+        }
+
+        return str_pad($day, 2, '0', STR_PAD_LEFT).'-'.$monthName;
     }
 
     /**
