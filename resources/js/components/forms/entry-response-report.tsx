@@ -50,6 +50,7 @@ const WORK_REQUEST_SECTION_RULES: Array<{
         title: 'Event Details',
         keys: [
             'eventName',
+            'eventScheduleType',
             'eventDuration',
             'eventStartDate',
             'eventEndDate',
@@ -140,6 +141,7 @@ const LABEL_OVERRIDES: Record<string, string> = {
     eventStartDate: 'Event start',
     eventEndDate: 'Event end',
     eventDates: 'Event dates',
+    eventScheduleType: 'Event schedule type',
     outreachCampStartDate: 'Outreach/Camp start date',
     outreachCampStartTime: 'Outreach/Camp start time',
     outreachCampEndDate: 'Outreach/Camp end date',

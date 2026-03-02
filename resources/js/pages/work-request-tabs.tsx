@@ -233,6 +233,12 @@ export default function WorkRequestTabs() {
                     delete next.printOtherQty;
                 }
 
+                if (String(key) === 'eventScheduleType') {
+                    delete next.eventDates;
+                    delete next.outreachCampStartDate;
+                    delete next.outreachCampEndDate;
+                }
+
                 return next;
             });
         },

@@ -329,6 +329,7 @@ function classifyPlaceholderGroup(key: string): string {
             'organiserLastName',
             'organiserEmail',
             'organiserCell',
+            'eventScheduleType',
             'eventDuration',
             'eventStartDate',
             'eventEndDate',

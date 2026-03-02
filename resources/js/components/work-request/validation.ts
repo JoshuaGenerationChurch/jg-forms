@@ -44,6 +44,11 @@ function eventStartDateForRegistration(formData: FormData): string {
         return explicitEventStart;
     }
 
+    const outreachCampStartDate = datePart(formData.outreachCampStartDate);
+    if (outreachCampStartDate !== '') {
+        return outreachCampStartDate;
+    }
+
     const firstEventDate = formData.eventDates[0]?.date ?? '';
     return datePart(firstEventDate);
 }
@@ -117,6 +122,8 @@ export function validateNatureOfRequest(formData: FormData): ValidationErrors {
 // Validate event details page
 export function validateEventDetails(formData: FormData): ValidationErrors {
     const errors: ValidationErrors = {};
+    const singleMultipleDayScheduleOption = 'Single/Multiple Day Event';
+    const outreachCampScheduleOption = 'Outreach/Camp';
 
     if (!formData.eventName.trim()) {
         errors.eventName = 'Event name is required';
@@ -142,73 +149,72 @@ export function validateEventDetails(formData: FormData): ValidationErrors {
                 'Please enter a full cellphone number with country code (for example: +27 82 123 4567)';
         }
     }
-    if (formData.eventDates.length === 0) {
-        errors.eventDates =
-            'Please add at least one event schedule (date, start time, and end time)';
-    } else {
-        const hasEmptyDate = formData.eventDates.some(
-            (d) => !d.date || !d.startTime || !d.endTime,
-        );
-        const hasPastDate = formData.eventDates.some((d) =>
-            isBeforeToday(d.date),
-        );
-        const hasInvalidTimeRange = formData.eventDates.some((d) => {
-            if (!d.date || !d.startTime || !d.endTime) {
-                return false;
+    if (!formData.eventScheduleType) {
+        errors.eventScheduleType = 'Please choose an event schedule type';
+    } else if (formData.eventScheduleType === singleMultipleDayScheduleOption) {
+        if (formData.eventDates.length === 0) {
+            errors.eventDates =
+                'Please add at least one event schedule (date, start time, and end time)';
+        } else {
+            const hasEmptyDate = formData.eventDates.some(
+                (d) => !d.date || !d.startTime || !d.endTime,
+            );
+            const hasPastDate = formData.eventDates.some((d) =>
+                isBeforeToday(d.date),
+            );
+            const hasInvalidTimeRange = formData.eventDates.some((d) => {
+                if (!d.date || !d.startTime || !d.endTime) {
+                    return false;
+                }
+
+                const start = new Date(`${d.date}T${d.startTime}`);
+                const end = new Date(`${d.date}T${d.endTime}`);
+
+                return Number.isNaN(start.getTime())
+                    ? false
+                    : Number.isNaN(end.getTime()) || end <= start;
+            });
+
+            if (hasEmptyDate) {
+                errors.eventDates = 'Please complete all date and time fields';
+            } else if (hasPastDate) {
+                errors.eventDates = 'Event dates cannot be in the past';
+            } else if (hasInvalidTimeRange) {
+                errors.eventDates =
+                    'Each schedule must have an end time later than start time';
+            }
+        }
+    } else if (formData.eventScheduleType === outreachCampScheduleOption) {
+        const hasAllOutreachCampFields =
+            formData.outreachCampStartDate !== '' &&
+            formData.outreachCampStartTime !== '' &&
+            formData.outreachCampEndDate !== '' &&
+            formData.outreachCampEndTime !== '';
+
+        if (!hasAllOutreachCampFields) {
+            errors.outreachCampStartDate =
+                'Please complete all Outreach/Camp range fields';
+        } else {
+            if (isBeforeToday(formData.outreachCampStartDate)) {
+                errors.outreachCampStartDate =
+                    'Outreach/Camp start date cannot be in the past';
             }
 
-            const start = new Date(`${d.date}T${d.startTime}`);
-            const end = new Date(`${d.date}T${d.endTime}`);
+            const start = new Date(
+                `${formData.outreachCampStartDate}T${formData.outreachCampStartTime}`,
+            );
+            const end = new Date(
+                `${formData.outreachCampEndDate}T${formData.outreachCampEndTime}`,
+            );
 
-            return Number.isNaN(start.getTime())
-                ? false
-                : Number.isNaN(end.getTime()) || end <= start;
-        });
-
-        if (hasEmptyDate) {
-            errors.eventDates = 'Please complete all date and time fields';
-        } else if (hasPastDate) {
-            errors.eventDates = 'Event dates cannot be in the past';
-        } else if (hasInvalidTimeRange) {
-            errors.eventDates =
-                'Each schedule must have an end time later than start time';
-        }
-    }
-
-    const hasAnyOutreachCampField =
-        formData.outreachCampStartDate !== '' ||
-        formData.outreachCampStartTime !== '' ||
-        formData.outreachCampEndDate !== '' ||
-        formData.outreachCampEndTime !== '';
-    const hasAllOutreachCampFields =
-        formData.outreachCampStartDate !== '' &&
-        formData.outreachCampStartTime !== '' &&
-        formData.outreachCampEndDate !== '' &&
-        formData.outreachCampEndTime !== '';
-
-    if (hasAnyOutreachCampField && !hasAllOutreachCampFields) {
-        errors.outreachCampStartDate =
-            'Complete all Outreach/Camp range fields or leave all blank';
-    } else if (hasAllOutreachCampFields) {
-        if (isBeforeToday(formData.outreachCampStartDate)) {
-            errors.outreachCampStartDate =
-                'Outreach/Camp start date cannot be in the past';
-        }
-
-        const start = new Date(
-            `${formData.outreachCampStartDate}T${formData.outreachCampStartTime}`,
-        );
-        const end = new Date(
-            `${formData.outreachCampEndDate}T${formData.outreachCampEndTime}`,
-        );
-
-        if (
-            !Number.isNaN(start.getTime()) &&
-            !Number.isNaN(end.getTime()) &&
-            end <= start
-        ) {
-            errors.outreachCampEndDate =
-                'Outreach/Camp end date and time must be later than start';
+            if (
+                !Number.isNaN(start.getTime()) &&
+                !Number.isNaN(end.getTime()) &&
+                end <= start
+            ) {
+                errors.outreachCampEndDate =
+                    'Outreach/Camp end date and time must be later than start';
+            }
         }
     }
     if (!formData.announcementDate) {

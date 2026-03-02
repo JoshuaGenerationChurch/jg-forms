@@ -42,6 +42,8 @@ export function EventDetails({
     const availableHubs = directoryOptions?.hubs ?? [];
     const availableCongregations = directoryOptions?.congregations ?? [];
     const availableVenues = directoryOptions?.venues ?? [];
+    const singleMultipleDayScheduleOption = 'Single/Multiple Day Event';
+    const outreachCampScheduleOption = 'Outreach/Camp';
     const eventScheduleLabel =
         formData.eventDates.length > 1
             ? 'Multiple Day Event'
@@ -73,6 +75,24 @@ export function EventDetails({
         );
         updateFormData('eventStartDate', derivedStartDateTime);
         updateFormData('eventEndDate', derivedEndDateTime);
+    };
+    const syncOutreachCampDerivedValues = (
+        startDate: string,
+        startTime: string,
+        endDate: string,
+        endTime: string,
+    ) => {
+        updateFormData('eventDuration', 'Outreach / Camp');
+        updateFormData(
+            'eventStartDate',
+            startDate !== '' && startTime !== ''
+                ? `${startDate}T${startTime}`
+                : '',
+        );
+        updateFormData(
+            'eventEndDate',
+            endDate !== '' && endTime !== '' ? `${endDate}T${endTime}` : '',
+        );
     };
 
     return (
@@ -267,221 +287,299 @@ export function EventDetails({
                 </div>
             )}
 
-            {/* Event Schedule - Repeater */}
-            <div>
-                <div className="flex items-center justify-between gap-3">
-                    <Label className="text-sm font-medium text-slate-700">
-                        Event Schedule <Required />
-                    </Label>
-                    <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">
-                        {eventScheduleLabel}
-                    </span>
-                </div>
-                <p className="mt-1 text-xs text-slate-500">
-                    Add one schedule for a single-day event. Add more schedules
-                    and this becomes a multiple-day event.
-                </p>
-                <div className="mt-3 space-y-3">
-                    {formData.eventDates.map((dateEntry, index) => (
-                        <div
-                            key={index}
-                            className="rounded-lg border border-slate-200 bg-slate-50 p-3"
-                        >
-                            <div className="flex items-end gap-4">
-                                <div className="flex-1">
-                                    <Label className="text-xs text-slate-600">
-                                        Start Date
-                                    </Label>
-                                    <input
-                                        type="date"
-                                        min={todayIsoDate}
-                                        className={dateInputBase}
-                                        value={dateEntry.date}
-                                        onChange={(e) => {
-                                            const newDates = [
-                                                ...formData.eventDates,
-                                            ];
-                                            newDates[index] = {
-                                                ...newDates[index],
-                                                date: e.target.value,
-                                            };
-                                            applyEventDates(newDates);
-                                        }}
-                                    />
-                                </div>
-                                <div className="flex-1">
-                                    <Label className="text-xs text-slate-600">
-                                        Start Time
-                                    </Label>
-                                    <input
-                                        type="time"
-                                        className={dateInputBase}
-                                        value={dateEntry.startTime}
-                                        onChange={(e) => {
-                                            const newDates = [
-                                                ...formData.eventDates,
-                                            ];
-                                            newDates[index] = {
-                                                ...newDates[index],
-                                                startTime: e.target.value,
-                                            };
-                                            applyEventDates(newDates);
-                                        }}
-                                    />
-                                </div>
-                                <div className="flex-1">
-                                    <Label className="text-xs text-slate-600">
-                                        End Time
-                                    </Label>
-                                    <input
-                                        type="time"
-                                        className={dateInputBase}
-                                        value={dateEntry.endTime}
-                                        onChange={(e) => {
-                                            const newDates = [
-                                                ...formData.eventDates,
-                                            ];
-                                            newDates[index] = {
-                                                ...newDates[index],
-                                                endTime: e.target.value,
-                                            };
-                                            applyEventDates(newDates);
-                                        }}
-                                    />
-                                </div>
-                                <Button
-                                    variant="outline"
-                                    size="icon"
-                                    type="button"
-                                    onClick={() => {
-                                        const newDates =
-                                            formData.eventDates.filter(
-                                                (_, i) => i !== index,
-                                            );
-                                        applyEventDates(newDates);
-                                    }}
-                                    disabled={formData.eventDates.length <= 1}
-                                >
-                                    <Minus className="size-4 text-red-600" />
-                                </Button>
-                            </div>
-                        </div>
-                    ))}
-
-                    {formData.eventDates.length === 0 ? (
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            type="button"
-                            onClick={() =>
-                                applyEventDates([
-                                    { date: '', startTime: '', endTime: '' },
-                                ])
-                            }
-                        >
-                            <Plus className="mr-2 size-4" />
-                            Add Event Schedule
-                        </Button>
-                    ) : (
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            type="button"
-                            onClick={() =>
-                                applyEventDates([
-                                    ...formData.eventDates,
-                                    { date: '', startTime: '', endTime: '' },
-                                ])
-                            }
-                        >
-                            <Plus className="mr-2 size-4" />
-                            Add Another Schedule
-                        </Button>
-                    )}
-
-                    <FieldError error={errors.eventDates} />
-                </div>
-            </div>
-
-            {/* Outreach / Camp Date Range */}
+            {/* Event Schedule */}
             <div>
                 <Label className="text-sm font-medium text-slate-700">
-                    Outreach / Camp Range
+                    Event Schedule <Required />
                 </Label>
                 <p className="mt-1 text-xs text-slate-500">
-                    Optional date range for camps/outreach: start date/time and
-                    end date/time.
+                    Choose the schedule type first, then complete the required
+                    date and time fields for that selection.
                 </p>
-                <div className="mt-2 grid gap-4 md:grid-cols-2">
-                    <div>
-                        <Label className="text-xs text-slate-600">
-                            Start Date
-                        </Label>
-                        <input
-                            type="date"
-                            min={todayIsoDate}
-                            className={dateInputBase}
-                            value={formData.outreachCampStartDate}
-                            onChange={(e) =>
-                                updateFormData(
-                                    'outreachCampStartDate',
-                                    e.target.value,
-                                )
+                <RadioGroup
+                    name="event-schedule-type"
+                    options={[
+                        singleMultipleDayScheduleOption,
+                        outreachCampScheduleOption,
+                    ]}
+                    columns={2}
+                    value={formData.eventScheduleType}
+                    onChange={(value) => {
+                        updateFormData('eventScheduleType', value);
+
+                        if (value === singleMultipleDayScheduleOption) {
+                            updateFormData('outreachCampStartDate', '');
+                            updateFormData('outreachCampStartTime', '');
+                            updateFormData('outreachCampEndDate', '');
+                            updateFormData('outreachCampEndTime', '');
+
+                            if (formData.eventDates.length === 0) {
+                                applyEventDates([
+                                    { date: '', startTime: '', endTime: '' },
+                                ]);
+                                return;
                             }
-                        />
+
+                            applyEventDates(formData.eventDates);
+                            return;
+                        }
+
+                        updateFormData('eventDates', []);
+                        syncOutreachCampDerivedValues(
+                            formData.outreachCampStartDate,
+                            formData.outreachCampStartTime,
+                            formData.outreachCampEndDate,
+                            formData.outreachCampEndTime,
+                        );
+                    }}
+                    error={errors.eventScheduleType}
+                />
+
+                {formData.eventScheduleType ===
+                    singleMultipleDayScheduleOption && (
+                    <div className="mt-3 space-y-3">
+                        <div className="flex items-center justify-end gap-3">
+                            <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700">
+                                {eventScheduleLabel}
+                            </span>
+                        </div>
+                        {formData.eventDates.map((dateEntry, index) => (
+                            <div
+                                key={index}
+                                className="rounded-lg border border-slate-200 bg-slate-50 p-3"
+                            >
+                                <div className="flex items-end gap-4">
+                                    <div className="flex-1">
+                                        <Label className="text-xs text-slate-600">
+                                            Start Date
+                                        </Label>
+                                        <input
+                                            type="date"
+                                            min={todayIsoDate}
+                                            className={dateInputBase}
+                                            value={dateEntry.date}
+                                            onChange={(e) => {
+                                                const newDates = [
+                                                    ...formData.eventDates,
+                                                ];
+                                                newDates[index] = {
+                                                    ...newDates[index],
+                                                    date: e.target.value,
+                                                };
+                                                applyEventDates(newDates);
+                                            }}
+                                        />
+                                    </div>
+                                    <div className="flex-1">
+                                        <Label className="text-xs text-slate-600">
+                                            Start Time
+                                        </Label>
+                                        <input
+                                            type="time"
+                                            className={dateInputBase}
+                                            value={dateEntry.startTime}
+                                            onChange={(e) => {
+                                                const newDates = [
+                                                    ...formData.eventDates,
+                                                ];
+                                                newDates[index] = {
+                                                    ...newDates[index],
+                                                    startTime: e.target.value,
+                                                };
+                                                applyEventDates(newDates);
+                                            }}
+                                        />
+                                    </div>
+                                    <div className="flex-1">
+                                        <Label className="text-xs text-slate-600">
+                                            End Time
+                                        </Label>
+                                        <input
+                                            type="time"
+                                            className={dateInputBase}
+                                            value={dateEntry.endTime}
+                                            onChange={(e) => {
+                                                const newDates = [
+                                                    ...formData.eventDates,
+                                                ];
+                                                newDates[index] = {
+                                                    ...newDates[index],
+                                                    endTime: e.target.value,
+                                                };
+                                                applyEventDates(newDates);
+                                            }}
+                                        />
+                                    </div>
+                                    <Button
+                                        variant="outline"
+                                        size="icon"
+                                        type="button"
+                                        onClick={() => {
+                                            const newDates =
+                                                formData.eventDates.filter(
+                                                    (_, i) => i !== index,
+                                                );
+                                            applyEventDates(newDates);
+                                        }}
+                                        disabled={
+                                            formData.eventDates.length <= 1
+                                        }
+                                    >
+                                        <Minus className="size-4 text-red-600" />
+                                    </Button>
+                                </div>
+                            </div>
+                        ))}
+
+                        {formData.eventDates.length === 0 ? (
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                type="button"
+                                onClick={() =>
+                                    applyEventDates([
+                                        {
+                                            date: '',
+                                            startTime: '',
+                                            endTime: '',
+                                        },
+                                    ])
+                                }
+                            >
+                                <Plus className="mr-2 size-4" />
+                                Add Event Schedule
+                            </Button>
+                        ) : (
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                type="button"
+                                onClick={() =>
+                                    applyEventDates([
+                                        ...formData.eventDates,
+                                        {
+                                            date: '',
+                                            startTime: '',
+                                            endTime: '',
+                                        },
+                                    ])
+                                }
+                            >
+                                <Plus className="mr-2 size-4" />
+                                Add Another Schedule
+                            </Button>
+                        )}
+
+                        <FieldError error={errors.eventDates} />
                     </div>
-                    <div>
-                        <Label className="text-xs text-slate-600">
-                            Start Time
-                        </Label>
-                        <input
-                            type="time"
-                            className={dateInputBase}
-                            value={formData.outreachCampStartTime}
-                            onChange={(e) =>
-                                updateFormData(
-                                    'outreachCampStartTime',
-                                    e.target.value,
-                                )
-                            }
-                        />
+                )}
+
+                {formData.eventScheduleType === outreachCampScheduleOption && (
+                    <div className="mt-3">
+                        <p className="text-xs text-slate-500">
+                            Provide the full outreach/camp range: start
+                            date/time and end date/time.
+                        </p>
+                        <div className="mt-2 grid gap-4 md:grid-cols-2">
+                            <div>
+                                <Label className="text-xs text-slate-600">
+                                    Start Date
+                                </Label>
+                                <input
+                                    type="date"
+                                    min={todayIsoDate}
+                                    className={dateInputBase}
+                                    value={formData.outreachCampStartDate}
+                                    onChange={(e) => {
+                                        const nextStartDate = e.target.value;
+                                        updateFormData(
+                                            'outreachCampStartDate',
+                                            nextStartDate,
+                                        );
+                                        syncOutreachCampDerivedValues(
+                                            nextStartDate,
+                                            formData.outreachCampStartTime,
+                                            formData.outreachCampEndDate,
+                                            formData.outreachCampEndTime,
+                                        );
+                                    }}
+                                />
+                            </div>
+                            <div>
+                                <Label className="text-xs text-slate-600">
+                                    Start Time
+                                </Label>
+                                <input
+                                    type="time"
+                                    className={dateInputBase}
+                                    value={formData.outreachCampStartTime}
+                                    onChange={(e) => {
+                                        const nextStartTime = e.target.value;
+                                        updateFormData(
+                                            'outreachCampStartTime',
+                                            nextStartTime,
+                                        );
+                                        syncOutreachCampDerivedValues(
+                                            formData.outreachCampStartDate,
+                                            nextStartTime,
+                                            formData.outreachCampEndDate,
+                                            formData.outreachCampEndTime,
+                                        );
+                                    }}
+                                />
+                            </div>
+                            <div>
+                                <Label className="text-xs text-slate-600">
+                                    End Date
+                                </Label>
+                                <input
+                                    type="date"
+                                    min={todayIsoDate}
+                                    className={dateInputBase}
+                                    value={formData.outreachCampEndDate}
+                                    onChange={(e) => {
+                                        const nextEndDate = e.target.value;
+                                        updateFormData(
+                                            'outreachCampEndDate',
+                                            nextEndDate,
+                                        );
+                                        syncOutreachCampDerivedValues(
+                                            formData.outreachCampStartDate,
+                                            formData.outreachCampStartTime,
+                                            nextEndDate,
+                                            formData.outreachCampEndTime,
+                                        );
+                                    }}
+                                />
+                            </div>
+                            <div>
+                                <Label className="text-xs text-slate-600">
+                                    End Time
+                                </Label>
+                                <input
+                                    type="time"
+                                    className={dateInputBase}
+                                    value={formData.outreachCampEndTime}
+                                    onChange={(e) => {
+                                        const nextEndTime = e.target.value;
+                                        updateFormData(
+                                            'outreachCampEndTime',
+                                            nextEndTime,
+                                        );
+                                        syncOutreachCampDerivedValues(
+                                            formData.outreachCampStartDate,
+                                            formData.outreachCampStartTime,
+                                            formData.outreachCampEndDate,
+                                            nextEndTime,
+                                        );
+                                    }}
+                                />
+                            </div>
+                        </div>
+                        <FieldError error={errors.outreachCampStartDate} />
+                        <FieldError error={errors.outreachCampEndDate} />
                     </div>
-                    <div>
-                        <Label className="text-xs text-slate-600">
-                            End Date
-                        </Label>
-                        <input
-                            type="date"
-                            min={todayIsoDate}
-                            className={dateInputBase}
-                            value={formData.outreachCampEndDate}
-                            onChange={(e) =>
-                                updateFormData(
-                                    'outreachCampEndDate',
-                                    e.target.value,
-                                )
-                            }
-                        />
-                    </div>
-                    <div>
-                        <Label className="text-xs text-slate-600">
-                            End Time
-                        </Label>
-                        <input
-                            type="time"
-                            className={dateInputBase}
-                            value={formData.outreachCampEndTime}
-                            onChange={(e) =>
-                                updateFormData(
-                                    'outreachCampEndTime',
-                                    e.target.value,
-                                )
-                            }
-                        />
-                    </div>
-                </div>
-                <FieldError error={errors.outreachCampStartDate} />
-                <FieldError error={errors.outreachCampEndDate} />
+                )}
             </div>
 
             {/* Announcement Date */}

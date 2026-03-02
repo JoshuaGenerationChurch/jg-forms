@@ -25,6 +25,7 @@ export interface FormData {
     organiserLastName: string;
     organiserEmail: string;
     organiserCell: string;
+    eventScheduleType: string;
     eventDuration: string;
     eventStartDate: string;
     eventEndDate: string;
@@ -288,6 +289,7 @@ export const initialFormData: FormData = {
     organiserLastName: '',
     organiserEmail: '',
     organiserCell: '+27',
+    eventScheduleType: '',
     eventDuration: '',
     eventStartDate: '',
     eventEndDate: '',
