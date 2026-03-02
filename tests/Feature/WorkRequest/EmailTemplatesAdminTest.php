@@ -5,6 +5,8 @@ use App\Mail\WorkFormTemplateNotificationMail;
 use App\Models\User;
 use App\Models\WorkForm;
 use App\Models\WorkFormEmailTemplate;
+use App\Models\WorkRequestEntry;
+use App\Services\WorkFormEmailTemplateService;
 use Illuminate\Support\Facades\Mail;
 use Inertia\Testing\AssertableInertia as Assert;
 
@@ -108,10 +110,19 @@ test('public work request submission uses active email templates when available'
 
     $response->assertRedirect(route('work-request'));
 
+    $entry = WorkRequestEntry::query()
+        ->latest('id')
+        ->firstOrFail();
+    $expectedSubject = app(WorkFormEmailTemplateService::class)
+        ->workRequestAutoSubject($entry);
+
     Mail::assertSent(WorkFormTemplateNotificationMail::class, function (WorkFormTemplateNotificationMail $mail): bool {
         return $mail->hasTo('template@example.com')
-            && str_contains($mail->subjectLine, 'Hello Jane - Sunday Service')
             && str_contains($mail->body, 'Body for Jane Doe / Sunday Service');
+    });
+    Mail::assertSent(WorkFormTemplateNotificationMail::class, function (WorkFormTemplateNotificationMail $mail) use ($expectedSubject): bool {
+        return $mail->hasTo('template@example.com')
+            && $mail->subjectLine === $expectedSubject;
     });
     Mail::assertNotSent(WorkFormSubmissionNotificationMail::class);
 });
