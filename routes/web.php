@@ -100,6 +100,10 @@ Route::middleware(['auth', 'verified', 'workforms.admin'])->group(function () {
         ->where('formSlug', '[A-Za-z0-9\-]+')
         ->name('admin.forms.email-templates.store');
 
+    Route::put('admin/forms/email-templates/{formSlug}/reorder', [WorkFormEmailTemplateController::class, 'reorder'])
+        ->where('formSlug', '[A-Za-z0-9\-]+')
+        ->name('admin.forms.email-templates.reorder');
+
     Route::put('admin/forms/email-templates/{formSlug}/{template}', [WorkFormEmailTemplateController::class, 'update'])
         ->where('formSlug', '[A-Za-z0-9\-]+')
         ->name('admin.forms.email-templates.update');

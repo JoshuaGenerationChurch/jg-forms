@@ -6,6 +6,7 @@ import {
     ChevronDown,
     ChevronRight,
     Copy,
+    GripVertical,
     Italic,
     Link2,
     List,
@@ -17,8 +18,8 @@ import {
     Trash2,
     Underline,
 } from 'lucide-react';
-import type { FormEvent } from 'react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import type { DragEvent, FormEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import DeleteConfirmDialog from '@/components/forms/delete-confirm-dialog';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -114,6 +115,52 @@ const editorCommands: EditorCommand[] = [
     { icon: List, label: 'Bulleted list', command: 'insertUnorderedList' },
     { icon: ListOrdered, label: 'Numbered list', command: 'insertOrderedList' },
 ];
+
+function isSelectionInsideEditor(editor: HTMLDivElement): boolean {
+    if (typeof window === 'undefined') {
+        return false;
+    }
+
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) {
+        return false;
+    }
+
+    const anchorNode = selection.anchorNode;
+    const focusNode = selection.focusNode;
+
+    return Boolean(
+        (anchorNode && editor.contains(anchorNode)) ||
+            (focusNode && editor.contains(focusNode)),
+    );
+}
+
+function selectionNodeToElement(node: Node | null): HTMLElement | null {
+    if (!node) {
+        return null;
+    }
+
+    if (node instanceof HTMLElement) {
+        return node;
+    }
+
+    return node.parentElement ?? null;
+}
+
+function areCommandStatesEqual(
+    current: Record<string, boolean>,
+    next: Record<string, boolean>,
+): boolean {
+    const keys = new Set([...Object.keys(current), ...Object.keys(next)]);
+
+    for (const key of keys) {
+        if (Boolean(current[key]) !== Boolean(next[key])) {
+            return false;
+        }
+    }
+
+    return true;
+}
 
 const placeholderGroupMeta: Record<
     string,
@@ -439,6 +486,20 @@ export default function AdminFormEmailTemplates({
     >(undefined);
     const [selectedPlaceholderByGroup, setSelectedPlaceholderByGroup] =
         useState<Record<string, string>>({});
+    const [templateOrderDraft, setTemplateOrderDraft] = useState<number[] | null>(
+        null,
+    );
+    const [draggingTemplateId, setDraggingTemplateId] = useState<number | null>(
+        null,
+    );
+    const [dragOverTemplateId, setDragOverTemplateId] = useState<number | null>(
+        null,
+    );
+    const [isReordering, setIsReordering] = useState(false);
+    const [activeEditorCommands, setActiveEditorCommands] = useState<
+        Record<string, boolean>
+    >({});
+    const [isLinkCommandActive, setIsLinkCommandActive] = useState(false);
 
     const editorRef = useRef<HTMLDivElement | null>(null);
     const editorSeedBodyRef = useRef(initialTemplateFormData.body);
@@ -450,6 +511,30 @@ export default function AdminFormEmailTemplates({
         () => templates.find((template) => template.id === editingTemplateId),
         [editingTemplateId, templates],
     );
+    const orderedTemplates = useMemo(() => {
+        if (!templateOrderDraft || templateOrderDraft.length === 0) {
+            return templates;
+        }
+
+        const templateIds = templates.map((template) => template.id);
+        const uniqueDraftIds = Array.from(new Set(templateOrderDraft));
+
+        const hasSameIds =
+            uniqueDraftIds.length === templateIds.length &&
+            uniqueDraftIds.every((templateId) => templateIds.includes(templateId));
+
+        if (!hasSameIds) {
+            return templates;
+        }
+
+        const templatesById = new Map(
+            templates.map((template) => [template.id, template]),
+        );
+
+        return uniqueDraftIds
+            .map((templateId) => templatesById.get(templateId))
+            .filter((template): template is EmailTemplate => template !== undefined);
+    }, [templateOrderDraft, templates]);
 
     const currentToRecipients = useMemo(
         () => parseRecipientsInput(data.toRecipients),
@@ -555,6 +640,7 @@ export default function AdminFormEmailTemplates({
         if (!template) {
             setEditingTemplateId(null);
             reset();
+            setData('position', orderedTemplates.length);
             editorSeedBodyRef.current = initialTemplateFormData.body;
             setEditorResetCounter((value) => value + 1);
             return;
@@ -580,6 +666,70 @@ export default function AdminFormEmailTemplates({
         setEditorResetCounter((value) => value + 1);
     };
 
+    const refreshEditorToolbarState = useCallback(() => {
+        const editor = editorRef.current;
+
+        if (!editor || typeof document === 'undefined' || typeof window === 'undefined') {
+            return;
+        }
+
+        if (!isSelectionInsideEditor(editor)) {
+            setActiveEditorCommands((current) =>
+                Object.keys(current).length === 0 ? current : {},
+            );
+            setIsLinkCommandActive(false);
+            return;
+        }
+
+        const nextCommandStates: Record<string, boolean> = {};
+
+        for (const command of editorCommands) {
+            let isActive = false;
+
+            try {
+                isActive = Boolean(document.queryCommandState(command.command));
+            } catch {
+                isActive = false;
+            }
+
+            nextCommandStates[command.command] = isActive;
+        }
+
+        setActiveEditorCommands((current) =>
+            areCommandStatesEqual(current, nextCommandStates)
+                ? current
+                : nextCommandStates,
+        );
+
+        const selection = window.getSelection();
+        const anchorElement = selectionNodeToElement(selection?.anchorNode ?? null);
+        const focusElement = selectionNodeToElement(selection?.focusNode ?? null);
+        const hasLink = Boolean(
+            anchorElement?.closest('a') || focusElement?.closest('a'),
+        );
+
+        setIsLinkCommandActive(hasLink);
+    }, []);
+
+    useEffect(() => {
+        if (typeof document === 'undefined') {
+            return;
+        }
+
+        const handleSelectionChange = () => {
+            refreshEditorToolbarState();
+        };
+
+        document.addEventListener('selectionchange', handleSelectionChange);
+
+        return () => {
+            document.removeEventListener(
+                'selectionchange',
+                handleSelectionChange,
+            );
+        };
+    }, [refreshEditorToolbarState]);
+
     const updateBodyFromEditor = () => {
         const editor = editorRef.current;
         if (!editor) {
@@ -587,6 +737,7 @@ export default function AdminFormEmailTemplates({
         }
 
         setData('body', editor.innerHTML);
+        refreshEditorToolbarState();
     };
 
     const executeEditorCommand = (command: string, value?: string) => {
@@ -598,6 +749,7 @@ export default function AdminFormEmailTemplates({
         editor.focus();
         document.execCommand(command, false, value);
         updateBodyFromEditor();
+        refreshEditorToolbarState();
     };
 
     const insertPlaceholderTokenInEditor = (placeholderKey?: string) => {
@@ -702,6 +854,93 @@ export default function AdminFormEmailTemplates({
         }
     };
 
+    const saveTemplateOrder = (templateIds: number[]) => {
+        if (templateIds.length === 0) {
+            return;
+        }
+
+        setIsReordering(true);
+
+        router.put(
+            `/admin/forms/email-templates/${form.slug}/reorder`,
+            {
+                templateIds,
+            },
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setTemplateOrderDraft(null);
+                },
+                onError: () => {
+                    setTemplateOrderDraft(null);
+                },
+                onFinish: () => {
+                    setIsReordering(false);
+                    setDraggingTemplateId(null);
+                    setDragOverTemplateId(null);
+                },
+            },
+        );
+    };
+
+    const reorderTemplateByDrop = (fromTemplateId: number, toTemplateId: number) => {
+        const currentOrder = orderedTemplates.map((template) => template.id);
+        const fromIndex = currentOrder.indexOf(fromTemplateId);
+        const toIndex = currentOrder.indexOf(toTemplateId);
+
+        if (fromIndex === -1 || toIndex === -1 || fromIndex === toIndex) {
+            return;
+        }
+
+        const nextOrder = [...currentOrder];
+        const [movedTemplateId] = nextOrder.splice(fromIndex, 1);
+        nextOrder.splice(toIndex, 0, movedTemplateId);
+
+        setTemplateOrderDraft(nextOrder);
+        saveTemplateOrder(nextOrder);
+    };
+
+    const handleTemplateDragStart = (
+        event: DragEvent<HTMLDivElement>,
+        templateId: number,
+    ) => {
+        if (isReordering) {
+            event.preventDefault();
+            return;
+        }
+
+        setDraggingTemplateId(templateId);
+        event.dataTransfer.effectAllowed = 'move';
+    };
+
+    const handleTemplateDragOver = (
+        event: DragEvent<HTMLDivElement>,
+        templateId: number,
+    ) => {
+        event.preventDefault();
+        if (dragOverTemplateId !== templateId) {
+            setDragOverTemplateId(templateId);
+        }
+    };
+
+    const handleTemplateDrop = (
+        event: DragEvent<HTMLDivElement>,
+        templateId: number,
+    ) => {
+        event.preventDefault();
+
+        if (!draggingTemplateId) {
+            return;
+        }
+
+        reorderTemplateByDrop(draggingTemplateId, templateId);
+    };
+
+    const handleTemplateDragEnd = () => {
+        setDraggingTemplateId(null);
+        setDragOverTemplateId(null);
+    };
+
     const toggleDefaultRecipient = (
         recipient: Recipient,
         checked: boolean | 'indeterminate',
@@ -769,53 +1008,102 @@ export default function AdminFormEmailTemplates({
                 <div className="grid gap-5 lg:grid-cols-[300px_minmax(0,1fr)]">
                     <aside className="space-y-4">
                         <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
-                            <div className="mb-3 flex items-center justify-between gap-2">
-                                <h2 className="text-sm font-semibold tracking-wide text-slate-700 uppercase">
-                                    Existing Templates
-                                </h2>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => setEditingTemplate(null)}
-                                >
-                                    <Plus className="size-4" />
-                                    New
-                                </Button>
+                            <div className="mb-3 space-y-2">
+                                <div className="flex items-center justify-between gap-2">
+                                    <h2 className="text-sm font-semibold tracking-wide text-slate-700 uppercase">
+                                        Existing Templates
+                                    </h2>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setEditingTemplate(null)}
+                                    >
+                                        <Plus className="size-4" />
+                                        New
+                                    </Button>
+                                </div>
+                                <p className="text-xs text-slate-500">
+                                    Drag rows to reorder. Changes persist
+                                    automatically.
+                                    {isReordering ? ' Saving order...' : ''}
+                                </p>
                             </div>
 
-                            {templates.length === 0 ? (
+                            {orderedTemplates.length === 0 ? (
                                 <p className="text-sm text-slate-500">
                                     No templates created yet.
                                 </p>
                             ) : (
-                                <nav className="space-y-2">
-                                    {templates.map((template) => {
+                                <nav className="space-y-1.5">
+                                    {orderedTemplates.map((template) => {
                                         const isSelected =
                                             editingTemplateId === template.id;
+                                        const isDragging =
+                                            draggingTemplateId === template.id;
+                                        const isDragOver =
+                                            dragOverTemplateId === template.id &&
+                                            draggingTemplateId !== template.id;
 
                                         return (
-                                            <button
+                                            <div
                                                 key={template.id}
-                                                type="button"
-                                                className={`w-full rounded-lg border px-3 py-3 text-left transition ${
+                                                draggable
+                                                onDragStart={(event) =>
+                                                    handleTemplateDragStart(
+                                                        event,
+                                                        template.id,
+                                                    )
+                                                }
+                                                onDragOver={(event) =>
+                                                    handleTemplateDragOver(
+                                                        event,
+                                                        template.id,
+                                                    )
+                                                }
+                                                onDrop={(event) =>
+                                                    handleTemplateDrop(
+                                                        event,
+                                                        template.id,
+                                                    )
+                                                }
+                                                onDragEnd={handleTemplateDragEnd}
+                                                className={`w-full rounded-md border transition ${
                                                     isSelected
                                                         ? 'border-blue-500 bg-blue-50'
-                                                        : 'border-slate-200 bg-white hover:border-slate-300'
+                                                        : 'border-slate-200 bg-white'
+                                                } ${
+                                                    isDragging
+                                                        ? 'opacity-70'
+                                                        : ''
+                                                } ${
+                                                    isDragOver
+                                                        ? 'ring-2 ring-blue-300'
+                                                        : ''
                                                 }`}
-                                                onClick={() =>
-                                                    setEditingTemplate(template)
-                                                }
                                             >
-                                                <p className="text-sm font-medium text-slate-900">
-                                                    {template.name}
-                                                </p>
-                                                {!isWorkRequestForm ? (
-                                                    <p className="mt-1 text-xs text-slate-500">
-                                                        {template.subject}
-                                                    </p>
-                                                ) : null}
-                                                <div className="mt-2 flex items-center justify-between">
+                                                <div className="grid grid-cols-[28px_minmax(0,1fr)_auto_auto] items-center gap-2 px-2 py-2">
+                                                    <div className="flex items-center justify-center text-slate-400">
+                                                        <GripVertical className="size-4" />
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        className="min-w-0 text-left"
+                                                        onClick={() =>
+                                                            setEditingTemplate(
+                                                                template,
+                                                            )
+                                                        }
+                                                    >
+                                                        <p className="truncate text-sm font-medium text-slate-900">
+                                                            {template.name}
+                                                        </p>
+                                                        {!isWorkRequestForm ? (
+                                                            <p className="truncate text-xs text-slate-500">
+                                                                {template.subject}
+                                                            </p>
+                                                        ) : null}
+                                                    </button>
                                                     <span
                                                         className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${
                                                             template.isActive
@@ -829,7 +1117,7 @@ export default function AdminFormEmailTemplates({
                                                     </span>
                                                     <Pencil className="size-3.5 text-slate-500" />
                                                 </div>
-                                            </button>
+                                            </div>
                                         );
                                     })}
                                 </nav>
@@ -1081,7 +1369,13 @@ export default function AdminFormEmailTemplates({
                                                     type="button"
                                                     variant="ghost"
                                                     size="sm"
-                                                    className="h-8 w-8 p-0"
+                                                    className={`h-8 w-8 p-0 ${
+                                                        activeEditorCommands[
+                                                            command.command
+                                                        ]
+                                                            ? 'bg-blue-100 text-blue-700 hover:bg-blue-100'
+                                                            : ''
+                                                    }`}
                                                     title={command.label}
                                                     onMouseDown={(event) => {
                                                         event.preventDefault();
@@ -1099,7 +1393,11 @@ export default function AdminFormEmailTemplates({
                                                 type="button"
                                                 variant="ghost"
                                                 size="sm"
-                                                className="h-8 w-8 p-0"
+                                                className={`h-8 w-8 p-0 ${
+                                                    isLinkCommandActive
+                                                        ? 'bg-blue-100 text-blue-700 hover:bg-blue-100'
+                                                        : ''
+                                                }`}
                                                 title="Insert link"
                                                 onMouseDown={(event) => {
                                                     event.preventDefault();
@@ -1195,6 +1493,9 @@ export default function AdminFormEmailTemplates({
                                             suppressContentEditableWarning
                                             className="min-h-72 w-full px-3 py-3 text-sm leading-relaxed text-slate-800 outline-none [&_a]:text-blue-600 [&_a]:underline [&_blockquote]:my-2 [&_blockquote]:border-l-4 [&_blockquote]:border-slate-300 [&_blockquote]:pl-3 [&_code]:rounded [&_code]:bg-slate-100 [&_code]:px-1 [&_code]:py-0.5 [&_h1]:my-3 [&_h1]:text-2xl [&_h1]:font-bold [&_h2]:my-2 [&_h2]:text-xl [&_h2]:font-semibold [&_h3]:my-2 [&_h3]:text-lg [&_h3]:font-semibold [&_li]:my-1 [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:my-2 [&_strong]:font-semibold [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-6"
                                             onInput={updateBodyFromEditor}
+                                            onMouseUp={refreshEditorToolbarState}
+                                            onKeyUp={refreshEditorToolbarState}
+                                            onFocus={refreshEditorToolbarState}
                                         />
                                     </div>
                                     {errors.body ? (

@@ -10,8 +10,11 @@ import {
     Required,
     SectionHeader,
 } from './form-components';
-import { dateInputBase } from './types';
-import type { FormPageProps } from './types';
+import {
+    dateInputBase,
+    type FormPageProps,
+    withRequiredRegistrationInfoFields,
+} from './types';
 
 export function EventRegistration({
     formData,
@@ -29,6 +32,14 @@ export function EventRegistration({
         formData.ticketCurrency !== ''
             ? `Price (${formData.ticketCurrency})`
             : 'Price';
+    const updateInfoToCollect = (
+        nextInfoToCollect: typeof formData.infoToCollect,
+    ) => {
+        updateFormData(
+            'infoToCollect',
+            withRequiredRegistrationInfoFields(nextInfoToCollect),
+        );
+    };
 
     return (
         <div className="space-y-6">
@@ -464,57 +475,49 @@ export function EventRegistration({
                 <div className="mt-2 grid gap-2 text-sm text-slate-700 md:grid-cols-2">
                     <label className="flex items-center gap-2">
                         <Checkbox
-                            checked={formData.infoToCollect.name}
-                            onCheckedChange={(checked) =>
-                                updateFormData('infoToCollect', {
-                                    ...formData.infoToCollect,
-                                    name: checked as boolean,
-                                })
-                            }
+                            checked
+                            disabled
+                            onCheckedChange={() => {
+                                // Required by registration platform.
+                            }}
                         />
-                        <span>Name</span>
+                        <span>Name (required)</span>
                     </label>
                     <label className="flex items-center gap-2">
                         <Checkbox
-                            checked={formData.infoToCollect.lastName}
-                            onCheckedChange={(checked) =>
-                                updateFormData('infoToCollect', {
-                                    ...formData.infoToCollect,
-                                    lastName: checked as boolean,
-                                })
-                            }
+                            checked
+                            disabled
+                            onCheckedChange={() => {
+                                // Required by registration platform.
+                            }}
                         />
-                        <span>Last Name</span>
+                        <span>Last Name (required)</span>
                     </label>
                     <label className="flex items-center gap-2">
                         <Checkbox
-                            checked={formData.infoToCollect.email}
-                            onCheckedChange={(checked) =>
-                                updateFormData('infoToCollect', {
-                                    ...formData.infoToCollect,
-                                    email: checked as boolean,
-                                })
-                            }
+                            checked
+                            disabled
+                            onCheckedChange={() => {
+                                // Required by registration platform.
+                            }}
                         />
-                        <span>Email</span>
+                        <span>Email (required)</span>
                     </label>
                     <label className="flex items-center gap-2">
                         <Checkbox
-                            checked={formData.infoToCollect.cellphone}
-                            onCheckedChange={(checked) =>
-                                updateFormData('infoToCollect', {
-                                    ...formData.infoToCollect,
-                                    cellphone: checked as boolean,
-                                })
-                            }
+                            checked
+                            disabled
+                            onCheckedChange={() => {
+                                // Required by registration platform.
+                            }}
                         />
-                        <span>Cellphone</span>
+                        <span>Cellphone (required)</span>
                     </label>
                     <label className="flex items-center gap-2">
                         <Checkbox
                             checked={formData.infoToCollect.congregation}
                             onCheckedChange={(checked) =>
-                                updateFormData('infoToCollect', {
+                                updateInfoToCollect({
                                     ...formData.infoToCollect,
                                     congregation: checked as boolean,
                                 })
@@ -526,7 +529,7 @@ export function EventRegistration({
                         <Checkbox
                             checked={formData.infoToCollect.functionInChurch}
                             onCheckedChange={(checked) =>
-                                updateFormData('infoToCollect', {
+                                updateInfoToCollect({
                                     ...formData.infoToCollect,
                                     functionInChurch: checked as boolean,
                                 })
@@ -538,7 +541,7 @@ export function EventRegistration({
                         <Checkbox
                             checked={formData.infoToCollect.allergies}
                             onCheckedChange={(checked) =>
-                                updateFormData('infoToCollect', {
+                                updateInfoToCollect({
                                     ...formData.infoToCollect,
                                     allergies: checked as boolean,
                                 })
@@ -550,7 +553,7 @@ export function EventRegistration({
                         <Checkbox
                             checked={formData.infoToCollect.other}
                             onCheckedChange={(checked) =>
-                                updateFormData('infoToCollect', {
+                                updateInfoToCollect({
                                     ...formData.infoToCollect,
                                     other: checked as boolean,
                                 })

@@ -24,6 +24,30 @@ function isBeforeToday(value: string): boolean {
     return date < todayIsoDate();
 }
 
+function isoDateToDayNumber(value: string): number | null {
+    const date = datePart(value);
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+    if (!match) {
+        return null;
+    }
+
+    const year = Number(match[1]);
+    const month = Number(match[2]);
+    const day = Number(match[3]);
+
+    return Math.floor(Date.UTC(year, month - 1, day) / 86400000);
+}
+
+function eventStartDateForRegistration(formData: FormData): string {
+    const explicitEventStart = datePart(formData.eventStartDate);
+    if (explicitEventStart !== '') {
+        return explicitEventStart;
+    }
+
+    const firstEventDate = formData.eventDates[0]?.date ?? '';
+    return datePart(firstEventDate);
+}
+
 function hasInternationalCountryCode(value: string): boolean {
     return /^\+[1-9]\d{0,3}(?:[\s-]?\d){4,}$/.test(value.trim());
 }
@@ -320,6 +344,22 @@ export function validateEventRegistration(
     } else if (isBeforeToday(formData.registrationClosingDate)) {
         errors.registrationClosingDate =
             'Registration closing date cannot be in the past';
+    } else {
+        const registrationClosingDay = isoDateToDayNumber(
+            formData.registrationClosingDate,
+        );
+        const eventStartDay = isoDateToDayNumber(
+            eventStartDateForRegistration(formData),
+        );
+
+        if (
+            registrationClosingDay !== null &&
+            eventStartDay !== null &&
+            eventStartDay - registrationClosingDay < 7
+        ) {
+            errors.registrationClosingDate =
+                'Registration closing date must be at least 7 days before the event start date (buffer of one week or more).';
+        }
     }
 
     return errors;

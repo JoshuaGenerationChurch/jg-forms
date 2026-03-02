@@ -3,11 +3,11 @@ import { formatDistanceToNow } from 'date-fns';
 import { Fingerprint, Trash2, Smartphone, Monitor } from 'lucide-react';
 import { useState } from 'react';
 import Heading from '@/components/heading';
-import AppLayout from '@/layouts/app-layout';
-import SettingsLayout from '@/layouts/settings/layout';
 import PasskeyRegistration from '@/components/passkey-registration';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
+import AppLayout from '@/layouts/app-layout';
+import SettingsLayout from '@/layouts/settings/layout';
 import { webauthnApi } from '@/lib/webauthn-api';
 import type { WebAuthnCredential } from '@/types/webauthn';
 

@@ -241,6 +241,31 @@ export interface DirectoryOptions {
     congregations: string[];
 }
 
+type RegistrationInfoToCollect = FormData['infoToCollect'];
+type RegistrationRequiredInfoField = keyof Pick<
+    RegistrationInfoToCollect,
+    'name' | 'lastName' | 'email' | 'cellphone'
+>;
+
+const requiredRegistrationInfoFields: RegistrationRequiredInfoField[] = [
+    'name',
+    'lastName',
+    'email',
+    'cellphone',
+];
+
+export function withRequiredRegistrationInfoFields(
+    infoToCollect: RegistrationInfoToCollect,
+): RegistrationInfoToCollect {
+    const nextInfoToCollect: RegistrationInfoToCollect = { ...infoToCollect };
+
+    for (const requiredField of requiredRegistrationInfoFields) {
+        nextInfoToCollect[requiredField] = true;
+    }
+
+    return nextInfoToCollect;
+}
+
 // Initial form state
 export const initialFormData: FormData = {
     includesDatesVenue: false,
@@ -304,7 +329,7 @@ export const initialFormData: FormData = {
         children0to3: '',
     },
     otherTickets: [],
-    infoToCollect: {
+    infoToCollect: withRequiredRegistrationInfoFields({
         name: false,
         lastName: false,
         email: false,
@@ -313,7 +338,7 @@ export const initialFormData: FormData = {
         functionInChurch: false,
         allergies: false,
         other: false,
-    },
+    }),
     otherInfoFields: [],
     allowDonations: '',
     registrationClosingDate: '',

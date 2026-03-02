@@ -552,6 +552,10 @@ class WorkRequestEntryController extends Controller
         ?array $form,
         WorkFormEmailTemplateService $templateService,
     ): void {
+        if (! $this->shouldDispatchWorkRequestTemplate($template, $entry)) {
+            return;
+        }
+
         $templateTags = $this->inferTemplateRoutingTags($template);
         $toRecipients = $templateService->mergeRecipientsWithDefaults(
             is_array($template->to_recipients) ? $template->to_recipients : [],
@@ -820,6 +824,102 @@ class WorkRequestEntryController extends Controller
         }
 
         return array_values($emails);
+    }
+
+    private function shouldDispatchWorkRequestTemplate(
+        WorkFormEmailTemplate $template,
+        WorkRequestEntry $entry,
+    ): bool {
+        if ($entry->form_slug !== 'work-request') {
+            return true;
+        }
+
+        $templateIdentity = strtolower(trim((string) $template->name));
+        $templateIdentity = preg_replace('/\s+/', ' ', $templateIdentity) ?? $templateIdentity;
+
+        if ($templateIdentity === '') {
+            return true;
+        }
+
+        if (str_contains($templateIdentity, 'hanri') && str_contains($templateIdentity, 'milo')) {
+            return true;
+        }
+
+        if (str_contains($templateIdentity, 'trello') && str_contains($templateIdentity, 'dev')) {
+            return $this->matchesDevBoardRoutingRule($entry);
+        }
+
+        if (str_contains($templateIdentity, 'trello') && str_contains($templateIdentity, 'design')) {
+            return $this->matchesDesignBoardRoutingRule($entry);
+        }
+
+        $hasEventOrRegistration = $entry->includes_dates_venue || $entry->includes_registration;
+        $hasDigital = $entry->includes_graphics_digital;
+        $hasPrint = $entry->includes_graphics_print;
+        $hasSignage = $entry->includes_signage;
+
+        $isDigitalPrintOnly = ! $hasEventOrRegistration && $hasDigital && $hasPrint && ! $hasSignage;
+        $isDigitalOnly = ! $hasEventOrRegistration && $hasDigital && ! $hasPrint && ! $hasSignage;
+        $isPrintOnly = ! $hasEventOrRegistration && ! $hasDigital && $hasPrint && ! $hasSignage;
+        $isSignageOnly = ! $hasEventOrRegistration && ! $hasDigital && ! $hasPrint && $hasSignage;
+
+        if ($this->isGraphicsDigitalPrintTemplate($templateIdentity)) {
+            return $isDigitalPrintOnly;
+        }
+
+        if ($this->isGraphicsDigitalTemplate($templateIdentity)) {
+            return $isDigitalOnly;
+        }
+
+        if ($this->isGraphicsPrintTemplate($templateIdentity)) {
+            return $isPrintOnly;
+        }
+
+        if ($this->isSignageTemplate($templateIdentity)) {
+            return $isSignageOnly;
+        }
+
+        return true;
+    }
+
+    private function isGraphicsDigitalPrintTemplate(string $templateIdentity): bool
+    {
+        if (! str_contains($templateIdentity, 'graphics')) {
+            return false;
+        }
+
+        return str_contains($templateIdentity, 'digital + print')
+            || str_contains($templateIdentity, 'digital+print')
+            || (str_contains($templateIdentity, 'digital') && str_contains($templateIdentity, 'print'));
+    }
+
+    private function isGraphicsDigitalTemplate(string $templateIdentity): bool
+    {
+        if ($this->isGraphicsDigitalPrintTemplate($templateIdentity)) {
+            return false;
+        }
+
+        return str_contains($templateIdentity, 'graphics-digital')
+            || str_contains($templateIdentity, 'graphics digital')
+            || str_contains($templateIdentity, 'graphics - digital')
+            || str_contains($templateIdentity, 'digital media');
+    }
+
+    private function isGraphicsPrintTemplate(string $templateIdentity): bool
+    {
+        if ($this->isGraphicsDigitalPrintTemplate($templateIdentity)) {
+            return false;
+        }
+
+        return str_contains($templateIdentity, 'graphics-print')
+            || str_contains($templateIdentity, 'graphics print')
+            || str_contains($templateIdentity, 'graphics - print')
+            || str_contains($templateIdentity, 'print media');
+    }
+
+    private function isSignageTemplate(string $templateIdentity): bool
+    {
+        return $templateIdentity === 'signage' || str_starts_with($templateIdentity, 'signage');
     }
 
     /**

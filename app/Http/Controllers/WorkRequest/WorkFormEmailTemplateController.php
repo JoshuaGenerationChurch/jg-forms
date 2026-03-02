@@ -8,6 +8,7 @@ use App\Models\WorkFormEmailTemplate;
 use App\Services\WorkFormEmailTemplateService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -157,6 +158,54 @@ class WorkFormEmailTemplateController extends Controller
         abort_unless($template->work_form_id === $form->id, 404);
 
         $template->delete();
+
+        return back();
+    }
+
+    public function reorder(Request $request, string $formSlug): RedirectResponse
+    {
+        $form = $this->findForm($formSlug);
+
+        $validated = $request->validate([
+            'templateIds' => ['required', 'array'],
+            'templateIds.*' => ['required', 'integer'],
+        ]);
+
+        /** @var array<int, int> $orderedTemplateIds */
+        $orderedTemplateIds = array_values(array_unique(array_map(
+            static fn (mixed $value): int => (int) $value,
+            $validated['templateIds'],
+        )));
+
+        $existingTemplateIds = $form->emailTemplates()
+            ->pluck('id')
+            ->map(static fn (mixed $value): int => (int) $value)
+            ->values()
+            ->all();
+
+        sort($orderedTemplateIds);
+        sort($existingTemplateIds);
+
+        if ($orderedTemplateIds !== $existingTemplateIds) {
+            return back()->withErrors([
+                'templateIds' => 'Template order is out of date. Reload and try again.',
+            ]);
+        }
+
+        DB::transaction(function () use ($form, $validated): void {
+            /** @var array<int, int> $templateIdsInOrder */
+            $templateIdsInOrder = array_values(array_unique(array_map(
+                static fn (mixed $value): int => (int) $value,
+                $validated['templateIds'],
+            )));
+
+            foreach ($templateIdsInOrder as $index => $templateId) {
+                WorkFormEmailTemplate::query()
+                    ->where('work_form_id', $form->id)
+                    ->where('id', $templateId)
+                    ->update(['position' => $index]);
+            }
+        });
 
         return back();
     }

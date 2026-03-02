@@ -113,6 +113,11 @@ class WorkFormEmailTemplateService
         $payload = is_array($entry->payload) ? $entry->payload : [];
         $payload = $this->normalizeEventDatePlaceholders($payload);
         $payload = $this->normalizeEventReachPlaceholders($payload);
+
+        if (($form['slug'] ?? $entry->form_slug) === 'work-request') {
+            $payload = array_merge($payload, $this->workRequestComputedPayload($payload));
+        }
+
         $placeholderMap = [
             'form.slug' => (string) ($form['slug'] ?? $entry->form_slug),
             'form.title' => (string) ($form['title'] ?? ''),
@@ -135,6 +140,7 @@ class WorkFormEmailTemplateService
             $placeholderMap = array_merge(
                 $placeholderMap,
                 $this->workRequestBoardRoutingPlaceholders($entry),
+                $this->workRequestEventSummaryPlaceholders($payload),
             );
         }
 
@@ -178,6 +184,7 @@ class WorkFormEmailTemplateService
             $placeholders = array_merge(
                 $placeholders,
                 $this->workRequestBoardRoutingPlaceholderSamples(),
+                $this->workRequestEventSummaryPlaceholderSamples(),
                 $this->workRequestSchemaPlaceholders(),
             );
         }
@@ -274,6 +281,10 @@ class WorkFormEmailTemplateService
             'quicketDescription',
             'ticketCurrency',
             'ticketPriceIncludesFee',
+            'ticketTypeSummary',
+            'ticketPriceSummary',
+            'ticketQuantitySummary',
+            'ticketLineItems',
             'ticketTypes.adults18Plus',
             'ticketTypes.adults13Plus',
             'ticketTypes.children4to12',
@@ -446,6 +457,10 @@ class WorkFormEmailTemplateService
                 'eventCongregations.0' => 'City Bowl AM',
                 'hubs.0', 'signageHubs.0', 'printHubs.0' => 'Cape Town',
                 'ticketCurrency' => 'ZAR',
+                'ticketTypeSummary' => 'Adults 18+, Children 4 to 12 and Student',
+                'ticketPriceSummary' => 'Adults 18+: ZAR 120, Children 4 to 12: ZAR 60, Student: ZAR 80',
+                'ticketQuantitySummary' => 'Adults 18+: 250, Children 4 to 12: 60, Student: 40',
+                'ticketLineItems' => 'Adults 18+ (Price: ZAR 120, Qty: 250); Children 4 to 12 (Price: ZAR 60, Qty: 60); Student (Price: ZAR 80, Qty: 40)',
                 default => '',
             };
 
@@ -481,6 +496,23 @@ class WorkFormEmailTemplateService
             [
                 'key' => 'entry.route_instruction',
                 'sample' => 'JG Dev and Design Trello Boards',
+            ],
+        ];
+    }
+
+    /**
+     * @return array<int, array{key:string,sample:string}>
+     */
+    private function workRequestEventSummaryPlaceholderSamples(): array
+    {
+        return [
+            [
+                'key' => 'entry.event_duration_summary',
+                'sample' => '25-Feb 18:00-20:00; 26-Feb 09:00-12:00',
+            ],
+            [
+                'key' => 'entry.event_reach_summary',
+                'sample' => 'Cape Town, Durban and Pretoria',
             ],
         ];
     }
@@ -601,6 +633,331 @@ class WorkFormEmailTemplateService
         }
 
         return str_pad($day, 2, '0', STR_PAD_LEFT).'-'.$monthName;
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, string>
+     */
+    private function workRequestEventSummaryPlaceholders(array $payload): array
+    {
+        $eventReach = trim((string) ($payload['eventReach'] ?? ''));
+        $reachSummary = match ($eventReach) {
+            'South Africa' => 'South Africa',
+            'Hubs' => $this->humanList($this->stringList($payload['hubs'] ?? [])),
+            'Congregations' => $this->humanList($this->stringList($payload['eventCongregations'] ?? [])),
+            default => '',
+        };
+
+        $eventDates = $payload['eventDates'] ?? null;
+        $scheduleParts = [];
+
+        if (is_array($eventDates)) {
+            foreach ($eventDates as $eventDateRow) {
+                if (! is_array($eventDateRow)) {
+                    continue;
+                }
+
+                $date = $this->formatDateForSouthAfricaSubject(
+                    trim((string) ($eventDateRow['date'] ?? '')),
+                );
+                $startTime = trim((string) ($eventDateRow['startTime'] ?? ''));
+                $endTime = trim((string) ($eventDateRow['endTime'] ?? ''));
+
+                if ($date === '') {
+                    continue;
+                }
+
+                $timeRange = match (true) {
+                    $startTime !== '' && $endTime !== '' => $startTime.'-'.$endTime,
+                    $startTime !== '' => $startTime,
+                    $endTime !== '' => $endTime,
+                    default => '',
+                };
+
+                $scheduleParts[] = trim($date.' '.$timeRange);
+            }
+        }
+
+        if ($scheduleParts === []) {
+            $eventStartDateRaw = trim((string) ($payload['eventStartDate'] ?? ''));
+            $eventEndDateRaw = trim((string) ($payload['eventEndDate'] ?? ''));
+
+            $eventStartDate = str_contains($eventStartDateRaw, 'T')
+                ? (string) explode('T', $eventStartDateRaw, 2)[0]
+                : $eventStartDateRaw;
+            $eventStartTime = str_contains($eventStartDateRaw, 'T')
+                ? trim((string) explode('T', $eventStartDateRaw, 2)[1])
+                : '';
+
+            $eventEndDate = str_contains($eventEndDateRaw, 'T')
+                ? (string) explode('T', $eventEndDateRaw, 2)[0]
+                : $eventEndDateRaw;
+            $eventEndTime = str_contains($eventEndDateRaw, 'T')
+                ? trim((string) explode('T', $eventEndDateRaw, 2)[1])
+                : '';
+
+            $startDateText = $this->formatDateForSouthAfricaSubject($eventStartDate);
+            $endDateText = $this->formatDateForSouthAfricaSubject($eventEndDate);
+
+            if ($startDateText !== '') {
+                if ($endDateText !== '' && $endDateText !== $startDateText) {
+                    $scheduleParts[] = trim($startDateText.' '.$eventStartTime)
+                        .' to '.trim($endDateText.' '.$eventEndTime);
+                } else {
+                    $timeRange = match (true) {
+                        $eventStartTime !== '' && $eventEndTime !== '' => $eventStartTime.'-'.$eventEndTime,
+                        $eventStartTime !== '' => $eventStartTime,
+                        $eventEndTime !== '' => $eventEndTime,
+                        default => '',
+                    };
+                    $scheduleParts[] = trim($startDateText.' '.$timeRange);
+                }
+            }
+        }
+
+        $durationSummary = $scheduleParts !== []
+            ? implode('; ', $scheduleParts)
+            : trim((string) ($payload['eventDuration'] ?? ''));
+
+        return [
+            'entry.event_duration_summary' => $durationSummary !== '' ? $durationSummary : 'Not specified',
+            'entry.event_reach_summary' => $reachSummary !== '' ? $reachSummary : 'Not specified',
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<string, string>
+     */
+    private function workRequestComputedPayload(array $payload): array
+    {
+        $ticketRows = $this->workRequestTicketRows($payload);
+        $ticketCurrency = trim((string) ($payload['ticketCurrency'] ?? ''));
+
+        return [
+            'ticketTypeSummary' => $this->workRequestTicketTypeSummary($payload),
+            'ticketPriceSummary' => $this->workRequestTicketPriceSummary($ticketRows, $ticketCurrency),
+            'ticketQuantitySummary' => $this->workRequestTicketQuantitySummary($ticketRows),
+            'ticketLineItems' => $this->workRequestTicketLineItemsSummary($ticketRows, $ticketCurrency),
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function workRequestTicketTypeSummary(array $payload): string
+    {
+        $ticketRows = $this->workRequestTicketRows($payload);
+        $typeLabels = array_map(
+            static fn (array $row): string => $row['label'],
+            $ticketRows,
+        );
+        $typeLabels = array_values(array_unique(array_filter($typeLabels)));
+
+        $summary = $this->humanList($typeLabels);
+
+        return $summary !== '' ? $summary : 'Not specified';
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<int, array{label:string,price:string,quantity:string}>
+     */
+    private function workRequestTicketRows(array $payload): array
+    {
+        $ticketTypes = is_array($payload['ticketTypes'] ?? null)
+            ? $payload['ticketTypes']
+            : [];
+        $ticketPrices = is_array($payload['ticketPrices'] ?? null)
+            ? $payload['ticketPrices']
+            : [];
+        $ticketQuantities = is_array($payload['ticketQuantities'] ?? null)
+            ? $payload['ticketQuantities']
+            : [];
+
+        $rows = [];
+        $standardTicketMap = [
+            'adults18Plus' => 'Adults 18+',
+            'adults13Plus' => 'Adults 13+',
+            'children4to12' => 'Children 4 to 12',
+            'children0to3' => 'Children 0 to 3',
+        ];
+
+        foreach ($standardTicketMap as $ticketKey => $ticketLabel) {
+            if (! $this->isTruthyPayloadValue($ticketTypes[$ticketKey] ?? false)) {
+                continue;
+            }
+
+            $rows[] = [
+                'label' => $ticketLabel,
+                'price' => trim((string) ($ticketPrices[$ticketKey] ?? '')),
+                'quantity' => trim((string) ($ticketQuantities[$ticketKey] ?? '')),
+            ];
+        }
+
+        if ($this->isTruthyPayloadValue($ticketTypes['other'] ?? false)) {
+            $otherTickets = $payload['otherTickets'] ?? [];
+
+            if (is_array($otherTickets)) {
+                foreach ($otherTickets as $otherTicket) {
+                    if (! is_array($otherTicket)) {
+                        continue;
+                    }
+
+                    $name = trim((string) ($otherTicket['name'] ?? ''));
+                    if ($name === '') {
+                        continue;
+                    }
+
+                    $rows[] = [
+                        'label' => $name,
+                        'price' => trim((string) ($otherTicket['price'] ?? '')),
+                        'quantity' => trim((string) ($otherTicket['quantity'] ?? '')),
+                    ];
+                }
+            }
+        }
+
+        if ($rows === [] && $this->isTruthyPayloadValue($ticketTypes['other'] ?? false)) {
+            $rows[] = [
+                'label' => 'Other',
+                'price' => '',
+                'quantity' => '',
+            ];
+        }
+
+        return $rows;
+    }
+
+    /**
+     * @param  array<int, array{label:string,price:string,quantity:string}>  $ticketRows
+     */
+    private function workRequestTicketPriceSummary(array $ticketRows, string $currency): string
+    {
+        if ($ticketRows === []) {
+            return 'Not specified';
+        }
+
+        $normalizedCurrency = trim($currency);
+        $lines = array_map(function (array $row) use ($normalizedCurrency): string {
+            $price = $row['price'] !== '' ? $row['price'] : 'Not specified';
+            $priceText = $normalizedCurrency !== '' && $price !== 'Not specified'
+                ? $normalizedCurrency.' '.$price
+                : $price;
+
+            return $row['label'].': '.$priceText;
+        }, $ticketRows);
+
+        return implode(', ', $lines);
+    }
+
+    /**
+     * @param  array<int, array{label:string,price:string,quantity:string}>  $ticketRows
+     */
+    private function workRequestTicketQuantitySummary(array $ticketRows): string
+    {
+        if ($ticketRows === []) {
+            return 'Not specified';
+        }
+
+        $lines = array_map(static function (array $row): string {
+            $quantity = $row['quantity'] !== '' ? $row['quantity'] : 'Not specified';
+
+            return $row['label'].': '.$quantity;
+        }, $ticketRows);
+
+        return implode(', ', $lines);
+    }
+
+    /**
+     * @param  array<int, array{label:string,price:string,quantity:string}>  $ticketRows
+     */
+    private function workRequestTicketLineItemsSummary(array $ticketRows, string $currency): string
+    {
+        if ($ticketRows === []) {
+            return 'Not specified';
+        }
+
+        $normalizedCurrency = trim($currency);
+        $lines = array_map(function (array $row) use ($normalizedCurrency): string {
+            $price = $row['price'] !== '' ? $row['price'] : 'Not specified';
+            $priceText = $normalizedCurrency !== '' && $price !== 'Not specified'
+                ? $normalizedCurrency.' '.$price
+                : $price;
+            $quantity = $row['quantity'] !== '' ? $row['quantity'] : 'Not specified';
+
+            return sprintf(
+                '%s (Price: %s, Qty: %s)',
+                $row['label'],
+                $priceText,
+                $quantity,
+            );
+        }, $ticketRows);
+
+        return implode('; ', $lines);
+    }
+
+    private function isTruthyPayloadValue(mixed $value): bool
+    {
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        if (is_numeric($value)) {
+            return (int) $value === 1;
+        }
+
+        if (is_string($value)) {
+            return in_array(strtolower(trim($value)), ['1', 'true', 'yes', 'on'], true);
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  mixed  $value
+     * @return array<int, string>
+     */
+    private function stringList(mixed $value): array
+    {
+        if (! is_array($value)) {
+            return [];
+        }
+
+        $values = [];
+        foreach ($value as $item) {
+            $text = trim((string) $item);
+            if ($text === '') {
+                continue;
+            }
+            $values[$text] = $text;
+        }
+
+        return array_values($values);
+    }
+
+    /**
+     * @param  array<int, string>  $values
+     */
+    private function humanList(array $values): string
+    {
+        $count = count($values);
+        if ($count === 0) {
+            return '';
+        }
+
+        if ($count === 1) {
+            return $values[0];
+        }
+
+        if ($count === 2) {
+            return $values[0].' and '.$values[1];
+        }
+
+        $lastValue = array_pop($values);
+
+        return implode(', ', $values).' and '.$lastValue;
     }
 
     /**

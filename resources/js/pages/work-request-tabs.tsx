@@ -16,6 +16,7 @@ import {
     PrintMedia,
     Signage,
     validatePage,
+    withRequiredRegistrationInfoFields,
     WorkRequestTabStepper,
 } from '@/components/work-request';
 import type { FormData, ValidationErrors } from '@/components/work-request';
@@ -159,6 +160,10 @@ export default function WorkRequestTabs() {
                     next.includesGraphics = true;
                     next.includesGraphicsDigital = true;
                 }
+
+                next.infoToCollect = withRequiredRegistrationInfoFields(
+                    next.infoToCollect,
+                );
 
                 return next;
             });
