@@ -1,4 +1,4 @@
-import type { ComponentProps } from 'react';
+import type { ComponentProps, Ref } from 'react';
 import { cn } from '@/lib/utils';
 
 export function Required() {
@@ -20,6 +20,7 @@ export function FloatingLabelInput({
     className,
     inputClassName,
     labelBackgroundClassName,
+    inputRef,
     ...props
 }: Omit<ComponentProps<'input'>, 'id'> & {
     id: string;
@@ -29,6 +30,7 @@ export function FloatingLabelInput({
     className?: string;
     inputClassName?: string;
     labelBackgroundClassName?: string;
+    inputRef?: Ref<HTMLInputElement>;
 }) {
     const invalid = Boolean(error);
 
@@ -39,6 +41,7 @@ export function FloatingLabelInput({
                     id={id}
                     data-slot="floating-input"
                     placeholder=" "
+                    ref={inputRef}
                     aria-invalid={invalid}
                     className={cn(
                         'peer block w-full rounded-lg border-2 bg-slate-100/50 px-4 pt-5 pb-3 text-sm text-slate-900 shadow-sm transition',

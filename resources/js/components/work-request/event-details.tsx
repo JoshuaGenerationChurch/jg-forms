@@ -1,7 +1,12 @@
 import { ChevronDown, Minus, Plus } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
+import {
+    googleMapsPlacesEnabled,
+    loadGoogleMapsPlacesApi,
+} from '@/lib/google-maps';
 import {
     FieldError,
     FloatingLabelInput,
@@ -35,6 +40,13 @@ export function EventDetails({
         .toISOString()
         .slice(0, 10);
     const organiserCellParts = splitPhoneNumber(formData.organiserCell);
+    const otherVenueAddressRef = useRef<HTMLInputElement | null>(null);
+    const otherVenueAutocompleteRef = useRef<{
+        addListener: (eventName: string, handler: () => void) => void;
+        getPlace: () => { formatted_address?: string };
+    } | null>(null);
+    const [autocompleteScriptFailed, setAutocompleteScriptFailed] =
+        useState(false);
     const organiserCellCountryCodeOptions = countryCodeOptionsWithCurrent(
         organiserCellParts.countryCode,
     );
@@ -94,6 +106,96 @@ export function EventDetails({
             endDate !== '' && endTime !== '' ? `${endDate}T${endTime}` : '',
         );
     };
+
+    useEffect(() => {
+        if (formData.venueType !== 'Other') {
+            return;
+        }
+
+        if (!googleMapsPlacesEnabled()) {
+            return;
+        }
+
+        const addressInput = otherVenueAddressRef.current;
+        if (!addressInput) {
+            return;
+        }
+
+        let isMounted = true;
+
+        void loadGoogleMapsPlacesApi()
+            .then(() => {
+                if (!isMounted || !addressInput) {
+                    return;
+                }
+
+                if (otherVenueAutocompleteRef.current !== null) {
+                    return;
+                }
+
+                const Autocomplete =
+                    window.google?.maps?.places?.Autocomplete;
+                if (!Autocomplete) {
+                    throw new Error(
+                        'Google Maps Places autocomplete is unavailable.',
+                    );
+                }
+
+                const autocomplete = new Autocomplete(addressInput, {
+                    types: ['address'],
+                    fields: ['formatted_address'],
+                });
+                otherVenueAutocompleteRef.current = autocomplete;
+                autocomplete.addListener('place_changed', () => {
+                    const selectedPlace = autocomplete.getPlace();
+                    const formattedAddress =
+                        selectedPlace?.formatted_address?.trim() ?? '';
+
+                    if (formattedAddress !== '') {
+                        updateFormData('otherVenueAddress', formattedAddress);
+                    }
+                });
+
+                setAutocompleteScriptFailed(false);
+            })
+            .catch((error: unknown) => {
+                if (!isMounted) {
+                    return;
+                }
+
+                // Surface the underlying Google Maps failure in the browser console
+                // (referrer restrictions, API restrictions, billing, etc.).
+                console.error(
+                    '[WorkRequest] Google Places autocomplete failed to load',
+                    error,
+                );
+                setAutocompleteScriptFailed(true);
+            });
+
+        return () => {
+            isMounted = false;
+
+            if (
+                otherVenueAutocompleteRef.current &&
+                window.google?.maps?.event?.clearInstanceListeners
+            ) {
+                window.google.maps.event.clearInstanceListeners(
+                    otherVenueAutocompleteRef.current,
+                );
+            }
+
+            otherVenueAutocompleteRef.current = null;
+        };
+    }, [formData.venueType, updateFormData]);
+
+    const venueAddressAutocompleteMessage =
+        formData.venueType !== 'Other'
+            ? null
+            : !googleMapsPlacesEnabled()
+              ? 'Address autocomplete is unavailable because the Google Maps API key is not configured.'
+              : autocompleteScriptFailed
+                ? 'Address autocomplete could not load. You can still type the venue address manually.'
+                : null;
 
     return (
         <div className="space-y-6">
@@ -678,6 +780,7 @@ export function EventDetails({
                         id="other-venue-address"
                         label="Venue Address"
                         required
+                        inputRef={otherVenueAddressRef}
                         value={formData.otherVenueAddress}
                         onChange={(e) =>
                             updateFormData('otherVenueAddress', e.target.value)
@@ -685,6 +788,11 @@ export function EventDetails({
                         error={errors.otherVenueAddress}
                         labelBackgroundClassName="bg-slate-50"
                     />
+                    {venueAddressAutocompleteMessage ? (
+                        <p className="text-xs text-slate-500">
+                            {venueAddressAutocompleteMessage}
+                        </p>
+                    ) : null}
                 </div>
             )}
 
