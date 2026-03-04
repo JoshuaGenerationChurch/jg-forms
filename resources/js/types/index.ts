@@ -11,5 +11,9 @@ export type SharedData = {
     workForms?: {
         isAdmin?: boolean;
     };
+    flash?: {
+        success?: string | null;
+        error?: string | null;
+    };
     [key: string]: unknown;
 };

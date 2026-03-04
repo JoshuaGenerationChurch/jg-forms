@@ -3,6 +3,7 @@ import { cn } from '@/lib/utils';
 
 type GlobalFooterProps = {
     homeHref?: string;
+    contactHref?: string;
     showContactUs?: boolean;
     showLoginButton?: boolean;
     loginHref?: string;
@@ -10,6 +11,7 @@ type GlobalFooterProps = {
 };
 
 export function GlobalFooter({
+    contactHref = '/contact-us',
     showContactUs = true,
     showLoginButton = false,
     loginHref = '/login',
@@ -52,13 +54,9 @@ export function GlobalFooter({
                         Privacy Policy
                     </a>
                     {showContactUs ? (
-                        <a
-                            href="#"
-                            onClick={(event) => event.preventDefault()}
-                            className="hover:text-slate-900"
-                        >
+                        <Link href={contactHref} className="hover:text-slate-900">
                             Contact us
-                        </a>
+                        </Link>
                     ) : null}
                     {showLoginButton ? (
                         <Link href={loginHref} className="hover:text-slate-900">

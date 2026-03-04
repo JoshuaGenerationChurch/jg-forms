@@ -40,9 +40,7 @@ class HandleInertiaRequests extends Middleware
 
         if ($user) {
             $adminEmails = config('workforms.admin_emails', []);
-            if (is_array($adminEmails) && count($adminEmails) === 0) {
-                $isWorkFormsAdmin = true;
-            } elseif (is_array($adminEmails)) {
+            if (is_array($adminEmails)) {
                 $isWorkFormsAdmin = in_array(strtolower((string) $user->email), $adminEmails, true);
             }
         }
@@ -56,6 +54,10 @@ class HandleInertiaRequests extends Middleware
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
             'workForms' => [
                 'isAdmin' => $isWorkFormsAdmin,
+            ],
+            'flash' => [
+                'success' => fn () => $request->session()->get('success'),
+                'error' => fn () => $request->session()->get('error'),
             ],
         ];
     }

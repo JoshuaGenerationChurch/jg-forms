@@ -23,10 +23,6 @@ class EnsureWorkFormsAdmin
             abort(403);
         }
 
-        if (count($adminEmails) === 0) {
-            return $next($request);
-        }
-
         if (! in_array($email, $adminEmails, true)) {
             abort(403);
         }

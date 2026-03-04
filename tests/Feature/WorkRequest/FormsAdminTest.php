@@ -31,6 +31,15 @@ test('non-admin users cannot access forms admin pages', function () {
         ->assertForbidden();
 });
 
+test('no user is treated as forms admin when admin email list is empty', function () {
+    $user = User::factory()->create();
+    config(['workforms.admin_emails' => []]);
+
+    $this->actingAs($user)
+        ->get(route('admin.forms.index'))
+        ->assertForbidden();
+});
+
 test('admin users can view forms and entries in forms admin', function () {
     $admin = User::factory()->create(['email' => 'admin@example.com']);
     $submitter = User::factory()->create();

@@ -99,6 +99,16 @@ test('public work request submission uses active email templates when available'
                 'cellphone' => '+27820000000',
                 'congregation' => 'City Bowl AM',
                 'eventName' => 'Sunday Service',
+                'eventScheduleType' => 'Single/Multiple Day Event',
+                'announcementDate' => now()->addDays(7)->toDateString(),
+                'venueType' => 'JG Venue',
+                'jgVenue' => 'Venue 1',
+                'eventReach' => 'South Africa',
+                'childMinding' => 'No',
+                'digitalGraphicType' => 'Other',
+                'digitalOtherGraphicDescription' => 'Event creative',
+                'digitalFormatWhatsapp' => true,
+                'termsAccepted' => true,
                 'includesDatesVenue' => true,
                 'includesRegistration' => false,
                 'includesGraphics' => true,
@@ -116,13 +126,13 @@ test('public work request submission uses active email templates when available'
     $expectedSubject = app(WorkFormEmailTemplateService::class)
         ->workRequestAutoSubject($entry);
 
-    Mail::assertSent(WorkFormTemplateNotificationMail::class, function (WorkFormTemplateNotificationMail $mail): bool {
+    Mail::assertQueued(WorkFormTemplateNotificationMail::class, function (WorkFormTemplateNotificationMail $mail): bool {
         return $mail->hasTo('template@example.com')
             && str_contains($mail->body, 'Body for Jane Doe / Sunday Service');
     });
-    Mail::assertSent(WorkFormTemplateNotificationMail::class, function (WorkFormTemplateNotificationMail $mail) use ($expectedSubject): bool {
+    Mail::assertQueued(WorkFormTemplateNotificationMail::class, function (WorkFormTemplateNotificationMail $mail) use ($expectedSubject): bool {
         return $mail->hasTo('template@example.com')
             && $mail->subjectLine === $expectedSubject;
     });
-    Mail::assertNotSent(WorkFormSubmissionNotificationMail::class);
+    Mail::assertNotQueued(WorkFormSubmissionNotificationMail::class);
 });

@@ -70,16 +70,16 @@ test('guest can submit easter holidays service times and admin can view entry', 
     expect($entry->payload)->toBeArray();
     expect($entry->payload['serviceTimes'])->toHaveCount(2);
 
-    Mail::assertSent(WorkFormSubmissionNotificationMail::class, function (WorkFormSubmissionNotificationMail $mail): bool {
+    Mail::assertQueued(WorkFormSubmissionNotificationMail::class, function (WorkFormSubmissionNotificationMail $mail): bool {
         return $mail->hasTo('notify@example.com')
             && $mail->entry->form_slug === 'easter-holidays';
     });
 
-    Mail::assertSent(WorkFormSubmissionNotificationMail::class, function (WorkFormSubmissionNotificationMail $mail): bool {
+    Mail::assertQueued(WorkFormSubmissionNotificationMail::class, function (WorkFormSubmissionNotificationMail $mail): bool {
         return $mail->hasTo('trello@example.com')
             && $mail->entry->form_slug === 'easter-holidays';
     });
-    Mail::assertSentCount(2);
+    Mail::assertQueuedCount(2);
 
     $this->actingAs($admin)
         ->get(route('admin.forms.entries.show', 'easter-holidays'))

@@ -14,6 +14,8 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 use Symfony\Component\Mime\Address;
@@ -21,56 +23,6 @@ use Throwable;
 
 class WorkRequestEntryController extends Controller
 {
-    public function index(Request $request): Response
-    {
-        $entries = WorkRequestEntry::query()
-            ->where('user_id', $request->user()->id)
-            ->latest()
-            ->get()
-            ->map(function (WorkRequestEntry $entry): array {
-                return [
-                    'id' => $entry->id,
-                    'formSlug' => $entry->form_slug,
-                    'createdAt' => $entry->created_at?->toIso8601String(),
-                    'firstName' => $entry->first_name,
-                    'lastName' => $entry->last_name,
-                    'email' => $entry->email,
-                    'eventName' => $entry->event_name,
-                    'requestTypes' => $this->requestTypes($entry),
-                ];
-            })
-            ->values();
-
-        return Inertia::render('work-request-entries/index', [
-            'entries' => $entries,
-        ]);
-    }
-
-    public function show(Request $request, WorkRequestEntry $entry): Response
-    {
-        abort_unless(
-            $entry->user_id === $request->user()->id || $this->isAdmin($request),
-            404
-        );
-
-        return Inertia::render('work-request-entries/show', [
-            'entry' => [
-                'id' => $entry->id,
-                'formSlug' => $entry->form_slug,
-                'createdAt' => $entry->created_at?->toIso8601String(),
-                'updatedAt' => $entry->updated_at?->toIso8601String(),
-                'firstName' => $entry->first_name,
-                'lastName' => $entry->last_name,
-                'email' => $entry->email,
-                'cellphone' => $entry->cellphone,
-                'congregation' => $entry->congregation,
-                'eventName' => $entry->event_name,
-                'requestTypes' => $this->requestTypes($entry),
-                'payload' => $entry->payload,
-            ],
-        ]);
-    }
-
     public function storePublicWorkRequestEntry(
         Request $request,
         RecaptchaEnterpriseService $recaptcha,
@@ -96,6 +48,7 @@ class WorkRequestEntryController extends Controller
 
         /** @var array<string, mixed> $payload */
         $payload = $validated['payload'];
+        $this->validateWorkRequestPayload($payload);
 
         $entry = WorkRequestEntry::query()->create([
             'user_id' => null,
@@ -118,6 +71,304 @@ class WorkRequestEntryController extends Controller
         $this->sendSubmissionNotifications($entry, $this->findForm('work-request'));
 
         return back();
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     *
+     * @throws ValidationException
+     */
+    private function validateWorkRequestPayload(array $payload): void
+    {
+        $baseValidator = Validator::make($payload, [
+            'firstName' => ['required', 'string', 'max:255'],
+            'lastName' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255'],
+            'cellphone' => ['required', 'string', 'max:255'],
+            'congregation' => ['required', 'string', 'max:255'],
+            'includesDatesVenue' => ['required', 'boolean'],
+            'includesRegistration' => ['required', 'boolean'],
+            'includesGraphics' => ['required', 'boolean'],
+            'includesGraphicsDigital' => ['required', 'boolean'],
+            'includesGraphicsPrint' => ['required', 'boolean'],
+            'includesSignage' => ['required', 'boolean'],
+            'termsAccepted' => ['accepted'],
+        ]);
+
+        /** @var array<string, string> $errors */
+        $errors = [];
+
+        foreach ($baseValidator->errors()->toArray() as $field => $messages) {
+            $message = is_array($messages) ? (string) ($messages[0] ?? '') : (string) $messages;
+            if ($message !== '') {
+                $errors[$field] = $message;
+            }
+        }
+
+        $includesDatesVenue = $this->payloadBool($payload, 'includesDatesVenue');
+        $includesRegistration = $this->payloadBool($payload, 'includesRegistration');
+        $includesGraphics = $this->payloadBool($payload, 'includesGraphics');
+        $includesGraphicsDigital = $this->payloadBool($payload, 'includesGraphicsDigital');
+        $includesGraphicsPrint = $this->payloadBool($payload, 'includesGraphicsPrint');
+        $includesSignage = $this->payloadBool($payload, 'includesSignage');
+
+        if (! $includesDatesVenue && ! $includesGraphics && ! $includesSignage) {
+            $errors['natureOfRequest'] = 'Please select at least one option for your request';
+        }
+
+        if ($includesGraphics && ! $includesGraphicsDigital && ! $includesGraphicsPrint) {
+            $errors['graphicsType'] = 'Please select Digital, Print, or both';
+        }
+
+        if (($includesDatesVenue || $includesRegistration) && ! $includesGraphicsDigital) {
+            $errors['graphicsType'] = 'Digital is required when Event Logistics or Registration Form is selected';
+        }
+
+        if ($includesDatesVenue) {
+            if ($this->payloadString($payload, 'eventName') === '') {
+                $errors['eventName'] = 'Event name is required';
+            }
+
+            if ($this->payloadString($payload, 'eventScheduleType') === '') {
+                $errors['eventScheduleType'] = 'Please choose an event schedule type';
+            }
+
+            if ($this->payloadString($payload, 'announcementDate') === '') {
+                $errors['announcementDate'] = 'Announcement date is required';
+            }
+
+            $venueType = $this->payloadString($payload, 'venueType');
+            if ($venueType === '') {
+                $errors['venueType'] = 'Please select a venue type';
+            } elseif ($venueType === 'JG Venue' && $this->payloadString($payload, 'jgVenue') === '') {
+                $errors['jgVenue'] = 'Please select a JG venue';
+            } elseif ($venueType === 'Other') {
+                if ($this->payloadString($payload, 'otherVenueName') === '') {
+                    $errors['otherVenueName'] = 'Venue name is required';
+                }
+
+                if ($this->payloadString($payload, 'otherVenueAddress') === '') {
+                    $errors['otherVenueAddress'] = 'Venue address is required';
+                }
+            }
+
+            $eventReach = $this->payloadString($payload, 'eventReach');
+            if ($eventReach === '') {
+                $errors['eventReach'] = 'Please select event reach';
+            } elseif ($eventReach === 'Hubs' && count($this->payloadArray($payload, 'hubs')) === 0) {
+                $errors['hubs'] = 'Please select at least one option';
+            } elseif (
+                $eventReach === 'Congregations' &&
+                count($this->payloadArray($payload, 'eventCongregations')) === 0
+            ) {
+                $errors['eventCongregations'] = 'Please select at least one congregation';
+            }
+
+            $childMinding = $this->payloadString($payload, 'childMinding');
+            if ($childMinding === '') {
+                $errors['childMinding'] = 'Please indicate if child-minding will be offered';
+            } elseif ($childMinding === 'Yes' && $this->payloadString($payload, 'childMindingDescription') === '') {
+                $errors['childMindingDescription'] = 'Please describe the child-minding offered';
+            }
+        }
+
+        if ($includesRegistration) {
+            if ($this->payloadString($payload, 'quicketDescription') === '') {
+                $errors['quicketDescription'] = 'Description is required';
+            }
+
+            $ticketCurrency = strtoupper($this->payloadString($payload, 'ticketCurrency'));
+            if (! in_array($ticketCurrency, ['ZAR', 'USD'], true)) {
+                $errors['ticketCurrency'] = 'Please select a ticket currency';
+            }
+
+            if ($this->payloadString($payload, 'ticketPriceIncludesFee') === '') {
+                $errors['ticketPriceIncludesFee'] = 'Please indicate if prices include platform fee';
+            }
+
+            if ($this->payloadString($payload, 'allowDonations') === '') {
+                $errors['allowDonations'] = 'Please indicate if donations should be allowed';
+            }
+
+            if ($this->payloadString($payload, 'registrationClosingDate') === '') {
+                $errors['registrationClosingDate'] = 'Registration closing date is required';
+            }
+        }
+
+        if ($includesGraphicsDigital) {
+            $digitalGraphicType = $this->payloadString($payload, 'digitalGraphicType');
+            if ($digitalGraphicType === '') {
+                $errors['digitalGraphicType'] = 'Please select a graphic type';
+            }
+
+            if ($digitalGraphicType === 'Banking Details Graphic') {
+                if ($this->payloadString($payload, 'digitalBankName') === '') {
+                    $errors['digitalBankName'] = 'Bank name is required';
+                }
+                if ($this->payloadString($payload, 'digitalBranchCode') === '') {
+                    $errors['digitalBranchCode'] = 'Branch code is required';
+                }
+                if ($this->payloadString($payload, 'digitalAccountNumber') === '') {
+                    $errors['digitalAccountNumber'] = 'Account number is required';
+                }
+                if ($this->payloadString($payload, 'digitalReference') === '') {
+                    $errors['digitalReference'] = 'Reference is required';
+                }
+            }
+
+            if (
+                $digitalGraphicType === 'Other' &&
+                $this->payloadString($payload, 'digitalOtherGraphicDescription') === ''
+            ) {
+                $errors['digitalOtherGraphicDescription'] = 'Please describe the graphic you want';
+            }
+
+            $hasDigitalFormat = $this->payloadBool($payload, 'digitalFormatWhatsapp')
+                || $this->payloadBool($payload, 'digitalFormatAVSlide')
+                || $this->payloadBool($payload, 'digitalFormatOther');
+
+            if (! $hasDigitalFormat) {
+                $errors['digitalFormats'] = 'Please select at least one format';
+            }
+        }
+
+        if ($includesGraphicsPrint) {
+            $isEventOrRegistrationPrintFlow = $includesDatesVenue || $includesRegistration;
+            $isEventAndRegistrationPrintFlow = $includesDatesVenue && $includesRegistration;
+            $eventReach = $this->payloadString($payload, 'eventReach');
+            $shouldUseEventReachScope = $isEventOrRegistrationPrintFlow && $eventReach !== '';
+            $effectivePrintScope = $shouldUseEventReachScope
+                ? $eventReach
+                : $this->payloadString($payload, 'printScope');
+            $printTypes = $this->payloadArray($payload, 'printTypes');
+
+            if (! $shouldUseEventReachScope && $effectivePrintScope === '') {
+                $errors['printScope'] = 'Please select a scope';
+            }
+
+            if (
+                ! $shouldUseEventReachScope &&
+                $effectivePrintScope === 'Hubs' &&
+                count($this->payloadArray($payload, 'printHubs')) === 0
+            ) {
+                $errors['printHubs'] = 'Please select at least one hub';
+            }
+
+            if (
+                ! $shouldUseEventReachScope &&
+                $effectivePrintScope === 'Congregations' &&
+                count($this->payloadArray($payload, 'printCongregations')) === 0
+            ) {
+                $errors['printCongregations'] = 'Please select at least one congregation';
+            }
+
+            if (count($printTypes) === 0) {
+                $errors['printTypes'] = 'Please select at least one print type';
+            }
+
+            if ($isEventAndRegistrationPrintFlow) {
+                $allowedPrintTypes = [
+                    'Congregational Flyer Handouts (A5: 148 x 210 mm)',
+                    'Congregational Flyer Handouts (A6: 105 x 148 mm)',
+                    'Posters (A3: 297 x 420 mm)',
+                    'Posters (A4: 210 x 297 mm)',
+                    'Invite/ Evangelism Cards (business card size)',
+                ];
+                foreach ($printTypes as $printType) {
+                    if (! in_array($printType, $allowedPrintTypes, true)) {
+                        $errors['printTypes'] = 'Only flyers, posters, and invite cards are available for event and registration requests';
+                        break;
+                    }
+                }
+            }
+        }
+
+        if ($includesSignage) {
+            $hasSignageSelection = collect([
+                'sharkfinJgBranded',
+                'sharkfinJgKidsBranded',
+                'temporaryFenceStandard2x1',
+                'temporaryFenceCustom3x1',
+                'temporaryFenceCustom4x1',
+                'temporaryFenceCustom5x1',
+                'toiletsArrowsMaleWord',
+                'toiletsArrowsFemaleWord',
+                'toiletsArrowsMaleFemaleWord',
+                'toiletsMaleFemale',
+                'toiletsMale',
+                'toiletsFemale',
+                'momsNursing',
+                'momsNursingWithArrows',
+                'momsWithBabies',
+                'momsWithBabiesWithArrows',
+                'toddlersRoom',
+                'toddlersArrows',
+                'firstAidSign',
+                'firstAidSignWithArrows',
+                'internalOther',
+                'externalNoParking',
+                'externalDisabledParking',
+                'externalAmbulanceBay',
+                'externalEntrance',
+                'externalExit',
+                'externalJoshGenArrows',
+                'sandwichBoards',
+                'permanentExternalBuildingSigns',
+                'otherSignage',
+            ])->contains(fn (string $key): bool => $this->payloadBool($payload, $key));
+
+            if (! $hasSignageSelection) {
+                $errors['signageSelection'] = 'Please select at least one signage request item';
+            }
+        }
+
+        if ($errors !== []) {
+            throw ValidationException::withMessages($errors);
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function payloadString(array $payload, string $key): string
+    {
+        return trim((string) Arr::get($payload, $key, ''));
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     */
+    private function payloadBool(array $payload, string $key): bool
+    {
+        $value = Arr::get($payload, $key, false);
+
+        if (is_bool($value)) {
+            return $value;
+        }
+
+        if (is_numeric($value)) {
+            return (int) $value === 1;
+        }
+
+        if (is_string($value)) {
+            return in_array(strtolower(trim($value)), ['1', 'true', 'yes', 'on'], true);
+        }
+
+        return false;
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array<int, string>
+     */
+    private function payloadArray(array $payload, string $key): array
+    {
+        $value = Arr::get($payload, $key, []);
+        if (! is_array($value)) {
+            return [];
+        }
+
+        return array_values(array_filter(array_map(static fn (mixed $item): string => trim((string) $item), $value)));
     }
 
     public function storePublicEasterHolidayEntry(
@@ -468,7 +719,7 @@ class WorkRequestEntryController extends Controller
                     ? new Address($email, $name)
                     : new Address($email);
 
-                Mail::to($recipientAddress)->send(
+                Mail::to($recipientAddress)->queue(
                     new WorkFormSubmissionNotificationMail($entry, $form),
                 );
             } catch (Throwable $exception) {
@@ -617,7 +868,7 @@ class WorkRequestEntryController extends Controller
                 $pendingMail->bcc($this->mapRecipientsToAddresses($bccRecipients));
             }
 
-            $pendingMail->send(new WorkFormTemplateNotificationMail(
+            $pendingMail->queue(new WorkFormTemplateNotificationMail(
                 $subject,
                 $heading,
                 $body,
@@ -953,10 +1204,6 @@ class WorkRequestEntryController extends Controller
         $adminEmails = config('workforms.admin_emails', []);
         if (! is_array($adminEmails)) {
             return false;
-        }
-
-        if (count($adminEmails) === 0) {
-            return true;
         }
 
         return in_array(strtolower((string) $user->email), $adminEmails, true);

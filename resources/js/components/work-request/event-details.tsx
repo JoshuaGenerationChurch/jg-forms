@@ -1,5 +1,5 @@
 import { ChevronDown, Minus, Plus } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -40,12 +40,11 @@ export function EventDetails({
         .toISOString()
         .slice(0, 10);
     const organiserCellParts = splitPhoneNumber(formData.organiserCell);
-    const otherVenueAddressRef = useRef<HTMLInputElement | null>(null);
-    const otherVenueAutocompleteRef = useRef<{
-        addListener: (eventName: string, handler: () => void) => void;
-        getPlace: () => { formatted_address?: string };
-    } | null>(null);
+    const placeAutocompleteContainerRef = useRef<HTMLDivElement | null>(null);
+    const placeAutocompleteElementRef = useRef<HTMLElement | null>(null);
     const [autocompleteScriptFailed, setAutocompleteScriptFailed] =
+        useState(false);
+    const [useManualVenueAddressEntry, setUseManualVenueAddressEntry] =
         useState(false);
     const organiserCellCountryCodeOptions = countryCodeOptionsWithCurrent(
         organiserCellParts.countryCode,
@@ -107,54 +106,174 @@ export function EventDetails({
         );
     };
 
+    const applyFormattedAddressFromPlace = useCallback(
+        (
+            place:
+                | {
+                      formattedAddress?: string;
+                      formatted_address?: string;
+                      fetchFields?: (request: {
+                          fields: string[];
+                      }) => Promise<void>;
+                  }
+                | undefined,
+        ) => {
+            const formattedAddress =
+                place?.formattedAddress?.trim() ??
+                place?.formatted_address?.trim() ??
+                '';
+
+            if (formattedAddress !== '') {
+                updateFormData('otherVenueAddress', formattedAddress);
+            }
+        },
+        [updateFormData],
+    );
+
+    const placesAutocompleteConfigured = googleMapsPlacesEnabled();
+    const canUsePlacesAutocomplete =
+        placesAutocompleteConfigured && !autocompleteScriptFailed;
+    const shouldRenderPlacesAutocomplete =
+        formData.venueType === 'Other' &&
+        canUsePlacesAutocomplete &&
+        !useManualVenueAddressEntry;
+    const shouldRenderManualVenueAddressInput =
+        formData.venueType === 'Other' &&
+        (!canUsePlacesAutocomplete || useManualVenueAddressEntry);
+    const placeAutocompleteElementClassName = `jg-place-autocomplete-element${
+        errors.otherVenueAddress
+            ? ' jg-place-autocomplete-element--invalid'
+            : ''
+    }`;
+
     useEffect(() => {
-        if (formData.venueType !== 'Other') {
+        if (!shouldRenderPlacesAutocomplete) {
             return;
         }
 
-        if (!googleMapsPlacesEnabled()) {
-            return;
-        }
-
-        const addressInput = otherVenueAddressRef.current;
-        if (!addressInput) {
+        const container = placeAutocompleteContainerRef.current;
+        if (!container) {
             return;
         }
 
         let isMounted = true;
+        let selectListener: ((event: Event) => void) | null = null;
+        let errorListener: ((event: Event) => void) | null = null;
 
         void loadGoogleMapsPlacesApi()
             .then(() => {
-                if (!isMounted || !addressInput) {
+                if (!isMounted || !container) {
                     return;
                 }
 
-                if (otherVenueAutocompleteRef.current !== null) {
+                if (placeAutocompleteElementRef.current !== null) {
                     return;
                 }
 
-                const Autocomplete =
-                    window.google?.maps?.places?.Autocomplete;
-                if (!Autocomplete) {
+                const PlaceAutocompleteElement =
+                    window.google?.maps?.places?.PlaceAutocompleteElement;
+                if (!PlaceAutocompleteElement) {
                     throw new Error(
-                        'Google Maps Places autocomplete is unavailable.',
+                        'Google Maps PlaceAutocompleteElement is unavailable.',
                     );
                 }
 
-                const autocomplete = new Autocomplete(addressInput, {
-                    types: ['address'],
-                    fields: ['formatted_address'],
-                });
-                otherVenueAutocompleteRef.current = autocomplete;
-                autocomplete.addListener('place_changed', () => {
-                    const selectedPlace = autocomplete.getPlace();
-                    const formattedAddress =
-                        selectedPlace?.formatted_address?.trim() ?? '';
+                const autocompleteElement = new PlaceAutocompleteElement();
+                autocompleteElement.setAttribute(
+                    'aria-label',
+                    'Search and select venue address',
+                );
+                autocompleteElement.setAttribute(
+                    'placeholder',
+                    'Search venue address',
+                );
+                autocompleteElement.className =
+                    placeAutocompleteElementClassName;
+                autocompleteElement.style.colorScheme = 'light';
 
-                    if (formattedAddress !== '') {
-                        updateFormData('otherVenueAddress', formattedAddress);
+                selectListener = (event: Event) => {
+                    const placeEvent = event as Event & {
+                        place?: {
+                            formattedAddress?: string;
+                            formatted_address?: string;
+                            fetchFields?: (request: {
+                                fields: string[];
+                            }) => Promise<void>;
+                        };
+                        placePrediction?: {
+                            toPlace?: () => {
+                                formattedAddress?: string;
+                                formatted_address?: string;
+                                fetchFields?: (request: {
+                                    fields: string[];
+                                }) => Promise<void>;
+                            };
+                        };
+                        detail?: {
+                            place?: {
+                                formattedAddress?: string;
+                                formatted_address?: string;
+                                fetchFields?: (request: {
+                                    fields: string[];
+                                }) => Promise<void>;
+                            };
+                            placePrediction?: {
+                                toPlace?: () => {
+                                    formattedAddress?: string;
+                                    formatted_address?: string;
+                                    fetchFields?: (request: {
+                                        fields: string[];
+                                    }) => Promise<void>;
+                                };
+                            };
+                        };
+                    };
+
+                    const place =
+                        placeEvent.place ??
+                        placeEvent.detail?.place ??
+                        placeEvent.placePrediction?.toPlace?.() ??
+                        placeEvent.detail?.placePrediction?.toPlace?.();
+
+                    if (!place) {
+                        return;
                     }
-                });
+
+                    if (typeof place.fetchFields === 'function') {
+                        void place
+                            .fetchFields({ fields: ['formattedAddress'] })
+                            .then(() =>
+                                applyFormattedAddressFromPlace(place),
+                            )
+                            .catch((error: unknown) => {
+                                console.error(
+                                    '[WorkRequest] Failed to fetch selected place fields',
+                                    error,
+                                );
+                                applyFormattedAddressFromPlace(place);
+                            });
+                        return;
+                    }
+
+                    applyFormattedAddressFromPlace(place);
+                };
+
+                errorListener = () => {
+                    setAutocompleteScriptFailed(true);
+                };
+
+                autocompleteElement.addEventListener(
+                    'gmp-select',
+                    selectListener,
+                );
+                autocompleteElement.addEventListener(
+                    'gmp-placeselect',
+                    selectListener,
+                );
+                autocompleteElement.addEventListener('gmp-error', errorListener);
+
+                container.replaceChildren(autocompleteElement);
+                placeAutocompleteElementRef.current = autocompleteElement;
 
                 setAutocompleteScriptFailed(false);
             })
@@ -175,25 +294,50 @@ export function EventDetails({
         return () => {
             isMounted = false;
 
-            if (
-                otherVenueAutocompleteRef.current &&
-                window.google?.maps?.event?.clearInstanceListeners
-            ) {
-                window.google.maps.event.clearInstanceListeners(
-                    otherVenueAutocompleteRef.current,
-                );
+            if (placeAutocompleteElementRef.current) {
+                if (selectListener) {
+                    placeAutocompleteElementRef.current.removeEventListener(
+                        'gmp-select',
+                        selectListener,
+                    );
+                    placeAutocompleteElementRef.current.removeEventListener(
+                        'gmp-placeselect',
+                        selectListener,
+                    );
+                }
+
+                if (errorListener) {
+                    placeAutocompleteElementRef.current.removeEventListener(
+                        'gmp-error',
+                        errorListener,
+                    );
+                }
+
+                placeAutocompleteElementRef.current.remove();
             }
 
-            otherVenueAutocompleteRef.current = null;
+            placeAutocompleteElementRef.current = null;
+            container.replaceChildren();
         };
-    }, [formData.venueType, updateFormData]);
+    }, [
+        applyFormattedAddressFromPlace,
+        placeAutocompleteElementClassName,
+        shouldRenderPlacesAutocomplete,
+    ]);
+
+    useEffect(() => {
+        if (placeAutocompleteElementRef.current) {
+            placeAutocompleteElementRef.current.className =
+                placeAutocompleteElementClassName;
+        }
+    }, [placeAutocompleteElementClassName]);
 
     const venueAddressAutocompleteMessage =
         formData.venueType !== 'Other'
             ? null
-            : !googleMapsPlacesEnabled()
+            : !placesAutocompleteConfigured
               ? 'Address autocomplete is unavailable because the Google Maps API key is not configured.'
-              : autocompleteScriptFailed
+            : autocompleteScriptFailed
                 ? 'Address autocomplete could not load. You can still type the venue address manually.'
                 : null;
 
@@ -723,7 +867,12 @@ export function EventDetails({
                     options={['JG Venue', 'Other']}
                     columns={2}
                     value={formData.venueType}
-                    onChange={(value) => updateFormData('venueType', value)}
+                    onChange={(value) => {
+                        updateFormData('venueType', value);
+                        if (value !== 'Other') {
+                            setUseManualVenueAddressEntry(false);
+                        }
+                    }}
                     error={errors.venueType}
                 />
             </div>
@@ -776,18 +925,73 @@ export function EventDetails({
                         labelBackgroundClassName="bg-slate-50"
                     />
 
-                    <FloatingLabelInput
-                        id="other-venue-address"
-                        label="Venue Address"
-                        required
-                        inputRef={otherVenueAddressRef}
-                        value={formData.otherVenueAddress}
-                        onChange={(e) =>
-                            updateFormData('otherVenueAddress', e.target.value)
-                        }
-                        error={errors.otherVenueAddress}
-                        labelBackgroundClassName="bg-slate-50"
-                    />
+                    {shouldRenderPlacesAutocomplete && (
+                        <div className="space-y-2">
+                            <div className="flex items-center justify-between gap-3">
+                                <Label className="text-sm font-medium text-slate-700">
+                                    Venue Address <Required />
+                                </Label>
+                                <button
+                                    type="button"
+                                    className="text-xs font-medium text-blue-600 hover:underline"
+                                    onClick={() =>
+                                        setUseManualVenueAddressEntry(true)
+                                    }
+                                >
+                                    Enter manually
+                                </button>
+                            </div>
+                            <div
+                                ref={placeAutocompleteContainerRef}
+                                className="min-h-12"
+                            />
+                            {formData.otherVenueAddress.trim() !== '' ? (
+                                <p className="text-xs text-slate-500">
+                                    Selected address:{' '}
+                                    {formData.otherVenueAddress}
+                                </p>
+                            ) : (
+                                <p className="text-xs text-slate-500">
+                                    Start typing and choose a venue address from
+                                    the suggestions.
+                                </p>
+                            )}
+                            <FieldError error={errors.otherVenueAddress} />
+                        </div>
+                    )}
+
+                    {shouldRenderManualVenueAddressInput && (
+                        <div className="space-y-2">
+                            <FloatingLabelInput
+                                id="other-venue-address"
+                                label="Venue Address"
+                                required
+                                value={formData.otherVenueAddress}
+                                onChange={(e) =>
+                                    updateFormData(
+                                        'otherVenueAddress',
+                                        e.target.value,
+                                    )
+                                }
+                                error={errors.otherVenueAddress}
+                                labelBackgroundClassName="bg-slate-50"
+                            />
+                            {canUsePlacesAutocomplete &&
+                            useManualVenueAddressEntry ? (
+                                <div className="text-right">
+                                    <button
+                                        type="button"
+                                        className="text-xs font-medium text-blue-600 hover:underline"
+                                        onClick={() =>
+                                            setUseManualVenueAddressEntry(false)
+                                        }
+                                    >
+                                        Use autocomplete instead
+                                    </button>
+                                </div>
+                            ) : null}
+                        </div>
+                    )}
                     {venueAddressAutocompleteMessage ? (
                         <p className="text-xs text-slate-500">
                             {venueAddressAutocompleteMessage}

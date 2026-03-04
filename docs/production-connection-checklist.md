@@ -45,6 +45,7 @@ php artisan view:cache
 ```bash
 php artisan about
 php artisan route:list --path=work-request
+php artisan mail:health-check
 ```
 
 Then open the site and verify login/session + form submission flow.
@@ -58,3 +59,11 @@ php artisan queue:restart
 ```
 
 Use Supervisor/systemd to keep workers alive.
+
+## 6. Send live mail test
+
+Before go-live, send a real mail test:
+
+```bash
+php artisan mail:health-check --send-to=ops@example.com
+```

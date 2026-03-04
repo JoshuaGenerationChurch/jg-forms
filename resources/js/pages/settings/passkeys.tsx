@@ -58,8 +58,8 @@ export default function Passkeys({ credentials }: Props) {
     };
 
     const breadcrumbs = [
-        { label: 'Settings', href: '/settings' },
-        { label: 'Passkeys', href: '/settings/passkeys' },
+        { title: 'Settings', href: '/settings' },
+        { title: 'Passkeys', href: '/settings/passkeys' },
     ];
 
     return (

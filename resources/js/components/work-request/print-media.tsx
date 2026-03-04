@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
@@ -14,6 +15,13 @@ import {
 import type { FormPageProps } from './types';
 
 type MultiSelectField = 'printHubs' | 'printCongregations';
+const limitedEventRegistrationPrintTypeOptions = [
+    'Congregational Flyer Handouts (A5: 148 x 210 mm)',
+    'Congregational Flyer Handouts (A6: 105 x 148 mm)',
+    'Posters (A3: 297 x 420 mm)',
+    'Posters (A4: 210 x 297 mm)',
+    'Invite/ Evangelism Cards (business card size)',
+];
 
 export function PrintMedia({
     formData,
@@ -23,14 +31,71 @@ export function PrintMedia({
     isDirectoryLoading = false,
     directoryWarning = null,
 }: FormPageProps) {
+    const isEventOrRegistrationPrintFlow =
+        formData.includesDatesVenue || formData.includesRegistration;
+    const isEventAndRegistrationPrintFlow =
+        formData.includesDatesVenue && formData.includesRegistration;
     const shouldUseEventReachScope =
-        formData.includesDatesVenue && formData.eventReach !== '';
+        isEventOrRegistrationPrintFlow && formData.eventReach !== '';
     const effectivePrintScope = shouldUseEventReachScope
         ? formData.eventReach
         : formData.printScope;
+    const effectivePrintTypeOptions = isEventAndRegistrationPrintFlow
+        ? limitedEventRegistrationPrintTypeOptions
+        : printTypeOptions;
 
     const availableHubs = directoryOptions?.hubs ?? [];
     const availableCongregations = directoryOptions?.congregations ?? [];
+
+    useEffect(() => {
+        if (shouldUseEventReachScope) {
+            if (formData.printScope !== '') {
+                updateFormData('printScope', '');
+            }
+
+            if (formData.printHubs.length > 0) {
+                updateFormData('printHubs', []);
+            }
+
+            if (formData.printCongregations.length > 0) {
+                updateFormData('printCongregations', []);
+            }
+        }
+
+        if (isEventAndRegistrationPrintFlow) {
+            const allowed = new Set(limitedEventRegistrationPrintTypeOptions);
+            const filteredTypes = formData.printTypes.filter((type) =>
+                allowed.has(type),
+            );
+            if (filteredTypes.length !== formData.printTypes.length) {
+                updateFormData('printTypes', filteredTypes);
+            }
+
+            if (
+                !allowed.has('Coffee Cup Sleeves (One size)') &&
+                formData.printCoffeeCupSleevesQty !== ''
+            ) {
+                updateFormData('printCoffeeCupSleevesQty', '');
+            }
+
+            if (
+                !allowed.has('Visitor Coffee Voucher Card') &&
+                formData.printVisitorCoffeeVoucherCardQty !== ''
+            ) {
+                updateFormData('printVisitorCoffeeVoucherCardQty', '');
+            }
+        }
+    }, [
+        formData.printCoffeeCupSleevesQty,
+        formData.printCongregations,
+        formData.printHubs,
+        formData.printScope,
+        formData.printTypes,
+        formData.printVisitorCoffeeVoucherCardQty,
+        isEventAndRegistrationPrintFlow,
+        shouldUseEventReachScope,
+        updateFormData,
+    ]);
 
     const toggleSelection = (
         field: MultiSelectField,
@@ -223,7 +288,7 @@ export function PrintMedia({
                 </div>
             )}
 
-            {effectivePrintScope === 'Hubs' && (
+            {!shouldUseEventReachScope && effectivePrintScope === 'Hubs' && (
                 <div>
                     <Label className="text-sm font-medium text-slate-700">
                         Which hubs is this for? <Required />
@@ -252,33 +317,39 @@ export function PrintMedia({
                 </div>
             )}
 
-            {effectivePrintScope === 'Congregations' && (
+            {!shouldUseEventReachScope &&
+                effectivePrintScope === 'Congregations' && (
                 <div>
-                    <Label className="text-sm font-medium text-slate-700">
+                    <Label
+                        htmlFor="print-congregation"
+                        className="text-sm font-medium text-slate-700"
+                    >
                         Which congregations is this for? <Required />
                     </Label>
-                    <div className="mt-2 grid gap-2 text-sm text-slate-700 md:grid-cols-2">
+                    <select
+                        id="print-congregation"
+                        aria-invalid={Boolean(errors.printCongregations)}
+                        className={`${selectBase} ${
+                            errors.printCongregations
+                                ? 'border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500'
+                                : ''
+                        }`}
+                        value={formData.printCongregations[0] ?? ''}
+                        onChange={(event) => {
+                            const value = event.target.value;
+                            updateFormData(
+                                'printCongregations',
+                                value ? [value] : [],
+                            );
+                        }}
+                    >
+                        <option value="">Select a congregation</option>
                         {availableCongregations.map((congregation) => (
-                            <label
-                                key={congregation}
-                                className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2"
-                            >
-                                <Checkbox
-                                    checked={formData.printCongregations.includes(
-                                        congregation,
-                                    )}
-                                    onCheckedChange={(checked) =>
-                                        toggleSelection(
-                                            'printCongregations',
-                                            congregation,
-                                            Boolean(checked),
-                                        )
-                                    }
-                                />
-                                <span>{congregation}</span>
-                            </label>
+                            <option key={congregation} value={congregation}>
+                                {congregation}
+                            </option>
                         ))}
-                    </div>
+                    </select>
                     <FieldError error={errors.printCongregations} />
                 </div>
             )}
@@ -296,7 +367,7 @@ export function PrintMedia({
                     Print <Required />
                 </Label>
                 <div className="mt-2 grid grid-cols-2 gap-3 text-sm text-slate-700">
-                    {printTypeOptions.map((type) => {
+                    {effectivePrintTypeOptions.map((type) => {
                         const isSelected = formData.printTypes.includes(type);
                         const quantityField = isSelected
                             ? renderQuantityField(type)
@@ -355,38 +426,6 @@ export function PrintMedia({
                 <FieldError error={errors.printTypes} />
             </div>
 
-            <div>
-                <Label className="text-sm font-medium text-slate-700">
-                    Terms & Conditions <Required />
-                </Label>
-                <label className="mt-2 flex items-center gap-2 text-sm text-slate-700">
-                    <Checkbox
-                        checked={formData.termsAccepted}
-                        onCheckedChange={(checked) =>
-                            updateFormData('termsAccepted', checked as boolean)
-                        }
-                    />
-                    <span>
-                        I agree to the{' '}
-                        <a
-                            href="/terms-conditions/"
-                            target="_blank"
-                            className="text-blue-600 hover:underline"
-                        >
-                            Ts & Cs
-                        </a>{' '}
-                        and the{' '}
-                        <a
-                            href="/privacy-policy"
-                            target="_blank"
-                            className="text-blue-600 hover:underline"
-                        >
-                            Privacy Policy
-                        </a>
-                    </span>
-                </label>
-                <FieldError error={errors.termsAccepted} />
-            </div>
         </div>
     );
 }

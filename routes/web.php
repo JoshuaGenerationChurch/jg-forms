@@ -4,6 +4,9 @@ use App\Http\Controllers\WorkRequest\DigitalMediaOptionsController;
 use App\Http\Controllers\WorkRequest\WorkFormController;
 use App\Http\Controllers\WorkRequest\WorkFormEmailTemplateController;
 use App\Http\Controllers\WorkRequest\WorkRequestEntryController;
+use App\Http\Controllers\ContactUsController;
+use App\Models\WorkForm;
+use App\Models\WorkRequestEntry;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -43,6 +46,12 @@ Route::post('work-request/entries', [WorkRequestEntryController::class, 'storePu
 Route::get('work-request/digital-media-options', DigitalMediaOptionsController::class)
     ->name('work-request.digital-media-options');
 
+Route::get('contact-us', [ContactUsController::class, 'create'])
+    ->name('contact-us');
+
+Route::post('contact-us', [ContactUsController::class, 'store'])
+    ->name('contact-us.store');
+
 if ($webauthnAvailable) {
     // WebAuthn guest routes (for login)
     Route::middleware(['web', 'guest'])->group(function () use ($webauthnAuthenticateController) {
@@ -55,14 +64,46 @@ if ($webauthnAvailable) {
 
 Route::middleware(['auth', 'verified'])->group(function () use ($webauthnAvailable, $webauthnKeyController) {
     Route::get('dashboard', function () {
-        return Inertia::render('dashboard');
+        $forms = WorkForm::query()
+            ->orderBy('id')
+            ->get(['slug', 'title', 'is_active']);
+
+        $entriesBySlug = WorkRequestEntry::query()
+            ->selectRaw('form_slug, COUNT(*) as count')
+            ->groupBy('form_slug')
+            ->pluck('count', 'form_slug');
+
+        $recentEntries = WorkRequestEntry::query()
+            ->latest()
+            ->limit(8)
+            ->get(['id', 'form_slug', 'event_name', 'congregation', 'created_at'])
+            ->map(static fn (WorkRequestEntry $entry): array => [
+                'id' => $entry->id,
+                'formSlug' => $entry->form_slug,
+                'eventName' => $entry->event_name,
+                'congregation' => $entry->congregation,
+                'createdAt' => $entry->created_at?->toIso8601String(),
+            ])
+            ->values();
+
+        return Inertia::render('dashboard', [
+            'metrics' => [
+                'totalForms' => $forms->count(),
+                'activeForms' => $forms->where('is_active', true)->count(),
+                'inactiveForms' => $forms->where('is_active', false)->count(),
+                'totalEntries' => WorkRequestEntry::query()->count(),
+            ],
+            'formsSummary' => $forms->map(static function (WorkForm $form) use ($entriesBySlug): array {
+                return [
+                    'slug' => $form->slug,
+                    'title' => $form->title,
+                    'isActive' => $form->is_active,
+                    'entryCount' => (int) ($entriesBySlug[$form->slug] ?? 0),
+                ];
+            })->values(),
+            'recentEntries' => $recentEntries,
+        ]);
     })->name('dashboard');
-
-    Route::get('work-request/entries', [WorkRequestEntryController::class, 'index'])
-        ->name('work-request.entries.index');
-
-    Route::get('work-request/entries/{entry}', [WorkRequestEntryController::class, 'show'])
-        ->name('work-request.entries.show');
 
     if ($webauthnAvailable) {
         // WebAuthn authenticated routes (for registration and management)

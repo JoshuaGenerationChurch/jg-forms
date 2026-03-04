@@ -201,3 +201,80 @@
         animation-delay: 4s;
     }
 }
+
+@layer components {
+    .jg-place-autocomplete-element {
+        display: block;
+        width: 100%;
+        color-scheme: light;
+        min-height: 3rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 0.5rem;
+        background-color: rgba(248, 250, 252, 0.5);
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+        padding: 0.25rem 0.75rem;
+        transition:
+            border-color 150ms ease,
+            box-shadow 150ms ease;
+        font-family:
+            'Instrument Sans', ui-sans-serif, system-ui, sans-serif,
+            'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
+            'Noto Color Emoji';
+        --gmpx-color-surface: rgba(248, 250, 252, 0.5);
+        --gmpx-color-on-surface: #0f172a;
+        --gmpx-color-on-surface-variant: #475569;
+        --gmpx-color-primary: #3b82f6;
+        --gmpx-color-outline: #e2e8f0;
+        --gmpx-color-primary-container: #dbeafe;
+        --gmpx-font-size-base: 14px;
+        --gmpx-border-radius: 0.5rem;
+    }
+
+    .jg-place-autocomplete-element::part(container),
+    .jg-place-autocomplete-element::part(content),
+    .jg-place-autocomplete-element::part(input-container),
+    .jg-place-autocomplete-element::part(input-wrapper) {
+        background-color: transparent;
+        border: 0;
+        box-shadow: none;
+        margin: 0;
+        padding: 0;
+    }
+
+    .jg-place-autocomplete-element::part(input) {
+        min-height: 2.5rem;
+        width: 100%;
+        border: 0;
+        background-color: transparent;
+        padding: 0;
+        font-size: 0.875rem;
+        color: rgb(15 23 42);
+        box-shadow: none;
+        outline: none;
+    }
+
+    .jg-place-autocomplete-element::part(input):focus {
+        box-shadow: none;
+        outline: none;
+    }
+
+    .jg-place-autocomplete-element::part(input)::placeholder {
+        color: rgb(100 116 139);
+    }
+
+    .jg-place-autocomplete-element::part(leading-icon),
+    .jg-place-autocomplete-element::part(clear-button),
+    .jg-place-autocomplete-element::part(trailing-button) {
+        color: rgb(100 116 139);
+    }
+
+    .jg-place-autocomplete-element:focus-within {
+        border-color: #60a5fa;
+        box-shadow: 0 0 0 1px #60a5fa;
+    }
+
+    .jg-place-autocomplete-element--invalid {
+        border-color: #ef4444;
+        box-shadow: 0 0 0 1px #ef4444;
+    }
+}

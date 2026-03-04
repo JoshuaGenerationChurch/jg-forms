@@ -723,20 +723,37 @@ export function validateSignage(formData: FormData): ValidationErrors {
 // Validate print media page
 export function validatePrintMedia(formData: FormData): ValidationErrors {
     const errors: ValidationErrors = {};
-    const effectivePrintScope =
-        formData.includesDatesVenue && formData.eventReach !== ''
-            ? formData.eventReach
-            : formData.printScope;
+    const isEventOrRegistrationPrintFlow =
+        formData.includesDatesVenue || formData.includesRegistration;
+    const isEventAndRegistrationPrintFlow =
+        formData.includesDatesVenue && formData.includesRegistration;
+    const shouldUseEventReachScope =
+        isEventOrRegistrationPrintFlow && formData.eventReach !== '';
+    const effectivePrintScope = shouldUseEventReachScope
+        ? formData.eventReach
+        : formData.printScope;
+    const limitedEventRegistrationPrintTypeOptions = new Set([
+        'Congregational Flyer Handouts (A5: 148 x 210 mm)',
+        'Congregational Flyer Handouts (A6: 105 x 148 mm)',
+        'Posters (A3: 297 x 420 mm)',
+        'Posters (A4: 210 x 297 mm)',
+        'Invite/ Evangelism Cards (business card size)',
+    ]);
 
-    if (!effectivePrintScope) {
+    if (!shouldUseEventReachScope && !effectivePrintScope) {
         errors.printScope = 'Please select a scope';
     }
 
-    if (effectivePrintScope === 'Hubs' && formData.printHubs.length === 0) {
+    if (
+        !shouldUseEventReachScope &&
+        effectivePrintScope === 'Hubs' &&
+        formData.printHubs.length === 0
+    ) {
         errors.printHubs = 'Please select at least one hub';
     }
 
     if (
+        !shouldUseEventReachScope &&
         effectivePrintScope === 'Congregations' &&
         formData.printCongregations.length === 0
     ) {
@@ -745,6 +762,16 @@ export function validatePrintMedia(formData: FormData): ValidationErrors {
 
     if (formData.printTypes.length === 0) {
         errors.printTypes = 'Please select at least one print type';
+    }
+
+    if (
+        isEventAndRegistrationPrintFlow &&
+        formData.printTypes.some(
+            (type) => !limitedEventRegistrationPrintTypeOptions.has(type),
+        )
+    ) {
+        errors.printTypes =
+            'Only flyers, posters, and invite cards are available for event and registration requests';
     }
 
     // Validate quantities for selected types
@@ -805,10 +832,6 @@ export function validatePrintMedia(formData: FormData): ValidationErrors {
         if (!formData.printOtherQty) {
             errors.printOtherQty = 'Other print quantity is required';
         }
-    }
-
-    if (!formData.termsAccepted) {
-        errors.termsAccepted = 'You must accept the terms and conditions';
     }
 
     return errors;

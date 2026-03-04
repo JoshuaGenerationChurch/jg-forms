@@ -6,18 +6,19 @@ import type {
 } from '@/types/webauthn';
 
 /**
- * Convert base64url string to Uint8Array
+ * Convert base64url string to ArrayBuffer
  */
-function base64urlToBuffer(base64url: string): Uint8Array {
+function base64urlToBuffer(base64url: string): ArrayBuffer {
     const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/');
     const padLength = (4 - (base64.length % 4)) % 4;
     const padded = base64 + '='.repeat(padLength);
     const binary = atob(padded);
-    const bytes = new Uint8Array(binary.length);
+    const buffer = new ArrayBuffer(binary.length);
+    const bytes = new Uint8Array(buffer);
     for (let i = 0; i < binary.length; i++) {
         bytes[i] = binary.charCodeAt(i);
     }
-    return bytes;
+    return buffer;
 }
 
 /**
@@ -40,7 +41,7 @@ function bufferToBase64url(buffer: ArrayBuffer): string {
  */
 function jsonToCreationOptions(
     json: PublicKeyCredentialCreationOptionsJSON,
-): PublicKeyCredentialCreationOptions {
+): CredentialCreationOptions {
     return {
         publicKey: {
             ...json.publicKey,
@@ -51,11 +52,11 @@ function jsonToCreationOptions(
             },
             excludeCredentials: json.publicKey.excludeCredentials?.map(
                 (cred) => ({
-                    ...cred,
+                    type: 'public-key' as const,
                     id: base64urlToBuffer(cred.id),
                 }),
             ),
-        },
+        } as PublicKeyCredentialCreationOptions,
     };
 }
 
@@ -64,16 +65,16 @@ function jsonToCreationOptions(
  */
 function jsonToRequestOptions(
     json: PublicKeyCredentialRequestOptionsJSON,
-): PublicKeyCredentialRequestOptions {
+): CredentialRequestOptions {
     return {
         publicKey: {
             ...json.publicKey,
             challenge: base64urlToBuffer(json.publicKey.challenge),
             allowCredentials: json.publicKey.allowCredentials?.map((cred) => ({
-                ...cred,
+                type: 'public-key' as const,
                 id: base64urlToBuffer(cred.id),
             })),
-        },
+        } as PublicKeyCredentialRequestOptions,
     };
 }
 

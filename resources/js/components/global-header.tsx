@@ -3,12 +3,14 @@ import { cn } from '@/lib/utils';
 
 type GlobalHeaderProps = {
     homeHref?: string;
+    contactHref?: string;
     showContactUs?: boolean;
     variant?: 'default' | 'public';
 };
 
 export function GlobalHeader({
     homeHref = '/',
+    contactHref = '/contact-us',
     showContactUs = true,
     variant = 'default',
 }: GlobalHeaderProps) {
@@ -44,9 +46,8 @@ export function GlobalHeader({
                 </Link>
 
                 {showContactUs ? (
-                    <a
-                        href="#"
-                        onClick={(event) => event.preventDefault()}
+                    <Link
+                        href={contactHref}
                         className={cn(
                             'text-sm font-medium transition-colors',
                             isPublic
@@ -55,7 +56,7 @@ export function GlobalHeader({
                         )}
                     >
                         Contact us
-                    </a>
+                    </Link>
                 ) : null}
             </div>
         </header>

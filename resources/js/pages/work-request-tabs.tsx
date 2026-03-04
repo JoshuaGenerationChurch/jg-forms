@@ -1,15 +1,19 @@
+import type { FormDataConvertible } from '@inertiajs/core';
 import { Head, Link, router } from '@inertiajs/react';
 import { ArrowLeft, Save } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { GlobalFooter } from '@/components/global-footer';
 import { GlobalHeader } from '@/components/global-header';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import {
     ContactDetails,
     DigitalMedia,
     type DirectoryOptions,
     EventDetails,
     EventRegistration,
+    FieldError,
     hasErrors,
     initialFormData,
     NatureOfRequest,
@@ -442,9 +446,16 @@ export default function WorkRequestTabs() {
         if (!currentStep) return;
 
         const pageErrors = validatePage(currentStep.id, formData);
-        setErrors(pageErrors);
+        const nextErrors: ValidationErrors = { ...pageErrors };
 
-        if (hasErrors(pageErrors)) {
+        if (!formData.termsAccepted) {
+            nextErrors.termsAccepted =
+                'You must accept the terms and conditions';
+        }
+
+        setErrors(nextErrors);
+
+        if (hasErrors(nextErrors)) {
             window.scrollTo({ top: 0, behavior: 'smooth' });
             return;
         }
@@ -467,14 +478,16 @@ export default function WorkRequestTabs() {
             }
         }
 
-        router.post(
-            '/work-request/entries',
-            {
-                formSlug: 'work-request',
-                payload: formData,
-                recaptchaToken,
-            },
-            {
+        const requestData: Record<string, FormDataConvertible> = {
+            formSlug: 'work-request',
+            payload: formData as unknown as FormDataConvertible,
+        };
+
+        if (recaptchaToken) {
+            requestData.recaptchaToken = recaptchaToken;
+        }
+
+        router.post('/work-request/entries', requestData, {
                 preserveScroll: true,
                 onStart: () => setIsSubmitting(true),
                 onSuccess: () => {
@@ -489,8 +502,7 @@ export default function WorkRequestTabs() {
                     setErrors((serverErrors ?? {}) as ValidationErrors);
                 },
                 onFinish: () => setIsSubmitting(false),
-            },
-        );
+            });
     }, [currentStep, formData, isLastStep]);
 
     const handlePrevious = useCallback(() => {
@@ -556,6 +568,27 @@ export default function WorkRequestTabs() {
                             <div role="tabpanel" className="mt-8">
                                 {currentStep?.content}
                             </div>
+
+                            {isLastStep ? (
+                                <div className="mt-8 rounded-lg border border-slate-200 bg-slate-50/70 p-4">
+                                    <Label className="flex cursor-pointer items-start gap-3 text-sm text-slate-700">
+                                        <Checkbox
+                                            checked={formData.termsAccepted}
+                                            onCheckedChange={(checked) =>
+                                                updateFormData(
+                                                    'termsAccepted',
+                                                    Boolean(checked),
+                                                )
+                                            }
+                                            className="mt-0.5"
+                                        />
+                                        <span>
+                                            I accept the terms and conditions.
+                                        </span>
+                                    </Label>
+                                    <FieldError error={errors.termsAccepted} />
+                                </div>
+                            ) : null}
 
                             <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
                                 <div className="flex flex-wrap items-center gap-3">

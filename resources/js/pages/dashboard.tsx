@@ -2,7 +2,6 @@ import { Head, Link } from '@inertiajs/react';
 import { Check, Copy, ExternalLink } from 'lucide-react';
 import { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { PlaceholderPattern } from '@/components/ui/placeholder-pattern';
 import AppLayout from '@/layouts/app-layout';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem } from '@/types';
@@ -14,7 +13,35 @@ const breadcrumbs: BreadcrumbItem[] = [
     },
 ];
 
-export default function Dashboard() {
+type MetricCards = {
+    totalForms: number;
+    activeForms: number;
+    inactiveForms: number;
+    totalEntries: number;
+};
+
+type FormSummary = {
+    slug: string;
+    title: string;
+    isActive: boolean;
+    entryCount: number;
+};
+
+type RecentEntry = {
+    id: number;
+    formSlug: string;
+    eventName: string | null;
+    congregation: string | null;
+    createdAt: string | null;
+};
+
+type Props = {
+    metrics: MetricCards;
+    formsSummary: FormSummary[];
+    recentEntries: RecentEntry[];
+};
+
+export default function Dashboard({ metrics, formsSummary, recentEntries }: Props) {
     const [copyState, setCopyState] = useState<'idle' | 'copied' | 'error'>(
         'idle',
     );
@@ -147,19 +174,115 @@ export default function Dashboard() {
                         </Button>
                     </div>
                 </div>
-                <div className="grid auto-rows-min gap-4 md:grid-cols-3">
-                    <div className="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
-                        <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
+                <div className="grid gap-4 md:grid-cols-4">
+                    <div className="rounded-xl border border-slate-200 bg-white p-4">
+                        <p className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
+                            Total Forms
+                        </p>
+                        <p className="mt-2 text-2xl font-semibold text-slate-900">
+                            {metrics.totalForms}
+                        </p>
                     </div>
-                    <div className="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
-                        <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
+                    <div className="rounded-xl border border-slate-200 bg-white p-4">
+                        <p className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
+                            Active Forms
+                        </p>
+                        <p className="mt-2 text-2xl font-semibold text-emerald-700">
+                            {metrics.activeForms}
+                        </p>
                     </div>
-                    <div className="relative aspect-video overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
-                        <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
+                    <div className="rounded-xl border border-slate-200 bg-white p-4">
+                        <p className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
+                            Inactive Forms
+                        </p>
+                        <p className="mt-2 text-2xl font-semibold text-slate-900">
+                            {metrics.inactiveForms}
+                        </p>
+                    </div>
+                    <div className="rounded-xl border border-slate-200 bg-white p-4">
+                        <p className="text-xs font-semibold tracking-wide text-slate-500 uppercase">
+                            Total Entries
+                        </p>
+                        <p className="mt-2 text-2xl font-semibold text-slate-900">
+                            {metrics.totalEntries}
+                        </p>
                     </div>
                 </div>
-                <div className="relative min-h-[320px] flex-1 overflow-hidden rounded-xl border border-sidebar-border/70 dark:border-sidebar-border">
-                    <PlaceholderPattern className="absolute inset-0 size-full stroke-neutral-900/20 dark:stroke-neutral-100/20" />
+
+                <div className="grid gap-4 xl:grid-cols-2">
+                    <div className="rounded-xl border border-slate-200 bg-white p-4">
+                        <h3 className="text-sm font-semibold text-slate-800">
+                            Forms Overview
+                        </h3>
+                        <div className="mt-3 space-y-2">
+                            {formsSummary.map((form) => (
+                                <div
+                                    key={form.slug}
+                                    className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2"
+                                >
+                                    <div>
+                                        <p className="text-sm font-medium text-slate-900">
+                                            {form.title}
+                                        </p>
+                                        <p className="text-xs text-slate-500">
+                                            {form.slug}
+                                        </p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-sm font-semibold text-slate-900">
+                                            {form.entryCount}
+                                        </p>
+                                        <p
+                                            className={`text-xs ${
+                                                form.isActive
+                                                    ? 'text-emerald-700'
+                                                    : 'text-slate-500'
+                                            }`}
+                                        >
+                                            {form.isActive
+                                                ? 'Active'
+                                                : 'Inactive'}
+                                        </p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="rounded-xl border border-slate-200 bg-white p-4">
+                        <h3 className="text-sm font-semibold text-slate-800">
+                            Recent Entries
+                        </h3>
+                        <div className="mt-3 space-y-2">
+                            {recentEntries.length === 0 ? (
+                                <p className="rounded-lg border border-dashed border-slate-300 px-3 py-6 text-center text-sm text-slate-500">
+                                    No entries yet.
+                                </p>
+                            ) : (
+                                recentEntries.map((entry) => (
+                                    <div
+                                        key={entry.id}
+                                        className="rounded-lg border border-slate-200 px-3 py-2"
+                                    >
+                                        <p className="text-sm font-medium text-slate-900">
+                                            {entry.eventName?.trim() ||
+                                                `Entry #${entry.id}`}
+                                        </p>
+                                        <p className="text-xs text-slate-500">
+                                            {entry.formSlug} •{' '}
+                                            {entry.congregation || 'No congregation'}{' '}
+                                            •{' '}
+                                            {entry.createdAt
+                                                ? new Date(
+                                                      entry.createdAt,
+                                                  ).toLocaleString()
+                                                : 'Unknown date'}
+                                        </p>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
                 </div>
             </div>
         </AppLayout>

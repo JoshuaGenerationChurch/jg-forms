@@ -1,5 +1,20 @@
 type GoogleAutocompletePlace = {
+    formattedAddress?: string;
     formatted_address?: string;
+    fetchFields?: (request: { fields: string[] }) => Promise<void>;
+};
+
+type GooglePlacePrediction = {
+    toPlace: () => GoogleAutocompletePlace;
+};
+
+type GooglePlaceSelectEvent = Event & {
+    place?: GoogleAutocompletePlace;
+    placePrediction?: GooglePlacePrediction;
+    detail?: {
+        place?: GoogleAutocompletePlace;
+        placePrediction?: GooglePlacePrediction;
+    };
 };
 
 type GoogleAutocompleteInstance = {
@@ -11,7 +26,16 @@ declare global {
     interface Window {
         google?: {
             maps?: {
+                importLibrary?: (libraryName: string) => Promise<unknown>;
                 places?: {
+                    PlaceAutocompleteElement?: new (options?: {
+                        includedRegionCodes?: string[];
+                        includedPrimaryTypes?: string[];
+                    }) => HTMLElement;
+                    PlaceSelectEvent?: new (
+                        type: string,
+                        eventInitDict?: CustomEventInit,
+                    ) => GooglePlaceSelectEvent;
                     Autocomplete: new (
                         inputField: HTMLInputElement,
                         options?: {
@@ -37,12 +61,15 @@ const GOOGLE_MAPS_API_KEY = (
 const GOOGLE_MAPS_SCRIPT_ID = 'google-maps-places-api-script';
 const GOOGLE_MAPS_READY_TIMEOUT_MS = 5000;
 
-function hasPlacesAutocomplete(): boolean {
-    return Boolean(window.google?.maps?.places?.Autocomplete);
+function hasPlacesLibrary(): boolean {
+    return Boolean(
+        window.google?.maps?.places?.PlaceAutocompleteElement ||
+            window.google?.maps?.places?.Autocomplete,
+    );
 }
 
 async function waitForPlacesLibraryReady(): Promise<void> {
-    if (hasPlacesAutocomplete()) {
+    if (hasPlacesLibrary()) {
         return;
     }
 
@@ -51,7 +78,7 @@ async function waitForPlacesLibraryReady(): Promise<void> {
         | undefined;
     if (importLibrary) {
         await importLibrary('places');
-        if (hasPlacesAutocomplete()) {
+        if (hasPlacesLibrary()) {
             return;
         }
     }
@@ -59,7 +86,7 @@ async function waitForPlacesLibraryReady(): Promise<void> {
     const startedAt = Date.now();
     await new Promise<void>((resolve, reject) => {
         const tick = () => {
-            if (hasPlacesAutocomplete()) {
+            if (hasPlacesLibrary()) {
                 resolve();
                 return;
             }
@@ -85,7 +112,7 @@ export async function loadGoogleMapsPlacesApi(): Promise<void> {
         throw new Error('Google Maps API key is missing.');
     }
 
-    if (hasPlacesAutocomplete()) {
+    if (hasPlacesLibrary()) {
         return;
     }
 
@@ -126,7 +153,7 @@ export async function loadGoogleMapsPlacesApi(): Promise<void> {
             const script = document.createElement('script');
             script.id = GOOGLE_MAPS_SCRIPT_ID;
             script.src =
-                'https://maps.googleapis.com/maps/api/js?libraries=places&key=' +
+                'https://maps.googleapis.com/maps/api/js?libraries=places&loading=async&key=' +
                 encodeURIComponent(GOOGLE_MAPS_API_KEY);
             script.async = true;
             script.defer = true;

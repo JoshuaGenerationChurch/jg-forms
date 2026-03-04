@@ -3,20 +3,21 @@
 namespace App\Mail;
 
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class WorkFormTemplateNotificationMail extends Mailable implements ShouldQueue
+class MailHealthCheckMail extends Mailable
 {
     use Queueable, SerializesModels;
 
     public function __construct(
-        public string $subjectLine,
-        public string $heading,
-        public string $body,
+        public string $appName,
+        public string $appUrl,
+        public string $mailerName,
+        public string $transport,
+        public string $sentAt,
     ) {}
 
     /**
@@ -25,7 +26,7 @@ class WorkFormTemplateNotificationMail extends Mailable implements ShouldQueue
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: $this->subjectLine,
+            subject: '[JG Forms] Mail health check',
         );
     }
 
@@ -35,10 +36,13 @@ class WorkFormTemplateNotificationMail extends Mailable implements ShouldQueue
     public function content(): Content
     {
         return new Content(
-            view: 'emails.workforms.template-notification',
+            view: 'emails.mail-health-check',
             with: [
-                'heading' => $this->heading,
-                'body' => $this->body,
+                'appName' => $this->appName,
+                'appUrl' => $this->appUrl,
+                'mailer' => $this->mailerName,
+                'transport' => $this->transport,
+                'sentAt' => $this->sentAt,
             ],
         );
     }

@@ -40,6 +40,7 @@ export function ChristmasServiceTimesForm() {
     const {
         data,
         setData,
+        post,
         processing,
         errors,
         recentlySuccessful,
@@ -54,6 +55,7 @@ export function ChristmasServiceTimesForm() {
             notes: '',
             serviceTimes: [{ ...blankServiceTime }],
         });
+    const recaptchaError = (errors as Record<string, string>)['recaptcha'];
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const todayIsoDate = new Date(
@@ -129,7 +131,9 @@ export function ChristmasServiceTimesForm() {
         transform((values) => ({
             ...values,
             recaptchaToken,
-        })).post('/forms/christmas-holidays/entries', {
+        }));
+
+        post('/forms/christmas-holidays/entries', {
             preserveScroll: true,
             onFinish: () => {
                 transform((values) => values);
@@ -157,9 +161,9 @@ export function ChristmasServiceTimesForm() {
                         {recaptchaClientError}
                     </p>
                 ) : null}
-                {errors.recaptcha ? (
+                {recaptchaError ? (
                     <p className="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-                        {errors.recaptcha}
+                        {recaptchaError}
                     </p>
                 ) : null}
             </div>
