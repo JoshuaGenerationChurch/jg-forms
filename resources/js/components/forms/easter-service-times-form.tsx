@@ -5,7 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { dateInputBase } from '@/components/work-request/types';
+import {
+    dateInputBase,
+    selectBase,
+    textareaBase,
+} from '@/components/work-request/types';
 import {
     googleMapsPlacesEnabled,
     loadGoogleMapsPlacesApi,
@@ -15,6 +19,7 @@ import {
     executeRecaptcha,
     recaptchaEnabled,
 } from '@/lib/recaptcha';
+import { cn } from '@/lib/utils';
 
 type ServiceNameOption = 'good_friday' | 'easter_sunday' | 'custom';
 type VenueType = 'JG Venue' | 'Other';
@@ -68,10 +73,16 @@ const emptyDirectoryOptions: DirectoryOptions = {
 
 const languageOptions = ['English', 'Afrikaans'];
 
-const serviceOptionLabels: Record<Exclude<ServiceNameOption, 'custom'>, string> = {
-    good_friday: 'Good Friday (3 April 2026)',
-    easter_sunday: 'Easter Sunday (5 April 2026)',
-};
+const inputBase =
+    'h-12 w-full rounded-lg border-2 border-slate-200 bg-slate-100/50 px-4 text-sm text-slate-900 shadow-sm transition focus-visible:outline-none focus-visible:ring-1 focus-visible:border-blue-400 focus-visible:ring-blue-400 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-red-500 aria-invalid:focus-visible:border-red-500 aria-invalid:focus-visible:ring-red-500';
+
+const radioTileBase =
+    "relative flex cursor-pointer items-center rounded-lg border-2 border-slate-200 bg-slate-100/50 px-4 py-3 pl-11 text-sm shadow-sm transition before:absolute before:top-1/2 before:left-4 before:h-5 before:w-5 before:-translate-y-1/2 before:rounded-full before:border-2 before:border-slate-300 before:bg-white before:content-[''] after:absolute after:top-1/2 after:left-4 after:h-2 after:w-2 after:translate-x-[6px] after:-translate-y-1/2 after:rounded-full after:bg-white after:opacity-0 after:content-['']";
+
+const radioTileSelected =
+    'border-blue-400 bg-white font-semibold text-slate-900 before:border-blue-500 before:bg-blue-500 after:opacity-100';
+
+const inlineDateInputBase = dateInputBase.replace('mt-2 ', '');
 
 function sanitizeDirectoryList(values: unknown): string[] {
     if (!Array.isArray(values)) {
@@ -192,7 +203,7 @@ function VenueAddressAutocompleteInput({
                 value={value}
                 onChange={(event) => onChange(event.target.value)}
                 placeholder="Search venue address"
-                className={error ? 'border-red-500' : ''}
+                className={cn(inputBase, error ? 'border-red-500' : '')}
             />
             {autocompleteFailed ? (
                 <p className="text-xs text-slate-500">
@@ -483,6 +494,7 @@ export function EasterServiceTimesForm() {
                         id={`${formSlug}-first-name`}
                         value={data.firstName}
                         onChange={(event) => setData('firstName', event.target.value)}
+                        className={cn(inputBase, errors.firstName ? 'border-red-500' : '')}
                     />
                     {errors.firstName ? (
                         <p className="text-xs text-red-600">{errors.firstName}</p>
@@ -497,6 +509,7 @@ export function EasterServiceTimesForm() {
                         id={`${formSlug}-last-name`}
                         value={data.lastName}
                         onChange={(event) => setData('lastName', event.target.value)}
+                        className={cn(inputBase, errors.lastName ? 'border-red-500' : '')}
                     />
                     {errors.lastName ? (
                         <p className="text-xs text-red-600">{errors.lastName}</p>
@@ -509,7 +522,7 @@ export function EasterServiceTimesForm() {
                     </Label>
                     <select
                         id={`${formSlug}-congregation`}
-                        className={`h-12 w-full rounded-md border bg-white px-3 text-sm ${errors.congregation ? 'border-red-500' : 'border-input'}`}
+                        className={cn(selectBase, errors.congregation ? 'border-red-500' : '')}
                         value={data.congregation}
                         onChange={(event) => setData('congregation', event.target.value)}
                     >
@@ -539,6 +552,7 @@ export function EasterServiceTimesForm() {
                         value={data.cellphone}
                         onChange={(event) => setData('cellphone', event.target.value)}
                         placeholder="e.g. +27 82 000 0000"
+                        className={cn(inputBase, errors.cellphone ? 'border-red-500' : '')}
                     />
                     {errors.cellphone ? (
                         <p className="text-xs text-red-600">{errors.cellphone}</p>
@@ -555,6 +569,7 @@ export function EasterServiceTimesForm() {
                         value={data.email}
                         onChange={(event) => setData('email', event.target.value)}
                         placeholder="you@congregation.org"
+                        className={cn(inputBase, errors.email ? 'border-red-500' : '')}
                     />
                     {errors.email ? (
                         <p className="text-xs text-red-600">{errors.email}</p>
@@ -580,6 +595,12 @@ export function EasterServiceTimesForm() {
                 <div className="space-y-4">
                     {data.serviceTimes.map((service, index) => {
                         const isCustomService = service.serviceNameOption === 'custom';
+                        const lockedServiceName =
+                            service.serviceNameOption === 'good_friday'
+                                ? 'Good Friday (3 April 2026)'
+                                : service.serviceNameOption === 'easter_sunday'
+                                  ? 'Easter Sunday (5 April 2026)'
+                                  : '';
 
                         return (
                             <div
@@ -601,12 +622,12 @@ export function EasterServiceTimesForm() {
                                     </Button>
                                 </div>
 
-                                <div className="space-y-2">
-                                    <Label>
-                                        Service Name <span className="text-red-500">*</span>
-                                    </Label>
-                                    {isCustomService ? (
-                                        <div className="space-y-2">
+                                <div className="grid gap-3 md:grid-cols-2 md:items-center">
+                                    <div className="space-y-2 md:flex md:flex-col md:justify-center">
+                                        <Label>
+                                            Service Name <span className="text-red-500">*</span>
+                                        </Label>
+                                        {isCustomService ? (
                                             <Input
                                                 value={service.customServiceName}
                                                 onChange={(event) =>
@@ -617,75 +638,43 @@ export function EasterServiceTimesForm() {
                                                     )
                                                 }
                                                 placeholder="Enter custom service name"
-                                                className={
+                                                className={cn(
+                                                    inputBase,
                                                     serviceTimeError(
                                                         index,
                                                         'customServiceName',
                                                     )
                                                         ? 'border-red-500'
-                                                        : ''
-                                                }
+                                                        : '',
+                                                )}
                                             />
-                                            {serviceTimeError(
-                                                index,
-                                                'customServiceName',
-                                            ) ? (
-                                                <p className="text-xs text-red-600">
-                                                    {serviceTimeError(
-                                                        index,
-                                                        'customServiceName',
-                                                    )}
-                                                </p>
-                                            ) : null}
-                                        </div>
-                                    ) : (
-                                        <div className="grid gap-2 md:grid-cols-2">
-                                            {(
-                                                Object.entries(serviceOptionLabels) as Array<
-                                                    [
-                                                        Exclude<
-                                                            ServiceNameOption,
-                                                            'custom'
-                                                        >,
-                                                        string,
-                                                    ]
-                                                >
-                                            ).map(([value, label]) => (
-                                                <label
-                                                    key={`${formSlug}-service-name-${index}-${value}`}
-                                                    className={`flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm ${service.serviceNameOption === value ? 'border-blue-400 bg-blue-50' : 'border-slate-300 bg-white'}`}
-                                                >
-                                                    <input
-                                                        type="radio"
-                                                        name={`${formSlug}-service-name-${index}`}
-                                                        value={value}
-                                                        checked={service.serviceNameOption === value}
-                                                        onChange={(event) =>
-                                                            updateServiceTime(
-                                                                index,
-                                                                'serviceNameOption',
-                                                                event.target
-                                                                    .value as Exclude<
-                                                                    ServiceNameOption,
-                                                                    'custom'
-                                                                >,
-                                                            )
-                                                        }
-                                                    />
-                                                    {label}
-                                                </label>
-                                            ))}
-                                        </div>
-                                    )}
-                                    {serviceTimeError(index, 'serviceNameOption') ? (
-                                        <p className="text-xs text-red-600">
-                                            {serviceTimeError(index, 'serviceNameOption')}
-                                        </p>
-                                    ) : null}
-                                </div>
+                                        ) : (
+                                            <Input
+                                                value={lockedServiceName}
+                                                readOnly
+                                                disabled
+                                                className={cn(inputBase, 'text-slate-700')}
+                                            />
+                                        )}
+                                        {serviceTimeError(
+                                            index,
+                                            'customServiceName',
+                                        ) ? (
+                                            <p className="text-xs text-red-600">
+                                                {serviceTimeError(
+                                                    index,
+                                                    'customServiceName',
+                                                )}
+                                            </p>
+                                        ) : null}
+                                        {serviceTimeError(index, 'serviceNameOption') ? (
+                                            <p className="text-xs text-red-600">
+                                                {serviceTimeError(index, 'serviceNameOption')}
+                                            </p>
+                                        ) : null}
+                                    </div>
 
-                                <div className="grid gap-3 md:grid-cols-2">
-                                    <div className="space-y-2">
+                                    <div className="space-y-2 md:flex md:flex-col md:justify-center">
                                         <Label>
                                             Start Time <span className="text-red-500">*</span>
                                         </Label>
@@ -706,7 +695,7 @@ export function EasterServiceTimesForm() {
                                                         'startTime',
                                                     ),
                                                 )}
-                                                className={dateInputBase}
+                                                className={inlineDateInputBase}
                                             />
                                         </div>
                                         {serviceTimeError(index, 'startTime') ? (
@@ -725,13 +714,19 @@ export function EasterServiceTimesForm() {
                                         {(['JG Venue', 'Other'] as const).map((value) => (
                                             <label
                                                 key={`${formSlug}-service-${index}-venue-${value}`}
-                                                className={`flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm ${service.venueType === value ? 'border-blue-400 bg-blue-50' : 'border-slate-300 bg-white'}`}
+                                                className={cn(
+                                                    radioTileBase,
+                                                    service.venueType === value
+                                                        ? radioTileSelected
+                                                        : 'text-slate-700 hover:border-slate-300',
+                                                )}
                                             >
                                                 <input
                                                     type="radio"
                                                     name={`${formSlug}-service-${index}-venue`}
                                                     value={value}
                                                     checked={service.venueType === value}
+                                                    className="sr-only"
                                                     onChange={(event) =>
                                                         updateServiceTime(
                                                             index,
@@ -757,7 +752,12 @@ export function EasterServiceTimesForm() {
                                             JG Venue <span className="text-red-500">*</span>
                                         </Label>
                                         <select
-                                            className={`h-12 w-full rounded-md border bg-white px-3 text-sm ${serviceTimeError(index, 'jgVenue') ? 'border-red-500' : 'border-input'}`}
+                                            className={cn(
+                                                selectBase,
+                                                serviceTimeError(index, 'jgVenue')
+                                                    ? 'border-red-500'
+                                                    : '',
+                                            )}
                                             value={service.jgVenue}
                                             onChange={(event) =>
                                                 updateServiceTime(
@@ -798,14 +798,15 @@ export function EasterServiceTimesForm() {
                                                         event.target.value,
                                                     )
                                                 }
-                                                className={
+                                                className={cn(
+                                                    inputBase,
                                                     serviceTimeError(
                                                         index,
                                                         'otherVenueName',
                                                     )
                                                         ? 'border-red-500'
-                                                        : ''
-                                                }
+                                                        : '',
+                                                )}
                                             />
                                             {serviceTimeError(
                                                 index,
@@ -849,8 +850,8 @@ export function EasterServiceTimesForm() {
                                         Congregations involved{' '}
                                         <span className="text-red-500">*</span>
                                     </Label>
-                                    <details className="overflow-hidden rounded-md border border-slate-300 bg-white">
-                                        <summary className="cursor-pointer list-none px-3 py-2 text-sm text-slate-700 [&::-webkit-details-marker]:hidden">
+                                    <details className="overflow-hidden rounded-lg border-2 border-slate-200 bg-slate-100/50 shadow-sm">
+                                        <summary className="cursor-pointer list-none px-4 py-3 text-sm text-slate-700 [&::-webkit-details-marker]:hidden">
                                             {service.congregationsInvolved.length > 0
                                                 ? `${service.congregationsInvolved.length} selected`
                                                 : 'Select congregations'}
@@ -859,7 +860,7 @@ export function EasterServiceTimesForm() {
                                             {directoryOptions.congregations.map((congregation) => (
                                                 <label
                                                     key={`${formSlug}-service-${index}-congregation-${congregation}`}
-                                                    className="flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
+                                                    className="flex items-center gap-2 rounded-lg border-2 border-slate-200 bg-white px-3 py-2 text-sm shadow-sm transition hover:border-slate-300"
                                                 >
                                                     <Checkbox
                                                         checked={service.congregationsInvolved.includes(
@@ -906,7 +907,7 @@ export function EasterServiceTimesForm() {
                                         {languageOptions.map((language) => (
                                             <label
                                                 key={`${formSlug}-service-${index}-lang-${language}`}
-                                                className="flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm"
+                                                className="flex items-center gap-2 rounded-lg border-2 border-slate-200 bg-slate-100/50 px-3 py-2 text-sm shadow-sm transition hover:border-slate-300"
                                             >
                                                 <Checkbox
                                                     checked={service.graphicsLanguages.includes(
@@ -944,13 +945,19 @@ export function EasterServiceTimesForm() {
                                         {(['Yes', 'No'] as const).map((value) => (
                                             <label
                                                 key={`${formSlug}-service-${index}-theme-${value}`}
-                                                className={`flex cursor-pointer items-center gap-2 rounded-md border px-3 py-2 text-sm ${service.hasSpecificTheme === value ? 'border-blue-400 bg-blue-50' : 'border-slate-300 bg-white'}`}
+                                                className={cn(
+                                                    radioTileBase,
+                                                    service.hasSpecificTheme === value
+                                                        ? radioTileSelected
+                                                        : 'text-slate-700 hover:border-slate-300',
+                                                )}
                                             >
                                                 <input
                                                     type="radio"
                                                     name={`${formSlug}-service-${index}-theme`}
                                                     value={value}
                                                     checked={service.hasSpecificTheme === value}
+                                                    className="sr-only"
                                                     onChange={(event) =>
                                                         updateServiceTime(
                                                             index,
@@ -981,7 +988,12 @@ export function EasterServiceTimesForm() {
                                             <span className="text-red-500">*</span>
                                         </Label>
                                         <textarea
-                                            className={`w-full rounded-md border bg-white px-3 py-2 text-sm outline-none ${serviceTimeError(index, 'themeDescription') ? 'border-red-500' : 'border-input'}`}
+                                            className={cn(
+                                                textareaBase,
+                                                serviceTimeError(index, 'themeDescription')
+                                                    ? 'border-red-500'
+                                                    : '',
+                                            )}
                                             rows={4}
                                             value={service.themeDescription}
                                             onChange={(event) =>
