@@ -49,9 +49,8 @@ class AdminInvitationService
             ]);
         });
 
-        $registrationUrl = route('register', [
-            'invite' => $token,
-            'email' => $normalizedEmail,
+        $registrationUrl = route('invitations.accept', [
+            'token' => $token,
         ]);
 
         return [

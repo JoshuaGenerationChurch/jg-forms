@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AdminInvitationController;
+use App\Http\Controllers\AcceptInvitationController;
 use App\Http\Controllers\WorkRequest\DigitalMediaOptionsController;
 use App\Http\Controllers\WorkRequest\WorkFormController;
 use App\Http\Controllers\WorkRequest\WorkFormEmailTemplateController;
@@ -52,6 +53,10 @@ Route::get('contact-us', [ContactUsController::class, 'create'])
 
 Route::post('contact-us', [ContactUsController::class, 'store'])
     ->name('contact-us.store');
+
+Route::get('invite/{token}', AcceptInvitationController::class)
+    ->where('token', '[A-Za-z0-9]+')
+    ->name('invitations.accept');
 
 if ($webauthnAvailable) {
     // WebAuthn guest routes (for login)

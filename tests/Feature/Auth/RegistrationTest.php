@@ -90,3 +90,53 @@ test('invite-only registration rejects missing invite token', function () {
     $response->assertSessionHasErrors(['invite_token']);
     $this->assertGuest();
 });
+
+test('invitation accept route redirects guests to register with token and email', function () {
+    config(['workforms.invite_only_registration' => true]);
+    $this->seed(RolesAndPermissionsSeeder::class);
+
+    /** @var AdminInvitationService $invitationService */
+    $invitationService = app(AdminInvitationService::class);
+    $result = $invitationService->issueInvitation(
+        email: 'guest-invited@example.com',
+        roleName: 'forms-admin',
+        invitedBy: null,
+        expiresInDays: 7,
+    );
+
+    $response = $this->get(route('invitations.accept', [
+        'token' => $result['token'],
+    ]));
+
+    $response->assertRedirect(route('register', [
+        'invite' => $result['token'],
+        'email' => 'guest-invited@example.com',
+    ], absolute: false));
+});
+
+test('invitation accept route logs out authenticated users before redirecting to register', function () {
+    config(['workforms.invite_only_registration' => true]);
+    $this->seed(RolesAndPermissionsSeeder::class);
+
+    $existingUser = User::factory()->create();
+    $this->actingAs($existingUser);
+
+    /** @var AdminInvitationService $invitationService */
+    $invitationService = app(AdminInvitationService::class);
+    $result = $invitationService->issueInvitation(
+        email: 'auth-invited@example.com',
+        roleName: 'forms-admin',
+        invitedBy: null,
+        expiresInDays: 7,
+    );
+
+    $response = $this->get(route('invitations.accept', [
+        'token' => $result['token'],
+    ]));
+
+    $response->assertRedirect(route('register', [
+        'invite' => $result['token'],
+        'email' => 'auth-invited@example.com',
+    ], absolute: false));
+    $this->assertGuest();
+});
