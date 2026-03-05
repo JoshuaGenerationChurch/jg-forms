@@ -1,11 +1,11 @@
 import { router, useForm } from '@inertiajs/react';
 import { Minus, Plus } from 'lucide-react';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
-import { dateInputBase } from '@/components/work-request/types';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { dateInputBase } from '@/components/work-request/types';
 import {
     googleMapsPlacesEnabled,
     loadGoogleMapsPlacesApi,
@@ -110,7 +110,9 @@ function VenueAddressAutocompleteInput({
 }: VenueAddressAutocompleteInputProps) {
     const inputRef = useRef<HTMLInputElement | null>(null);
     const onChangeRef = useRef(onChange);
-    const [autocompleteFailed, setAutocompleteFailed] = useState(false);
+    const [autocompleteFailed, setAutocompleteFailed] = useState(
+        () => !googleMapsPlacesEnabled(),
+    );
 
     useEffect(() => {
         onChangeRef.current = onChange;
@@ -123,7 +125,6 @@ function VenueAddressAutocompleteInput({
         }
 
         if (!googleMapsPlacesEnabled()) {
-            setAutocompleteFailed(true);
             return;
         }
 
