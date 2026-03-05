@@ -3,6 +3,7 @@ import {
     ArrowLeft,
     CalendarDays,
     ChevronDown,
+    Download,
     Eye,
     Mail,
     Pencil,
@@ -227,6 +228,14 @@ export default function AdminFormEntries({ form, entries }: Props) {
                                 </h1>
                             </div>
                             <div className="flex flex-wrap items-center gap-2">
+                                <Button variant="outline" asChild>
+                                    <a
+                                        href={`/admin/forms/entries/${form.slug}/export`}
+                                    >
+                                        <Download className="size-4" />
+                                        Export Excel
+                                    </a>
+                                </Button>
                                 <Button variant="outline" asChild>
                                     <Link
                                         href={`/admin/forms/email-templates/${form.slug}`}

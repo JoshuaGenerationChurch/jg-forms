@@ -3,6 +3,19 @@
 use App\Models\User;
 use App\Models\WorkRequestEntry;
 use Inertia\Testing\AssertableInertia as Assert;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
+
+function grantFormsAdminAccess(User $user): void
+{
+    Permission::findOrCreate('forms.admin.access', 'web');
+    Permission::findOrCreate('invitations.manage', 'web');
+
+    $role = Role::findOrCreate('forms-admin', 'web');
+    $role->syncPermissions(['forms.admin.access', 'invitations.manage']);
+
+    $user->assignRole($role);
+}
 
 test('public forms directory is accessible', function () {
     $response = $this->get(route('forms.index'));
@@ -20,7 +33,6 @@ test('public forms directory is accessible', function () {
 
 test('non-admin users cannot access forms admin pages', function () {
     $user = User::factory()->create();
-    config(['workforms.admin_emails' => ['admin@example.com']]);
 
     $this->actingAs($user)
         ->get(route('admin.forms.index'))
@@ -31,9 +43,8 @@ test('non-admin users cannot access forms admin pages', function () {
         ->assertForbidden();
 });
 
-test('no user is treated as forms admin when admin email list is empty', function () {
+test('no user is treated as forms admin without role or permission', function () {
     $user = User::factory()->create();
-    config(['workforms.admin_emails' => []]);
 
     $this->actingAs($user)
         ->get(route('admin.forms.index'))
@@ -44,7 +55,7 @@ test('admin users can view forms and entries in forms admin', function () {
     $admin = User::factory()->create(['email' => 'admin@example.com']);
     $submitter = User::factory()->create();
 
-    config(['workforms.admin_emails' => ['admin@example.com']]);
+    grantFormsAdminAccess($admin);
 
     $entry = WorkRequestEntry::query()->create([
         'user_id' => $submitter->id,
@@ -107,7 +118,7 @@ test('admin users can view forms and entries in forms admin', function () {
 
 test('admin users can edit and delete form entries', function () {
     $admin = User::factory()->create(['email' => 'admin@example.com']);
-    config(['workforms.admin_emails' => ['admin@example.com']]);
+    grantFormsAdminAccess($admin);
 
     $entry = WorkRequestEntry::query()->create([
         'user_id' => null,

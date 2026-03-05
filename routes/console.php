@@ -1,10 +1,15 @@
 <?php
 
 use App\Mail\MailHealthCheckMail;
+use App\Models\User;
 use App\Services\RecaptchaEnterpriseService;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Schema;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 use Symfony\Component\Console\Command\Command;
 
 Artisan::command('inspire', function () {
@@ -144,3 +149,101 @@ Artisan::command('mail:health-check {--send-to= : Recipient email for a test mes
 
     return Command::SUCCESS;
 })->purpose('Inspect mail configuration and optionally send a live test email');
+
+Artisan::command('queue:health-check {--queue= : Queue name filter (database driver only)} {--warn-backlog=50 : Warn/fail threshold for pending jobs} {--warn-failed=1 : Warn/fail threshold for failed jobs}', function () {
+    $connection = (string) config('queue.default', 'sync');
+    $warnBacklog = max(0, (int) $this->option('warn-backlog'));
+    $warnFailed = max(0, (int) $this->option('warn-failed'));
+    $queueName = trim((string) $this->option('queue'));
+
+    $this->line('Queue health check');
+    $this->line(sprintf('Queue connection: %s', $connection));
+
+    if ($connection !== 'database') {
+        $this->comment('Backlog/failed counts are currently implemented for database queues.');
+        $this->comment('Use your queue provider monitoring for this connection.');
+
+        return Command::SUCCESS;
+    }
+
+    if (! Schema::hasTable('jobs') || ! Schema::hasTable('failed_jobs')) {
+        $this->error('Missing queue tables. Run: php artisan migrate');
+
+        return Command::FAILURE;
+    }
+
+    $jobsQuery = DB::table('jobs');
+    if ($queueName !== '') {
+        $jobsQuery->where('queue', $queueName);
+    }
+
+    $pendingJobs = (int) $jobsQuery->count();
+    $failedJobs = (int) DB::table('failed_jobs')->count();
+    $latestFailedAt = DB::table('failed_jobs')
+        ->latest('failed_at')
+        ->value('failed_at');
+
+    $this->line(sprintf('Pending jobs%s: %d', $queueName !== '' ? " ({$queueName})" : '', $pendingJobs));
+    $this->line(sprintf('Failed jobs: %d', $failedJobs));
+    $this->line(sprintf('Latest failed at: %s', $latestFailedAt ?? 'none'));
+
+    $hasBacklogIssue = $pendingJobs > $warnBacklog;
+    $hasFailedIssue = $failedJobs > $warnFailed;
+
+    if ($hasBacklogIssue) {
+        $this->warn(sprintf('Pending jobs exceed threshold (%d).', $warnBacklog));
+    }
+
+    if ($hasFailedIssue) {
+        $this->warn(sprintf('Failed jobs exceed threshold (%d).', $warnFailed));
+    }
+
+    if ($hasBacklogIssue || $hasFailedIssue) {
+        $this->error('Queue health check failed.');
+
+        return Command::FAILURE;
+    }
+
+    $this->info('Queue health check passed.');
+
+    return Command::SUCCESS;
+})->purpose('Check queue backlog and failed jobs thresholds for database queues');
+
+Artisan::command('workforms:grant-role {email : User email} {role=forms-admin : Role name}', function () {
+    $email = strtolower(trim((string) $this->argument('email')));
+    $roleName = trim((string) $this->argument('role'));
+
+    if (! filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $this->error('Invalid email address.');
+
+        return Command::FAILURE;
+    }
+
+    if ($roleName === '') {
+        $this->error('Role name is required.');
+
+        return Command::FAILURE;
+    }
+
+    $user = User::query()->where('email', $email)->first();
+    if (! $user) {
+        $this->error("No user found with email {$email}.");
+
+        return Command::FAILURE;
+    }
+
+    Permission::findOrCreate('forms.admin.access', 'web');
+    Permission::findOrCreate('invitations.manage', 'web');
+
+    $role = Role::findOrCreate($roleName, 'web');
+
+    if ($roleName === 'forms-admin' || $roleName === 'super-admin') {
+        $role->syncPermissions(['forms.admin.access', 'invitations.manage']);
+    }
+
+    $user->assignRole($role);
+
+    $this->info("Granted role [{$roleName}] to {$email}.");
+
+    return Command::SUCCESS;
+})->purpose('Grant a Spatie role to a user for JG Forms access');

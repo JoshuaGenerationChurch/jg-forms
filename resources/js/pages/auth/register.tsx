@@ -9,11 +9,32 @@ import AuthLayout from '@/layouts/auth-layout';
 import { login } from '@/routes';
 import { store } from '@/routes/register';
 
-export default function Register() {
+type Invitation = {
+    token: string;
+    email: string;
+    roleName: string;
+    expiresAt: string | null;
+};
+
+type Props = {
+    invitation?: Invitation | null;
+};
+
+export default function Register({ invitation = null }: Props) {
+    const isInvitedRegistration = invitation !== null;
+
     return (
         <AuthLayout
-            title="Create an account"
-            description="Enter your details below to create your account"
+            title={
+                isInvitedRegistration
+                    ? 'Complete your invited account'
+                    : 'Create an account'
+            }
+            description={
+                isInvitedRegistration
+                    ? `You were invited as ${invitation.roleName}.`
+                    : 'Enter your details below to create your account'
+            }
         >
             <Head title="Register" />
             <Form
@@ -24,6 +45,30 @@ export default function Register() {
             >
                 {({ processing, errors }) => (
                     <>
+                        {isInvitedRegistration ? (
+                            <div className="rounded-lg border border-white/30 bg-white/20 p-3 text-xs text-white/90">
+                                <p>
+                                    Invitation email: {invitation.email}
+                                </p>
+                                {invitation.expiresAt ? (
+                                    <p className="mt-1">
+                                        Expires:{' '}
+                                        {new Date(
+                                            invitation.expiresAt,
+                                        ).toLocaleString()}
+                                    </p>
+                                ) : null}
+                            </div>
+                        ) : null}
+
+                        {isInvitedRegistration ? (
+                            <input
+                                type="hidden"
+                                name="invite_token"
+                                value={invitation.token}
+                            />
+                        ) : null}
+
                         <div className="grid gap-6">
                             <div className="grid gap-2">
                                 <Label
@@ -64,6 +109,12 @@ export default function Register() {
                                     autoComplete="email"
                                     name="email"
                                     placeholder="email@example.com"
+                                    defaultValue={
+                                        isInvitedRegistration
+                                            ? invitation.email
+                                            : undefined
+                                    }
+                                    readOnly={isInvitedRegistration}
                                     className="border-white/30 bg-white/40 text-white backdrop-blur-sm placeholder:text-white/60 focus-visible:border-white/50 focus-visible:ring-white/20"
                                 />
                                 <InputError message={errors.email} />
@@ -120,6 +171,10 @@ export default function Register() {
                                 {processing && <Spinner />}
                                 Create account
                             </Button>
+                            <InputError
+                                message={errors.invite_token}
+                                className="mt-1"
+                            />
                         </div>
 
                         <div className="text-center text-sm text-white/80">

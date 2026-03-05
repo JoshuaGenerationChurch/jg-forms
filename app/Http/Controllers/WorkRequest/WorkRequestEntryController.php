@@ -15,9 +15,11 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\Mime\Address;
 use Throwable;
 
@@ -393,19 +395,43 @@ class WorkRequestEntryController extends Controller
         $form = $this->findForm($formSlug);
         abort_if($form === null, 404);
 
-        $rules = [
-            'congregation' => ['required', 'string', 'max:255'],
-            'firstName' => ['required', 'string', 'max:255'],
-            'lastName' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255'],
-            'cellphone' => ['nullable', 'string', 'max:255'],
-            'notes' => ['nullable', 'string', 'max:2000'],
-            'serviceTimes' => ['required', 'array', 'min:1'],
-            'serviceTimes.*.serviceName' => ['nullable', 'string', 'max:255'],
-            'serviceTimes.*.date' => ['required', 'date', 'after_or_equal:today'],
-            'serviceTimes.*.startTime' => ['required', 'string', 'max:255'],
-            'serviceTimes.*.venue' => ['nullable', 'string', 'max:255'],
-        ];
+        $isEasterForm = $formSlug === 'easter-holidays';
+
+        $rules = $isEasterForm
+            ? [
+                'congregation' => ['required', 'string', 'max:255'],
+                'firstName' => ['required', 'string', 'max:255'],
+                'lastName' => ['required', 'string', 'max:255'],
+                'email' => ['required', 'email', 'max:255'],
+                'cellphone' => ['nullable', 'string', 'max:255'],
+                'serviceTimes' => ['required', 'array', 'min:2'],
+                'serviceTimes.*.serviceNameOption' => ['required', Rule::in(['good_friday', 'easter_sunday', 'custom'])],
+                'serviceTimes.*.customServiceName' => ['nullable', 'string', 'max:255'],
+                'serviceTimes.*.startTime' => ['required', 'date_format:H:i'],
+                'serviceTimes.*.venueType' => ['required', Rule::in(['JG Venue', 'Other'])],
+                'serviceTimes.*.jgVenue' => ['nullable', 'string', 'max:255'],
+                'serviceTimes.*.otherVenueName' => ['nullable', 'string', 'max:255'],
+                'serviceTimes.*.otherVenueAddress' => ['nullable', 'string', 'max:500'],
+                'serviceTimes.*.congregationsInvolved' => ['required', 'array', 'min:1'],
+                'serviceTimes.*.congregationsInvolved.*' => ['string', 'max:255'],
+                'serviceTimes.*.graphicsLanguages' => ['required', 'array', 'min:1'],
+                'serviceTimes.*.graphicsLanguages.*' => ['string', Rule::in(['English', 'Afrikaans'])],
+                'serviceTimes.*.hasSpecificTheme' => ['required', Rule::in(['Yes', 'No'])],
+                'serviceTimes.*.themeDescription' => ['nullable', 'string', 'max:2000'],
+            ]
+            : [
+                'congregation' => ['required', 'string', 'max:255'],
+                'firstName' => ['required', 'string', 'max:255'],
+                'lastName' => ['required', 'string', 'max:255'],
+                'email' => ['required', 'email', 'max:255'],
+                'cellphone' => ['nullable', 'string', 'max:255'],
+                'notes' => ['nullable', 'string', 'max:2000'],
+                'serviceTimes' => ['required', 'array', 'min:1'],
+                'serviceTimes.*.serviceName' => ['nullable', 'string', 'max:255'],
+                'serviceTimes.*.date' => ['required', 'date', 'after_or_equal:today'],
+                'serviceTimes.*.startTime' => ['required', 'string', 'max:255'],
+                'serviceTimes.*.venue' => ['nullable', 'string', 'max:255'],
+            ];
 
         if ($recaptcha->enabled()) {
             $rules['recaptchaToken'] = ['required', 'string'];
@@ -422,27 +448,133 @@ class WorkRequestEntryController extends Controller
             }
         }
 
-        $serviceTimes = collect($validated['serviceTimes'])
-            ->map(function (array $service): array {
-                return [
-                    'serviceName' => trim((string) ($service['serviceName'] ?? '')),
-                    'date' => (string) ($service['date'] ?? ''),
-                    'startTime' => trim((string) ($service['startTime'] ?? '')),
-                    'venue' => trim((string) ($service['venue'] ?? '')),
-                ];
-            })
-            ->values()
-            ->all();
+        if ($isEasterForm) {
+            $serviceNameMeta = [
+                'good_friday' => ['name' => 'Good Friday', 'date' => '2026-04-03'],
+                'easter_sunday' => ['name' => 'Easter Sunday', 'date' => '2026-04-05'],
+            ];
 
-        $payload = [
-            'congregation' => trim((string) $validated['congregation']),
-            'firstName' => trim((string) $validated['firstName']),
-            'lastName' => trim((string) $validated['lastName']),
-            'email' => trim((string) $validated['email']),
-            'cellphone' => trim((string) ($validated['cellphone'] ?? '')),
-            'notes' => trim((string) ($validated['notes'] ?? '')),
-            'serviceTimes' => $serviceTimes,
-        ];
+            /** @var array<int, array<string, mixed>> $validatedServiceTimes */
+            $validatedServiceTimes = $validated['serviceTimes'];
+            $serviceNameOptions = collect($validatedServiceTimes)
+                ->map(static fn (array $service): string => (string) ($service['serviceNameOption'] ?? ''))
+                ->all();
+
+            $errors = [];
+
+            foreach ($validatedServiceTimes as $index => $service) {
+                $serviceNameOption = (string) ($service['serviceNameOption'] ?? '');
+                $customServiceName = trim((string) ($service['customServiceName'] ?? ''));
+                $venueType = (string) ($service['venueType'] ?? '');
+                $jgVenue = trim((string) ($service['jgVenue'] ?? ''));
+                $otherVenueName = trim((string) ($service['otherVenueName'] ?? ''));
+                $otherVenueAddress = trim((string) ($service['otherVenueAddress'] ?? ''));
+                $hasSpecificTheme = (string) ($service['hasSpecificTheme'] ?? '');
+                $themeDescription = trim((string) ($service['themeDescription'] ?? ''));
+
+                if ($serviceNameOption === 'custom' && $customServiceName === '') {
+                    $errors["serviceTimes.$index.customServiceName"] = 'Please provide a custom service name';
+                }
+
+                if ($venueType === 'JG Venue' && $jgVenue === '') {
+                    $errors["serviceTimes.$index.jgVenue"] = 'Please select a JG venue';
+                }
+
+                if ($venueType === 'Other') {
+                    if ($otherVenueName === '') {
+                        $errors["serviceTimes.$index.otherVenueName"] = 'Please provide a venue name';
+                    }
+
+                    if ($otherVenueAddress === '') {
+                        $errors["serviceTimes.$index.otherVenueAddress"] = 'Please provide a venue address';
+                    }
+                }
+
+                if ($hasSpecificTheme === 'Yes' && $themeDescription === '') {
+                    $errors["serviceTimes.$index.themeDescription"] = 'Please provide a theme description';
+                }
+            }
+
+            $missingRequiredServices = [];
+            if (! in_array('good_friday', $serviceNameOptions, true)) {
+                $missingRequiredServices[] = 'Good Friday';
+            }
+
+            if (! in_array('easter_sunday', $serviceNameOptions, true)) {
+                $missingRequiredServices[] = 'Easter Sunday';
+            }
+
+            if ($missingRequiredServices !== []) {
+                $errors['serviceTimes'] = sprintf(
+                    'Please include service details for: %s',
+                    implode(' and ', $missingRequiredServices),
+                );
+            }
+
+            if ($errors !== []) {
+                throw ValidationException::withMessages($errors);
+            }
+
+            $serviceTimes = collect($validatedServiceTimes)
+                ->map(function (array $service) use ($serviceNameMeta): array {
+                    $serviceNameOption = (string) ($service['serviceNameOption'] ?? '');
+                    $customServiceName = trim((string) ($service['customServiceName'] ?? ''));
+                    $serviceName = $serviceNameOption === 'custom'
+                        ? $customServiceName
+                        : (string) ($serviceNameMeta[$serviceNameOption]['name'] ?? '');
+                    $serviceDate = $serviceNameMeta[$serviceNameOption]['date'] ?? null;
+
+                    return [
+                        'serviceNameOption' => $serviceNameOption,
+                        'serviceName' => $serviceName,
+                        'serviceDate' => $serviceDate,
+                        'customServiceName' => $customServiceName,
+                        'startTime' => trim((string) ($service['startTime'] ?? '')),
+                        'venueType' => trim((string) ($service['venueType'] ?? '')),
+                        'jgVenue' => trim((string) ($service['jgVenue'] ?? '')),
+                        'otherVenueName' => trim((string) ($service['otherVenueName'] ?? '')),
+                        'otherVenueAddress' => trim((string) ($service['otherVenueAddress'] ?? '')),
+                        'congregationsInvolved' => $this->normalizeStringList($service['congregationsInvolved'] ?? []),
+                        'graphicsLanguages' => $this->normalizeStringList($service['graphicsLanguages'] ?? []),
+                        'hasSpecificTheme' => trim((string) ($service['hasSpecificTheme'] ?? '')),
+                        'themeDescription' => trim((string) ($service['themeDescription'] ?? '')),
+                    ];
+                })
+                ->values()
+                ->all();
+            $serviceTimes = $this->mergeEasterServiceTimes($serviceTimes);
+
+            $payload = [
+                'congregation' => trim((string) $validated['congregation']),
+                'firstName' => trim((string) $validated['firstName']),
+                'lastName' => trim((string) $validated['lastName']),
+                'email' => trim((string) $validated['email']),
+                'cellphone' => trim((string) ($validated['cellphone'] ?? '')),
+                'serviceTimes' => $serviceTimes,
+            ];
+        } else {
+            $serviceTimes = collect($validated['serviceTimes'])
+                ->map(function (array $service): array {
+                    return [
+                        'serviceName' => trim((string) ($service['serviceName'] ?? '')),
+                        'date' => (string) ($service['date'] ?? ''),
+                        'startTime' => trim((string) ($service['startTime'] ?? '')),
+                        'venue' => trim((string) ($service['venue'] ?? '')),
+                    ];
+                })
+                ->values()
+                ->all();
+
+            $payload = [
+                'congregation' => trim((string) $validated['congregation']),
+                'firstName' => trim((string) $validated['firstName']),
+                'lastName' => trim((string) $validated['lastName']),
+                'email' => trim((string) $validated['email']),
+                'cellphone' => trim((string) ($validated['cellphone'] ?? '')),
+                'notes' => trim((string) ($validated['notes'] ?? '')),
+                'serviceTimes' => $serviceTimes,
+            ];
+        }
 
         $entry = WorkRequestEntry::query()->create([
             'user_id' => null,
@@ -459,6 +591,291 @@ class WorkRequestEntryController extends Controller
         $this->sendSubmissionNotifications($entry, $form);
 
         return back();
+    }
+
+    public function adminFormEntriesExport(string $formSlug): StreamedResponse
+    {
+        $form = $this->findForm($formSlug);
+        abort_if($form === null, 404);
+
+        $entries = WorkRequestEntry::query()
+            ->where('form_slug', $formSlug)
+            ->latest()
+            ->get();
+
+        $filename = sprintf(
+            '%s_entries_%s.csv',
+            str_replace('-', '_', $formSlug),
+            now()->format('Ymd_His'),
+        );
+
+        return response()->streamDownload(function () use ($entries, $formSlug): void {
+            $output = fopen('php://output', 'wb');
+            if ($output === false) {
+                return;
+            }
+
+            fwrite($output, "\xEF\xBB\xBF");
+
+            if ($formSlug === 'easter-holidays') {
+                fputcsv($output, [
+                    'Entry ID',
+                    'Submitted At',
+                    'Contact First Name',
+                    'Contact Last Name',
+                    'Contact Email',
+                    'Cellphone',
+                    'Primary Congregation',
+                    'Service Type',
+                    'Service Name',
+                    'Service Date',
+                    'Start Time',
+                    'Venue Type',
+                    'Venue',
+                    'Congregations Involved',
+                    'Graphics Languages',
+                    'Specific Theme',
+                    'Theme Description',
+                ]);
+
+                foreach ($entries as $entry) {
+                    $payload = is_array($entry->payload) ? $entry->payload : [];
+                    $serviceTimes = Arr::get($payload, 'serviceTimes', []);
+
+                    if (! is_array($serviceTimes) || count($serviceTimes) === 0) {
+                        fputcsv($output, [
+                            $entry->id,
+                            $entry->created_at?->format('Y-m-d H:i:s') ?? '',
+                            $entry->first_name ?? '',
+                            $entry->last_name ?? '',
+                            $entry->email ?? '',
+                            $entry->cellphone ?? '',
+                            $entry->congregation ?? '',
+                            '',
+                            '',
+                            '',
+                            '',
+                            '',
+                            '',
+                            '',
+                            '',
+                            '',
+                            '',
+                        ]);
+                        continue;
+                    }
+
+                    foreach ($serviceTimes as $service) {
+                        if (! is_array($service)) {
+                            continue;
+                        }
+
+                        fputcsv($output, [
+                            $entry->id,
+                            $entry->created_at?->format('Y-m-d H:i:s') ?? '',
+                            $entry->first_name ?? '',
+                            $entry->last_name ?? '',
+                            $entry->email ?? '',
+                            $entry->cellphone ?? '',
+                            $entry->congregation ?? '',
+                            (string) ($service['serviceNameOption'] ?? ''),
+                            (string) ($service['serviceName'] ?? ''),
+                            (string) ($service['serviceDate'] ?? ''),
+                            (string) ($service['startTime'] ?? ''),
+                            (string) ($service['venueType'] ?? ''),
+                            $this->formatEasterServiceVenueForExport($service),
+                            implode(', ', $this->normalizeStringList($service['congregationsInvolved'] ?? [])),
+                            implode(', ', $this->normalizeStringList($service['graphicsLanguages'] ?? [])),
+                            (string) ($service['hasSpecificTheme'] ?? ''),
+                            (string) ($service['themeDescription'] ?? ''),
+                        ]);
+                    }
+                }
+
+                fclose($output);
+
+                return;
+            }
+
+            fputcsv($output, [
+                'Entry ID',
+                'Submitted At',
+                'Form Slug',
+                'First Name',
+                'Last Name',
+                'Email',
+                'Cellphone',
+                'Congregation',
+                'Event Name',
+                'Request Types',
+                'Payload JSON',
+            ]);
+
+            foreach ($entries as $entry) {
+                fputcsv($output, [
+                    $entry->id,
+                    $entry->created_at?->format('Y-m-d H:i:s') ?? '',
+                    $entry->form_slug,
+                    $entry->first_name ?? '',
+                    $entry->last_name ?? '',
+                    $entry->email ?? '',
+                    $entry->cellphone ?? '',
+                    $entry->congregation ?? '',
+                    $entry->event_name ?? '',
+                    implode(', ', $this->requestTypes($entry)),
+                    json_encode($entry->payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                ]);
+            }
+
+            fclose($output);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Cache-Control' => 'no-store, no-cache',
+        ]);
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    private function normalizeStringList(mixed $values): array
+    {
+        if (! is_array($values)) {
+            return [];
+        }
+
+        $items = array_map(
+            static fn (mixed $value): string => trim((string) $value),
+            $values,
+        );
+
+        $items = array_filter($items, static fn (string $value): bool => $value !== '');
+        $items = array_values(array_unique($items));
+
+        return $items;
+    }
+
+    /**
+     * @param  array<int, array<string, mixed>>  $serviceTimes
+     * @return array<int, array<string, mixed>>
+     */
+    private function mergeEasterServiceTimes(array $serviceTimes): array
+    {
+        /** @var array<string, array<string, mixed>> $mergedServices */
+        $mergedServices = [];
+
+        foreach ($serviceTimes as $service) {
+            $serviceNameOption = trim((string) ($service['serviceNameOption'] ?? ''));
+            $serviceName = trim((string) ($service['serviceName'] ?? ''));
+            $serviceDate = trim((string) ($service['serviceDate'] ?? ''));
+            $startTime = trim((string) ($service['startTime'] ?? ''));
+            $venueType = trim((string) ($service['venueType'] ?? ''));
+            $jgVenue = trim((string) ($service['jgVenue'] ?? ''));
+            $otherVenueName = trim((string) ($service['otherVenueName'] ?? ''));
+            $otherVenueAddress = trim((string) ($service['otherVenueAddress'] ?? ''));
+            $congregationsInvolved = $this->normalizeStringList($service['congregationsInvolved'] ?? []);
+            $graphicsLanguages = $this->normalizeStringList($service['graphicsLanguages'] ?? []);
+            $hasSpecificTheme = trim((string) ($service['hasSpecificTheme'] ?? ''));
+            $themeDescription = trim((string) ($service['themeDescription'] ?? ''));
+
+            $serviceIdentity = strtolower(
+                $serviceNameOption === 'custom' ? $serviceName : $serviceNameOption,
+            );
+            $venueIdentity = strtolower(
+                $venueType === 'JG Venue'
+                    ? $jgVenue
+                    : $otherVenueName.'|'.$otherVenueAddress,
+            );
+            $mergeKey = implode('||', [
+                $serviceIdentity,
+                strtolower($startTime),
+                strtolower($venueType),
+                $venueIdentity,
+            ]);
+
+            if (! isset($mergedServices[$mergeKey])) {
+                $mergedServices[$mergeKey] = [
+                    'serviceNameOption' => $serviceNameOption,
+                    'serviceName' => $serviceName,
+                    'serviceDate' => $serviceDate,
+                    'customServiceName' => trim((string) ($service['customServiceName'] ?? '')),
+                    'startTime' => $startTime,
+                    'venueType' => $venueType,
+                    'jgVenue' => $jgVenue,
+                    'otherVenueName' => $otherVenueName,
+                    'otherVenueAddress' => $otherVenueAddress,
+                    'congregationsInvolved' => $congregationsInvolved,
+                    'graphicsLanguages' => $graphicsLanguages,
+                    'hasSpecificTheme' => $hasSpecificTheme,
+                    'themeDescription' => $themeDescription,
+                ];
+                continue;
+            }
+
+            $existing = $mergedServices[$mergeKey];
+            $mergedServices[$mergeKey]['congregationsInvolved'] = $this->normalizeStringList(
+                array_merge(
+                    is_array($existing['congregationsInvolved'] ?? null)
+                        ? $existing['congregationsInvolved']
+                        : [],
+                    $congregationsInvolved,
+                ),
+            );
+            $mergedServices[$mergeKey]['graphicsLanguages'] = $this->normalizeStringList(
+                array_merge(
+                    is_array($existing['graphicsLanguages'] ?? null)
+                        ? $existing['graphicsLanguages']
+                        : [],
+                    $graphicsLanguages,
+                ),
+            );
+
+            if ($hasSpecificTheme === 'Yes') {
+                $mergedServices[$mergeKey]['hasSpecificTheme'] = 'Yes';
+            }
+
+            if ($themeDescription !== '') {
+                $existingThemeDescription = trim((string) ($existing['themeDescription'] ?? ''));
+                if ($existingThemeDescription === '') {
+                    $mergedServices[$mergeKey]['themeDescription'] = $themeDescription;
+                } elseif (
+                    ! in_array(
+                        strtolower($themeDescription),
+                        array_map(
+                            static fn (string $value): string => strtolower(trim($value)),
+                            array_filter(
+                                array_map('trim', explode(' | ', $existingThemeDescription)),
+                                static fn (string $value): bool => $value !== '',
+                            ),
+                        ),
+                        true,
+                    )
+                ) {
+                    $mergedServices[$mergeKey]['themeDescription'] =
+                        $existingThemeDescription.' | '.$themeDescription;
+                }
+            }
+        }
+
+        return array_values($mergedServices);
+    }
+
+    /**
+     * @param  array<string, mixed>  $service
+     */
+    private function formatEasterServiceVenueForExport(array $service): string
+    {
+        $venueType = trim((string) ($service['venueType'] ?? ''));
+        if ($venueType === 'JG Venue') {
+            return trim((string) ($service['jgVenue'] ?? ''));
+        }
+
+        $otherVenueName = trim((string) ($service['otherVenueName'] ?? ''));
+        $otherVenueAddress = trim((string) ($service['otherVenueAddress'] ?? ''));
+
+        return implode(', ', array_values(array_filter([
+            $otherVenueName,
+            $otherVenueAddress,
+        ], static fn (string $value): bool => $value !== '')));
     }
 
     public function adminFormsEntriesIndex(): Response
@@ -1197,16 +1614,8 @@ class WorkRequestEntryController extends Controller
     private function isAdmin(Request $request): bool
     {
         $user = $request->user();
-        if (! $user) {
-            return false;
-        }
 
-        $adminEmails = config('workforms.admin_emails', []);
-        if (! is_array($adminEmails)) {
-            return false;
-        }
-
-        return in_array(strtolower((string) $user->email), $adminEmails, true);
+        return $user?->can('forms.admin.access') ?? false;
     }
 
     private function assertEntryBelongsToForm(WorkRequestEntry $entry, string $formSlug): void

@@ -9,10 +9,23 @@ use App\Models\WorkRequestEntry;
 use App\Services\WorkFormEmailTemplateService;
 use Illuminate\Support\Facades\Mail;
 use Inertia\Testing\AssertableInertia as Assert;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
+
+function grantEmailTemplatesAdminAccess(User $user): void
+{
+    Permission::findOrCreate('forms.admin.access', 'web');
+    Permission::findOrCreate('invitations.manage', 'web');
+
+    $role = Role::findOrCreate('forms-admin', 'web');
+    $role->syncPermissions(['forms.admin.access', 'invitations.manage']);
+
+    $user->assignRole($role);
+}
 
 test('admin can view and manage email templates', function () {
     $admin = User::factory()->create(['email' => 'admin@example.com']);
-    config(['workforms.admin_emails' => ['admin@example.com']]);
+    grantEmailTemplatesAdminAccess($admin);
 
     $this->actingAs($admin)
         ->get(route('admin.forms.email-templates.index'))

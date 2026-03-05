@@ -36,14 +36,8 @@ class HandleInertiaRequests extends Middleware
     public function share(Request $request): array
     {
         $user = $request->user();
-        $isWorkFormsAdmin = false;
-
-        if ($user) {
-            $adminEmails = config('workforms.admin_emails', []);
-            if (is_array($adminEmails)) {
-                $isWorkFormsAdmin = in_array(strtolower((string) $user->email), $adminEmails, true);
-            }
-        }
+        $isWorkFormsAdmin = $user?->can('forms.admin.access') ?? false;
+        $canManageInvitations = $user?->can('invitations.manage') ?? false;
 
         return [
             ...parent::share($request),
@@ -54,10 +48,12 @@ class HandleInertiaRequests extends Middleware
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
             'workForms' => [
                 'isAdmin' => $isWorkFormsAdmin,
+                'canManageInvitations' => $canManageInvitations,
             ],
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),
+                'inviteLink' => fn () => $request->session()->get('inviteLink'),
             ],
         ];
     }

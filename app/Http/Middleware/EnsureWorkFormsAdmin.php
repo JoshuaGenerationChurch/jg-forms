@@ -12,18 +12,7 @@ class EnsureWorkFormsAdmin
     {
         $user = $request->user();
 
-        if (! $user) {
-            abort(403);
-        }
-
-        $email = strtolower(trim((string) $user->email));
-        $adminEmails = config('workforms.admin_emails', []);
-
-        if (! is_array($adminEmails)) {
-            abort(403);
-        }
-
-        if (! in_array($email, $adminEmails, true)) {
+        if (! $user || ! $user->can('forms.admin.access')) {
             abort(403);
         }
 

@@ -55,10 +55,12 @@ Then open the site and verify login/session + form submission flow.
 If queues are used in production, ensure a worker is running and restart it on deploy:
 
 ```bash
+php artisan queue:health-check
 php artisan queue:restart
 ```
 
 Use Supervisor/systemd to keep workers alive.
+See `docs/queue-operations.md` for complete worker + monitoring setup.
 
 ## 6. Send live mail test
 

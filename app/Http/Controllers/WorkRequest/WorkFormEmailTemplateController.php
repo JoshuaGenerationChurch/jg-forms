@@ -9,13 +9,14 @@ use App\Services\WorkFormEmailTemplateService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class WorkFormEmailTemplateController extends Controller
 {
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $forms = WorkForm::query()
             ->withCount('emailTemplates')
@@ -36,11 +37,15 @@ class WorkFormEmailTemplateController extends Controller
 
         return Inertia::render('admin/forms/email-templates-index', [
             'forms' => $forms,
+            'backTo' => $this->resolveBackTo($request),
         ]);
     }
 
-    public function show(string $formSlug, WorkFormEmailTemplateService $emailTemplateService): Response
-    {
+    public function show(
+        Request $request,
+        string $formSlug,
+        WorkFormEmailTemplateService $emailTemplateService,
+    ): Response {
         $form = $this->findForm($formSlug);
 
         $templates = $form->emailTemplates()
@@ -60,6 +65,7 @@ class WorkFormEmailTemplateController extends Controller
             'templates' => $templates,
             'defaultRecipients' => $emailTemplateService->defaultRecipients(),
             'placeholders' => $emailTemplateService->availablePlaceholdersForForm($form),
+            'backTo' => $this->resolveBackTo($request),
             'triggerOptions' => [
                 [
                     'value' => 'submission_created',
@@ -235,6 +241,21 @@ class WorkFormEmailTemplateController extends Controller
         return WorkForm::query()
             ->where('slug', $formSlug)
             ->firstOrFail();
+    }
+
+    private function resolveBackTo(Request $request): ?string
+    {
+        $backTo = trim((string) $request->query('backTo', ''));
+
+        if ($backTo === '') {
+            return null;
+        }
+
+        if (! Str::startsWith($backTo, '/admin/')) {
+            return null;
+        }
+
+        return $backTo;
     }
 
     /**

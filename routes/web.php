@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\AdminInvitationController;
 use App\Http\Controllers\WorkRequest\DigitalMediaOptionsController;
 use App\Http\Controllers\WorkRequest\WorkFormController;
 use App\Http\Controllers\WorkRequest\WorkFormEmailTemplateController;
@@ -69,9 +70,10 @@ Route::middleware(['auth', 'verified'])->group(function () use ($webauthnAvailab
             ->get(['slug', 'title', 'is_active']);
 
         $entriesBySlug = WorkRequestEntry::query()
-            ->selectRaw('form_slug, COUNT(*) as count')
+            ->selectRaw('form_slug, COUNT(*) as count, MAX(created_at) as latest_entry_at')
             ->groupBy('form_slug')
-            ->pluck('count', 'form_slug');
+            ->get()
+            ->keyBy('form_slug');
 
         $recentEntries = WorkRequestEntry::query()
             ->latest()
@@ -90,15 +92,19 @@ Route::middleware(['auth', 'verified'])->group(function () use ($webauthnAvailab
             'metrics' => [
                 'totalForms' => $forms->count(),
                 'activeForms' => $forms->where('is_active', true)->count(),
-                'inactiveForms' => $forms->where('is_active', false)->count(),
                 'totalEntries' => WorkRequestEntry::query()->count(),
             ],
             'formsSummary' => $forms->map(static function (WorkForm $form) use ($entriesBySlug): array {
+                $entryStats = $entriesBySlug->get($form->slug);
+
                 return [
                     'slug' => $form->slug,
                     'title' => $form->title,
                     'isActive' => $form->is_active,
-                    'entryCount' => (int) ($entriesBySlug[$form->slug] ?? 0),
+                    'entryCount' => (int) ($entryStats->count ?? 0),
+                    'latestEntryAt' => $entryStats?->latest_entry_at !== null
+                        ? (string) $entryStats->latest_entry_at
+                        : null,
                 ];
             })->values(),
             'recentEntries' => $recentEntries,
@@ -124,6 +130,18 @@ Route::middleware(['auth', 'verified'])->group(function () use ($webauthnAvailab
 });
 
 Route::middleware(['auth', 'verified', 'workforms.admin'])->group(function () {
+    Route::get('admin/invitations', [AdminInvitationController::class, 'index'])
+        ->middleware('can:invitations.manage')
+        ->name('admin.invitations.index');
+
+    Route::post('admin/invitations', [AdminInvitationController::class, 'store'])
+        ->middleware('can:invitations.manage')
+        ->name('admin.invitations.store');
+
+    Route::delete('admin/invitations/{invitation}', [AdminInvitationController::class, 'revoke'])
+        ->middleware('can:invitations.manage')
+        ->name('admin.invitations.revoke');
+
     Route::get('admin/forms', [WorkFormController::class, 'adminIndex'])
         ->name('admin.forms.index');
 
@@ -156,6 +174,10 @@ Route::middleware(['auth', 'verified', 'workforms.admin'])->group(function () {
     Route::get('admin/forms/entries/{formSlug}', [WorkRequestEntryController::class, 'adminFormEntries'])
         ->where('formSlug', '[A-Za-z0-9\-]+')
         ->name('admin.forms.entries.show');
+
+    Route::get('admin/forms/entries/{formSlug}/export', [WorkRequestEntryController::class, 'adminFormEntriesExport'])
+        ->where('formSlug', '[A-Za-z0-9\-]+')
+        ->name('admin.forms.entries.export');
 
     Route::get('admin/forms/entries/{formSlug}/{entry}', [WorkRequestEntryController::class, 'adminFormEntryShow'])
         ->where('formSlug', '[A-Za-z0-9\-]+')

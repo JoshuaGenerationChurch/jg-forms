@@ -5,6 +5,19 @@ use App\Models\User;
 use App\Models\WorkRequestEntry;
 use Illuminate\Support\Facades\Mail;
 use Inertia\Testing\AssertableInertia as Assert;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
+
+function grantHolidayFormsAdminAccess(User $user): void
+{
+    Permission::findOrCreate('forms.admin.access', 'web');
+    Permission::findOrCreate('invitations.manage', 'web');
+
+    $role = Role::findOrCreate('forms-admin', 'web');
+    $role->syncPermissions(['forms.admin.access', 'invitations.manage']);
+
+    $user->assignRole($role);
+}
 
 test('holiday forms pages are publicly accessible', function () {
     $this->get(route('forms.easter-holidays'))
@@ -19,7 +32,7 @@ test('holiday forms pages are publicly accessible', function () {
 test('guest can submit easter holidays service times and admin can view entry', function () {
     $admin = User::factory()->create(['email' => 'admin@example.com']);
     config(['services.recaptcha.enabled' => false]);
-    config(['workforms.admin_emails' => ['admin@example.com']]);
+    grantHolidayFormsAdminAccess($admin);
     config(['workforms.notification_recipients' => [
         ['email' => 'notify@example.com', 'name' => null],
         ['email' => 'trello@example.com', 'name' => 'JG Design'],
@@ -32,19 +45,45 @@ test('guest can submit easter holidays service times and admin can view entry', 
         'lastName' => 'Leader',
         'email' => 'sam@example.com',
         'cellphone' => '+27820000000',
-        'notes' => 'Please publish across all campuses.',
         'serviceTimes' => [
             [
-                'serviceName' => 'Good Friday Service',
-                'date' => '2026-04-03',
+                'serviceNameOption' => 'good_friday',
+                'customServiceName' => '',
                 'startTime' => '09:00',
-                'venue' => 'Main Hall',
+                'venueType' => 'JG Venue',
+                'jgVenue' => 'Venue 1',
+                'otherVenueName' => '',
+                'otherVenueAddress' => '',
+                'congregationsInvolved' => ['City Bowl AM'],
+                'graphicsLanguages' => ['English'],
+                'hasSpecificTheme' => 'No',
+                'themeDescription' => '',
             ],
             [
-                'serviceName' => 'Resurrection Sunday',
-                'date' => '2026-04-05',
+                'serviceNameOption' => 'easter_sunday',
+                'customServiceName' => '',
                 'startTime' => '09:00',
-                'venue' => 'Main Hall',
+                'venueType' => 'Other',
+                'jgVenue' => '',
+                'otherVenueName' => 'Main Hall',
+                'otherVenueAddress' => '12 Wingate Cres, Sunningdale, Cape Town',
+                'congregationsInvolved' => ['City Bowl PM'],
+                'graphicsLanguages' => ['English', 'Afrikaans'],
+                'hasSpecificTheme' => 'Yes',
+                'themeDescription' => 'Resurrection focus for evening attendees.',
+            ],
+            [
+                'serviceNameOption' => 'good_friday',
+                'customServiceName' => '',
+                'startTime' => '09:00',
+                'venueType' => 'JG Venue',
+                'jgVenue' => 'Venue 1',
+                'otherVenueName' => '',
+                'otherVenueAddress' => '',
+                'congregationsInvolved' => ['City Bowl PM'],
+                'graphicsLanguages' => ['Afrikaans'],
+                'hasSpecificTheme' => 'No',
+                'themeDescription' => '',
             ],
         ],
     ];
@@ -69,6 +108,11 @@ test('guest can submit easter holidays service times and admin can view entry', 
     expect($entry)->not->toBeNull();
     expect($entry->payload)->toBeArray();
     expect($entry->payload['serviceTimes'])->toHaveCount(2);
+    expect($entry->payload['serviceTimes'][0]['serviceNameOption'])->toBe('good_friday');
+    expect($entry->payload['serviceTimes'][0]['congregationsInvolved'])->toContain('City Bowl AM');
+    expect($entry->payload['serviceTimes'][0]['congregationsInvolved'])->toContain('City Bowl PM');
+    expect($entry->payload['serviceTimes'][0]['graphicsLanguages'])->toContain('English');
+    expect($entry->payload['serviceTimes'][0]['graphicsLanguages'])->toContain('Afrikaans');
 
     Mail::assertQueued(WorkFormSubmissionNotificationMail::class, function (WorkFormSubmissionNotificationMail $mail): bool {
         return $mail->hasTo('notify@example.com')
@@ -89,4 +133,13 @@ test('guest can submit easter holidays service times and admin can view entry', 
             ->where('form.slug', 'easter-holidays')
             ->has('entries', 1)
         );
+
+    $exportResponse = $this->actingAs($admin)
+        ->get(route('admin.forms.entries.export', 'easter-holidays'));
+
+    $exportResponse->assertOk();
+    expect((string) $exportResponse->headers->get('content-type'))
+        ->toContain('text/csv');
+    expect($exportResponse->streamedContent())->toContain('Service Type');
+    expect($exportResponse->streamedContent())->toContain('good_friday');
 });

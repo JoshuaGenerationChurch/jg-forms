@@ -451,9 +451,21 @@ function buildHolidaySections(
                 isPlainObject(item),
             )
             .map((service, index) => {
+                const serviceNameOption =
+                    typeof service.serviceNameOption === 'string'
+                        ? service.serviceNameOption.trim()
+                        : '';
+                const serviceDate =
+                    typeof service.serviceDate === 'string'
+                        ? service.serviceDate.trim()
+                        : '';
                 const serviceName =
                     typeof service.serviceName === 'string'
                         ? service.serviceName.trim()
+                        : '';
+                const customServiceName =
+                    typeof service.customServiceName === 'string'
+                        ? service.customServiceName.trim()
                         : '';
                 const date =
                     typeof service.date === 'string' ? service.date.trim() : '';
@@ -465,12 +477,96 @@ function buildHolidaySections(
                     typeof service.venue === 'string'
                         ? service.venue.trim()
                         : '';
+                const venueType =
+                    typeof service.venueType === 'string'
+                        ? service.venueType.trim()
+                        : '';
+                const jgVenue =
+                    typeof service.jgVenue === 'string'
+                        ? service.jgVenue.trim()
+                        : '';
+                const otherVenueName =
+                    typeof service.otherVenueName === 'string'
+                        ? service.otherVenueName.trim()
+                        : '';
+                const otherVenueAddress =
+                    typeof service.otherVenueAddress === 'string'
+                        ? service.otherVenueAddress.trim()
+                        : '';
+                const congregationsInvolved = Array.isArray(
+                    service.congregationsInvolved,
+                )
+                    ? service.congregationsInvolved
+                          .filter(
+                              (item): item is string =>
+                                  typeof item === 'string' &&
+                                  item.trim() !== '',
+                          )
+                          .map((item) => item.trim())
+                    : [];
+                const graphicsLanguages = Array.isArray(
+                    service.graphicsLanguages,
+                )
+                    ? service.graphicsLanguages
+                          .filter(
+                              (item): item is string =>
+                                  typeof item === 'string' &&
+                                  item.trim() !== '',
+                          )
+                          .map((item) => item.trim())
+                    : [];
+                const hasSpecificTheme =
+                    typeof service.hasSpecificTheme === 'string'
+                        ? service.hasSpecificTheme.trim()
+                        : '';
+                const themeDescription =
+                    typeof service.themeDescription === 'string'
+                        ? service.themeDescription.trim()
+                        : '';
+
+                const resolvedName =
+                    serviceName ||
+                    customServiceName ||
+                    (serviceNameOption === 'good_friday'
+                        ? 'Good Friday'
+                        : serviceNameOption === 'easter_sunday'
+                          ? 'Easter Sunday'
+                          : `Service ${index + 1}`);
+                const resolvedDate =
+                    serviceDate ||
+                    date ||
+                    (serviceNameOption === 'good_friday'
+                        ? '2026-04-03'
+                        : serviceNameOption === 'easter_sunday'
+                          ? '2026-04-05'
+                          : '');
+                const resolvedVenue =
+                    venue ||
+                    (venueType === 'JG Venue' && jgVenue !== ''
+                        ? `JG Venue: ${jgVenue}`
+                        : venueType === 'Other'
+                          ? [otherVenueName, otherVenueAddress]
+                                .filter((item) => item !== '')
+                                .join(', ')
+                          : '');
 
                 const value = [
-                    serviceName || `Service ${index + 1}`,
-                    date !== '' ? `Date: ${date}` : null,
+                    resolvedName,
+                    resolvedDate !== '' ? `Date: ${resolvedDate}` : null,
                     startTime !== '' ? `Time: ${startTime}` : null,
-                    venue !== '' ? `Venue: ${venue}` : null,
+                    resolvedVenue !== '' ? `Venue: ${resolvedVenue}` : null,
+                    congregationsInvolved.length > 0
+                        ? `Congregations: ${congregationsInvolved.join(', ')}`
+                        : null,
+                    graphicsLanguages.length > 0
+                        ? `Languages: ${graphicsLanguages.join(', ')}`
+                        : null,
+                    hasSpecificTheme !== ''
+                        ? `Specific theme: ${hasSpecificTheme}`
+                        : null,
+                    hasSpecificTheme === 'Yes' && themeDescription !== ''
+                        ? `Theme details: ${themeDescription}`
+                        : null,
                 ]
                     .filter(Boolean)
                     .join(' | ');
@@ -497,7 +593,6 @@ function buildHolidaySections(
         'lastName',
         'email',
         'cellphone',
-        'notes',
     ]
         .map((key) => ({ key, value: payload[key] }))
         .filter(({ value }) => isMeaningful(value))

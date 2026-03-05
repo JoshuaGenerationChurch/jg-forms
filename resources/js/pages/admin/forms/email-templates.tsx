@@ -21,6 +21,7 @@ import {
 import type { DragEvent, FormEvent } from 'react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import DeleteConfirmDialog from '@/components/forms/delete-confirm-dialog';
+import AdminPageContent from '@/components/layouts/admin-page-content';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
@@ -71,6 +72,7 @@ type Props = {
     templates: EmailTemplate[];
     defaultRecipients: Recipient[];
     placeholders: Placeholder[];
+    backTo?: string | null;
 };
 
 type TemplateFormData = {
@@ -466,6 +468,7 @@ export default function AdminFormEmailTemplates({
     templates,
     defaultRecipients,
     placeholders,
+    backTo = null,
 }: Props) {
     const isWorkRequestForm = form.slug === 'work-request';
     const [editingTemplateId, setEditingTemplateId] = useState<number | null>(
@@ -628,9 +631,15 @@ export default function AdminFormEmailTemplates({
         }
     }, [data.subject, isWorkRequestForm, setData]);
 
+    const safeBackTo = backTo && backTo.trim() !== '' ? backTo : null;
+    const emailTemplatesIndexHref = safeBackTo
+        ? `/admin/forms/email-templates?backTo=${encodeURIComponent(safeBackTo)}`
+        : '/admin/forms/email-templates';
+    const backHref = safeBackTo ?? emailTemplatesIndexHref;
+
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Dashboard', href: '/dashboard' },
-        { title: 'Email Templates', href: '/admin/forms/email-templates' },
+        { title: 'Email Templates', href: emailTemplatesIndexHref },
         {
             title: form.title,
             href: `/admin/forms/email-templates/${form.slug}`,
@@ -969,11 +978,12 @@ export default function AdminFormEmailTemplates({
                 <meta name="robots" content="noindex,nofollow" />
             </Head>
 
-            <div className="w-full bg-[#edf1f5] px-2 pt-0 pb-6 md:px-4 xl:px-6">
+            <AdminPageContent>
+                <div className="rounded-md border border-slate-200 bg-white p-6 shadow-sm md:p-8">
                 <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
                         <Button variant="ghost" className="-ml-2" asChild>
-                            <Link href="/admin/forms/email-templates">
+                            <Link href={backHref}>
                                 <ArrowLeft className="size-4" />
                                 Back
                             </Link>
@@ -1710,7 +1720,8 @@ export default function AdminFormEmailTemplates({
                         </div>
                     </div>
                 </div>
-            </div>
+                </div>
+            </AdminPageContent>
 
             <DeleteConfirmDialog
                 open={templateToDelete !== null}

@@ -10,10 +10,12 @@ export type SharedData = {
     sidebarOpen: boolean;
     workForms?: {
         isAdmin?: boolean;
+        canManageInvitations?: boolean;
     };
     flash?: {
         success?: string | null;
         error?: string | null;
+        inviteLink?: string | null;
     };
     [key: string]: unknown;
 };

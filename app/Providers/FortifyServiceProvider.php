@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Actions\Fortify\CreateNewUser;
 use App\Actions\Fortify\ResetUserPassword;
+use App\Services\AdminInvitationService;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
@@ -49,7 +50,8 @@ class FortifyServiceProvider extends ServiceProvider
     {
         Fortify::loginView(fn (Request $request) => Inertia::render('auth/login', [
             'canResetPassword' => Features::enabled(Features::resetPasswords()),
-            'canRegister' => Features::enabled(Features::registration()),
+            'canRegister' => Features::enabled(Features::registration())
+                && ! config('workforms.invite_only_registration', true),
             'status' => $request->session()->get('status'),
         ]));
 
@@ -66,7 +68,29 @@ class FortifyServiceProvider extends ServiceProvider
             'status' => $request->session()->get('status'),
         ]));
 
-        Fortify::registerView(fn () => Inertia::render('auth/register'));
+        Fortify::registerView(function (Request $request) {
+            $inviteOnlyRegistration = (bool) config('workforms.invite_only_registration', true);
+
+            if (! $inviteOnlyRegistration) {
+                return Inertia::render('auth/register');
+            }
+
+            $inviteToken = trim((string) $request->query('invite', ''));
+            $invitation = app(AdminInvitationService::class)->findValidByToken($inviteToken);
+
+            if ($invitation === null) {
+                return Inertia::render('auth/register-invite-required');
+            }
+
+            return Inertia::render('auth/register', [
+                'invitation' => [
+                    'token' => $inviteToken,
+                    'email' => $invitation->email,
+                    'roleName' => $invitation->role_name,
+                    'expiresAt' => $invitation->expires_at?->toIso8601String(),
+                ],
+            ]);
+        });
 
         Fortify::twoFactorChallengeView(fn () => Inertia::render('auth/two-factor-challenge'));
 

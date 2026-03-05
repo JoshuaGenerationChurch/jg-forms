@@ -1,10 +1,5 @@
 <?php
 
-$adminEmails = array_filter(array_map(
-    static fn (string $email): string => strtolower(trim($email)),
-    explode(',', (string) env('WORK_FORMS_ADMIN_EMAILS', ''))
-));
-
 $notificationRecipientsRaw = array_filter(array_map(
     static fn (string $recipient): string => trim($recipient),
     explode(';', (string) env(
@@ -53,7 +48,9 @@ $trelloDesignRecipientEmails = array_values(array_filter(array_unique(array_filt
 ), static fn (string $email): bool => filter_var($email, FILTER_VALIDATE_EMAIL) !== false))));
 
 return [
-    'admin_emails' => array_values(array_unique($adminEmails)),
+    'invite_only_registration' => (bool) env('WORK_FORMS_INVITE_ONLY_REGISTRATION', true),
+    'default_invitation_role' => (string) env('WORK_FORMS_DEFAULT_INVITED_ROLE', 'forms-admin'),
+    'invitation_expiry_days' => (int) env('WORK_FORMS_INVITATION_EXPIRY_DAYS', 7),
     'notification_recipients' => array_values($notificationRecipientsByEmail),
     'trello_dev_recipient_emails' => $trelloDevRecipientEmails,
     'trello_design_recipient_emails' => $trelloDesignRecipientEmails,
