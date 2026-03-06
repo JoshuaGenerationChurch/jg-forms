@@ -29,9 +29,9 @@ export default function FormsIndex({ forms }: Props) {
                     variant="public"
                 />
 
-                <main className="mx-auto flex w-full max-w-6xl flex-1 border-x border-slate-200 px-6">
-                    <div className="mx-auto w-full max-w-5xl py-8">
-                        <div className="rounded-md border border-slate-200 bg-white p-8 shadow-sm">
+                <main className="mx-auto flex w-full max-w-6xl flex-1 border-x border-slate-200 px-0 sm:px-6">
+                    <div className="mx-auto w-full max-w-5xl py-0 sm:py-8">
+                        <div className="rounded-none border border-slate-200 bg-white px-[15px] py-6 shadow-sm sm:rounded-md sm:p-8">
                             <h1 className="text-2xl font-semibold text-slate-900">
                                 Forms
                             </h1>
