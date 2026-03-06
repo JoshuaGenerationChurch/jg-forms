@@ -1183,7 +1183,7 @@ export function EasterServiceTimesForm() {
                     })}
                 </div>
 
-                <div className="flex justify-end">
+                <div className="flex justify-center">
                     <Button type="button" variant="outline" onClick={addCustomService}>
                         <Plus className="size-4" />
                         Additional Easter Event
@@ -1191,7 +1191,7 @@ export function EasterServiceTimesForm() {
                 </div>
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center justify-center gap-3">
                 <Button variant="outline" asChild>
                     <Link href="/forms">
                         <ArrowLeft className="size-4" />

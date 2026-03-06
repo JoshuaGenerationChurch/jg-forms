@@ -2,6 +2,7 @@ import { Head, Link } from '@inertiajs/react';
 import { ArrowRight } from 'lucide-react';
 import { GlobalFooter } from '@/components/global-footer';
 import { GlobalHeader } from '@/components/global-header';
+import { PublicFormContainer } from '@/components/public-form-container';
 import { Button } from '@/components/ui/button';
 
 type PublicForm = {
@@ -29,39 +30,35 @@ export default function FormsIndex({ forms }: Props) {
                     variant="public"
                 />
 
-                <main className="mx-auto flex w-full max-w-6xl flex-1 border-x border-slate-200 px-0 sm:px-6">
-                    <div className="mx-auto w-full max-w-5xl py-0 sm:py-8">
-                        <div className="rounded-none border border-slate-200 bg-white px-[15px] py-6 shadow-sm sm:rounded-md sm:p-8">
-                            <h1 className="text-2xl font-semibold text-slate-900">
-                                Forms
-                            </h1>
-                            <p className="mt-1 text-sm text-slate-500">
-                                Use this shared page to access available forms.
-                            </p>
+                <PublicFormContainer>
+                    <h1 className="text-2xl font-semibold text-slate-900">
+                        Forms
+                    </h1>
+                    <p className="mt-1 text-sm text-slate-500">
+                        Use this shared page to access available forms.
+                    </p>
 
-                            <div className="mt-8 grid gap-4 md:grid-cols-2">
-                                {forms.map((form) => (
-                                    <div
-                                        key={form.slug}
-                                        className="rounded-lg border border-slate-200 bg-white p-4 transition hover:border-slate-300"
-                                    >
-                                        <h2 className="text-base font-medium text-slate-900">
-                                            {form.title}
-                                        </h2>
-                                        <div className="mt-4">
-                                            <Button asChild>
-                                                <Link href={form.url}>
-                                                    Open form
-                                                    <ArrowRight className="size-4" />
-                                                </Link>
-                                            </Button>
-                                        </div>
-                                    </div>
-                                ))}
+                    <div className="mt-8 grid gap-4 md:grid-cols-2">
+                        {forms.map((form) => (
+                            <div
+                                key={form.slug}
+                                className="rounded-lg border border-slate-200 bg-white p-4 transition hover:border-slate-300"
+                            >
+                                <h2 className="text-base font-medium text-slate-900">
+                                    {form.title}
+                                </h2>
+                                <div className="mt-4">
+                                    <Button asChild>
+                                        <Link href={form.url}>
+                                            Open form
+                                            <ArrowRight className="size-4" />
+                                        </Link>
+                                    </Button>
+                                </div>
                             </div>
-                        </div>
+                        ))}
                     </div>
-                </main>
+                </PublicFormContainer>
 
                 <GlobalFooter
                     homeHref="/forms"

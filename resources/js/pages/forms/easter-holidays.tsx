@@ -2,6 +2,7 @@ import { Head } from '@inertiajs/react';
 import { EasterServiceTimesForm } from '@/components/forms/easter-service-times-form';
 import { GlobalFooter } from '@/components/global-footer';
 import { GlobalHeader } from '@/components/global-header';
+import { PublicFormContainer } from '@/components/public-form-container';
 
 export default function EasterHolidaysFormPage() {
     return (
@@ -17,13 +18,9 @@ export default function EasterHolidaysFormPage() {
                     variant="public"
                 />
 
-                <main className="mx-auto flex w-full max-w-6xl flex-1 border-x border-slate-200 px-6">
-                    <div className="mx-auto w-full max-w-5xl py-8">
-                        <div className="rounded-md border border-slate-200 bg-white p-8 shadow-sm">
-                            <EasterServiceTimesForm />
-                        </div>
-                    </div>
-                </main>
+                <PublicFormContainer>
+                    <EasterServiceTimesForm />
+                </PublicFormContainer>
 
                 <GlobalFooter
                     homeHref="/forms"

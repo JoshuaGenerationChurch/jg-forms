@@ -4,6 +4,7 @@ import { ArrowLeft, Save } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { GlobalFooter } from '@/components/global-footer';
 import { GlobalHeader } from '@/components/global-header';
+import { PublicFormContainer } from '@/components/public-form-container';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -528,111 +529,103 @@ export default function WorkRequestTabs() {
                     variant="public"
                 />
 
-                <main className="mx-auto flex w-full max-w-6xl flex-1 border-x border-slate-200 px-6">
-                    <div className="mx-auto w-full max-w-5xl py-8">
-                        <div className="rounded-md border border-slate-200 bg-white p-8 shadow-sm">
-                            <div>
-                                <h1 className="text-2xl font-semibold text-slate-900">
-                                    Work Request Form
-                                </h1>
-                                <p className="mt-1 text-sm text-slate-500">
-                                    Tab navigation enabled (gated). You can move
-                                    forward only after completing earlier steps.
-                                </p>
-                                {submitState === 'success' ? (
-                                    <p className="mt-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
-                                        Work request submitted successfully.
-                                    </p>
-                                ) : null}
-                                {submitState === 'error' ? (
-                                    <p className="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-                                        We could not submit your request. Please
-                                        review the form and try again.
-                                    </p>
-                                ) : null}
-                                {errors.recaptcha ? (
-                                    <p className="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-                                        {errors.recaptcha}
-                                    </p>
-                                ) : null}
-                                <WorkRequestTabStepper
-                                    steps={stepperSteps}
-                                    currentIndex={safeStepIndex}
-                                    maxEnabledIndex={maxEnabledIndex}
-                                    allValid={allValid}
-                                    onSelect={handleSelectTab}
-                                    hasError={hasErrors(errors)}
+                <PublicFormContainer>
+                    <div>
+                        <h1 className="text-2xl font-semibold text-slate-900">
+                            Work Request Form
+                        </h1>
+                        <p className="mt-1 text-sm text-slate-500">
+                            Tab navigation enabled (gated). You can move forward
+                            only after completing earlier steps.
+                        </p>
+                        {submitState === 'success' ? (
+                            <p className="mt-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+                                Work request submitted successfully.
+                            </p>
+                        ) : null}
+                        {submitState === 'error' ? (
+                            <p className="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                                We could not submit your request. Please review
+                                the form and try again.
+                            </p>
+                        ) : null}
+                        {errors.recaptcha ? (
+                            <p className="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                                {errors.recaptcha}
+                            </p>
+                        ) : null}
+                        <WorkRequestTabStepper
+                            steps={stepperSteps}
+                            currentIndex={safeStepIndex}
+                            maxEnabledIndex={maxEnabledIndex}
+                            allValid={allValid}
+                            onSelect={handleSelectTab}
+                            hasError={hasErrors(errors)}
+                        />
+                    </div>
+
+                    <div role="tabpanel" className="mt-8">
+                        {currentStep?.content}
+                    </div>
+
+                    {isLastStep ? (
+                        <div className="mt-8 rounded-lg border border-slate-200 bg-slate-50/70 p-4">
+                            <Label className="flex cursor-pointer items-start gap-3 text-sm text-slate-700">
+                                <Checkbox
+                                    checked={formData.termsAccepted}
+                                    onCheckedChange={(checked) =>
+                                        updateFormData(
+                                            'termsAccepted',
+                                            Boolean(checked),
+                                        )
+                                    }
+                                    className="mt-0.5"
                                 />
-                            </div>
+                                <span>
+                                    I accept the terms and conditions.
+                                </span>
+                            </Label>
+                            <FieldError error={errors.termsAccepted} />
+                        </div>
+                    ) : null}
 
-                            <div role="tabpanel" className="mt-8">
-                                {currentStep?.content}
-                            </div>
-
-                            {isLastStep ? (
-                                <div className="mt-8 rounded-lg border border-slate-200 bg-slate-50/70 p-4">
-                                    <Label className="flex cursor-pointer items-start gap-3 text-sm text-slate-700">
-                                        <Checkbox
-                                            checked={formData.termsAccepted}
-                                            onCheckedChange={(checked) =>
-                                                updateFormData(
-                                                    'termsAccepted',
-                                                    Boolean(checked),
-                                                )
-                                            }
-                                            className="mt-0.5"
-                                        />
-                                        <span>
-                                            I accept the terms and conditions.
-                                        </span>
-                                    </Label>
-                                    <FieldError error={errors.termsAccepted} />
-                                </div>
-                            ) : null}
-
-                            <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
-                                <div className="flex flex-wrap items-center gap-3">
-                                    <Button variant="outline" asChild>
-                                        <Link href="/forms">
-                                            <ArrowLeft className="size-4" />
-                                            Back to forms
-                                        </Link>
-                                    </Button>
-                                    {safeStepIndex > 0 && (
-                                        <Button
-                                            variant="outline"
-                                            type="button"
-                                            onClick={handlePrevious}
-                                        >
-                                            Previous
-                                        </Button>
-                                    )}
-                                </div>
-                                <div className="flex flex-wrap items-center gap-3">
-                                    <Button
-                                        type="button"
-                                        onClick={
-                                            isLastStep
-                                                ? handleSubmit
-                                                : handleNext
-                                        }
-                                        disabled={isSubmitting}
-                                    >
-                                        {isLastStep
-                                            ? isSubmitting
-                                                ? 'Submitting...'
-                                                : 'Submit Request'
-                                            : 'Next'}
-                                    </Button>
-                                    <Button variant="outline" type="button">
-                                        <Save className="size-4" />
-                                        Save and Continue Later
-                                    </Button>
-                                </div>
-                            </div>
+                    <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex flex-wrap items-center gap-3">
+                            <Button variant="outline" asChild>
+                                <Link href="/forms">
+                                    <ArrowLeft className="size-4" />
+                                    Back to forms
+                                </Link>
+                            </Button>
+                            {safeStepIndex > 0 && (
+                                <Button
+                                    variant="outline"
+                                    type="button"
+                                    onClick={handlePrevious}
+                                >
+                                    Previous
+                                </Button>
+                            )}
+                        </div>
+                        <div className="flex flex-wrap items-center gap-3">
+                            <Button
+                                type="button"
+                                onClick={isLastStep ? handleSubmit : handleNext}
+                                disabled={isSubmitting}
+                            >
+                                {isLastStep
+                                    ? isSubmitting
+                                        ? 'Submitting...'
+                                        : 'Submit Request'
+                                    : 'Next'}
+                            </Button>
+                            <Button variant="outline" type="button">
+                                <Save className="size-4" />
+                                Save and Continue Later
+                            </Button>
                         </div>
                     </div>
-                </main>
+                </PublicFormContainer>
 
                 <GlobalFooter
                     homeHref="/forms"

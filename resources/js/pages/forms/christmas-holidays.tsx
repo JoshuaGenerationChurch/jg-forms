@@ -3,6 +3,7 @@ import { ArrowLeft } from 'lucide-react';
 import { ChristmasServiceTimesForm } from '@/components/forms/christmas-service-times-form';
 import { GlobalFooter } from '@/components/global-footer';
 import { GlobalHeader } from '@/components/global-header';
+import { PublicFormContainer } from '@/components/public-form-container';
 import { Button } from '@/components/ui/button';
 
 export default function ChristmasHolidaysFormPage() {
@@ -19,22 +20,18 @@ export default function ChristmasHolidaysFormPage() {
                     variant="public"
                 />
 
-                <main className="mx-auto flex w-full max-w-6xl flex-1 border-x border-slate-200 px-6">
-                    <div className="mx-auto w-full max-w-5xl py-8">
-                        <div className="rounded-md border border-slate-200 bg-white p-8 shadow-sm">
-                            <ChristmasServiceTimesForm />
+                <PublicFormContainer>
+                    <ChristmasServiceTimesForm />
 
-                            <div className="mt-6">
-                                <Button variant="outline" asChild>
-                                    <Link href="/forms">
-                                        <ArrowLeft className="size-4" />
-                                        Back to forms
-                                    </Link>
-                                </Button>
-                            </div>
-                        </div>
+                    <div className="mt-6">
+                        <Button variant="outline" asChild>
+                            <Link href="/forms">
+                                <ArrowLeft className="size-4" />
+                                Back to forms
+                            </Link>
+                        </Button>
                     </div>
-                </main>
+                </PublicFormContainer>
 
                 <GlobalFooter
                     homeHref="/forms"
