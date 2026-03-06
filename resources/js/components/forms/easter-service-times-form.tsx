@@ -1,12 +1,11 @@
-import { router, useForm } from '@inertiajs/react';
-import { Minus, Plus } from 'lucide-react';
+import { Link, router, useForm } from '@inertiajs/react';
+import { ArrowLeft, Minus, Plus } from 'lucide-react';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import {
-    dateInputBase,
     selectBase,
     textareaBase,
 } from '@/components/work-request/types';
@@ -24,10 +23,12 @@ import { cn } from '@/lib/utils';
 type ServiceNameOption = 'good_friday' | 'easter_sunday' | 'custom';
 type VenueType = 'JG Venue' | 'Other';
 type ThemeOption = 'Yes' | 'No';
+type ServiceDayOption = 'good_friday' | 'easter_sunday';
 
 type ServiceTime = {
     serviceNameOption: ServiceNameOption;
     customServiceName: string;
+    serviceDay: '' | ServiceDayOption;
     startTime: string;
     venueType: '' | VenueType;
     jgVenue: string;
@@ -37,6 +38,8 @@ type ServiceTime = {
     graphicsLanguages: string[];
     hasSpecificTheme: '' | ThemeOption;
     themeDescription: string;
+    needsSeparateGraphic: '' | ThemeOption;
+    customGraphicThemeDescription: string;
 };
 
 type EasterServiceTimesFormData = {
@@ -82,7 +85,23 @@ const radioTileBase =
 const radioTileSelected =
     'border-blue-400 bg-white font-semibold text-slate-900 before:border-blue-500 before:bg-blue-500 after:opacity-100';
 
-const inlineDateInputBase = dateInputBase.replace('mt-2 ', '');
+const serviceTimeOptions = buildServiceTimeOptions();
+
+function buildServiceTimeOptions(): Array<{ value: string; label: string }> {
+    const options: Array<{ value: string; label: string }> = [];
+
+    for (let hour = 0; hour < 24; hour += 1) {
+        for (let minute = 0; minute < 60; minute += 15) {
+            const value = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+            const hour12 = ((hour + 11) % 12) + 1;
+            const period = hour < 12 ? 'AM' : 'PM';
+            const label = `${hour12}:${String(minute).padStart(2, '0')} ${period}`;
+            options.push({ value, label });
+        }
+    }
+
+    return options;
+}
 
 function sanitizeDirectoryList(values: unknown): string[] {
     if (!Array.isArray(values)) {
@@ -101,6 +120,7 @@ function makeServiceBlock(serviceNameOption: ServiceNameOption): ServiceTime {
     return {
         serviceNameOption,
         customServiceName: '',
+        serviceDay: '',
         startTime: '',
         venueType: '',
         jgVenue: '',
@@ -110,6 +130,8 @@ function makeServiceBlock(serviceNameOption: ServiceNameOption): ServiceTime {
         graphicsLanguages: [],
         hasSpecificTheme: '',
         themeDescription: '',
+        needsSeparateGraphic: '',
+        customGraphicThemeDescription: '',
     };
 }
 
@@ -361,8 +383,15 @@ export function EasterServiceTimesForm() {
                     nextItem.themeDescription = '';
                 }
 
+                if (field === 'needsSeparateGraphic' && value === 'No') {
+                    nextItem.customGraphicThemeDescription = '';
+                }
+
                 if (field === 'serviceNameOption' && value !== 'custom') {
                     nextItem.customServiceName = '';
+                    nextItem.serviceDay = '';
+                    nextItem.needsSeparateGraphic = '';
+                    nextItem.customGraphicThemeDescription = '';
                 }
 
                 return nextItem;
@@ -582,10 +611,6 @@ export function EasterServiceTimesForm() {
                     <h2 className="text-base font-medium text-slate-900">
                         Service Details
                     </h2>
-                    <Button type="button" variant="outline" onClick={addCustomService}>
-                        <Plus className="size-4" />
-                        Add Custom Service
-                    </Button>
                 </div>
 
                 {errors.serviceTimes ? (
@@ -595,92 +620,108 @@ export function EasterServiceTimesForm() {
                 <div className="space-y-4">
                     {data.serviceTimes.map((service, index) => {
                         const isCustomService = service.serviceNameOption === 'custom';
-                        const lockedServiceName =
+                        const customServiceNumber = data.serviceTimes
+                            .slice(0, index + 1)
+                            .filter((item) => item.serviceNameOption === 'custom').length;
+                        const serviceHeading = isCustomService
+                            ? `Additional Easter Event ${customServiceNumber}`
+                            : service.serviceNameOption === 'good_friday'
+                              ? 'Good Friday (3 April 2026)'
+                              : 'Easter Sunday (5 April 2026)';
+                        const fixedThemeQuestion =
                             service.serviceNameOption === 'good_friday'
-                                ? 'Good Friday (3 April 2026)'
-                                : service.serviceNameOption === 'easter_sunday'
-                                  ? 'Easter Sunday (5 April 2026)'
-                                  : '';
+                                ? 'Will your Good Friday Service have a different theme from our generic Easter Weekend theme?'
+                                : 'Will your Easter Sunday Service have a different theme from our generic Easter Weekend theme?';
 
                         return (
                             <div
-                                key={`${formSlug}-service-${index}`}
+                                key={`${formSlug}-service-wrapper-${index}`}
                                 className="space-y-4 rounded-lg border border-slate-200 bg-slate-50 p-4"
                             >
                                 <div className="flex items-center justify-between gap-2">
                                     <p className="text-sm font-medium text-slate-800">
-                                        Service {index + 1}
+                                        {serviceHeading}
                                     </p>
                                     <Button
                                         type="button"
                                         variant="ghost"
                                         onClick={() => removeServiceTime(index)}
-                                        disabled={index < 2}
+                                        disabled={!isCustomService}
                                     >
                                         <Minus className="size-4" />
                                         Remove
                                     </Button>
                                 </div>
 
-                                <div className="grid gap-3 md:grid-cols-2 md:items-center">
-                                    <div className="space-y-2 md:flex md:flex-col md:justify-center">
-                                        <Label>
-                                            Service Name <span className="text-red-500">*</span>
-                                        </Label>
-                                        {isCustomService ? (
-                                            <Input
-                                                value={service.customServiceName}
-                                                onChange={(event) =>
-                                                    updateServiceTime(
-                                                        index,
-                                                        'customServiceName',
-                                                        event.target.value,
-                                                    )
-                                                }
-                                                placeholder="Enter custom service name"
-                                                className={cn(
-                                                    inputBase,
-                                                    serviceTimeError(
-                                                        index,
-                                                        'customServiceName',
-                                                    )
-                                                        ? 'border-red-500'
-                                                        : '',
-                                                )}
-                                            />
-                                        ) : (
-                                            <Input
-                                                value={lockedServiceName}
-                                                readOnly
-                                                disabled
-                                                className={cn(inputBase, 'text-slate-700')}
-                                            />
-                                        )}
-                                        {serviceTimeError(
-                                            index,
-                                            'customServiceName',
-                                        ) ? (
-                                            <p className="text-xs text-red-600">
-                                                {serviceTimeError(
-                                                    index,
-                                                    'customServiceName',
-                                                )}
-                                            </p>
-                                        ) : null}
-                                        {serviceTimeError(index, 'serviceNameOption') ? (
-                                            <p className="text-xs text-red-600">
-                                                {serviceTimeError(index, 'serviceNameOption')}
-                                            </p>
-                                        ) : null}
-                                    </div>
+                                {isCustomService ? (
+                                    <>
+                                        <div className="grid gap-3 md:grid-cols-2 md:items-center">
+                                            <div className="space-y-2">
+                                                <Label>
+                                                    Service Name <span className="text-red-500">*</span>
+                                                </Label>
+                                                <Input
+                                                    value={service.customServiceName}
+                                                    onChange={(event) =>
+                                                        updateServiceTime(
+                                                            index,
+                                                            'customServiceName',
+                                                            event.target.value,
+                                                        )
+                                                    }
+                                                    placeholder="Enter custom service name"
+                                                    className={cn(
+                                                        inputBase,
+                                                        serviceTimeError(index, 'customServiceName')
+                                                            ? 'border-red-500'
+                                                            : '',
+                                                    )}
+                                                />
+                                                {serviceTimeError(index, 'customServiceName') ? (
+                                                    <p className="text-xs text-red-600">
+                                                        {serviceTimeError(index, 'customServiceName')}
+                                                    </p>
+                                                ) : null}
+                                            </div>
 
-                                    <div className="space-y-2 md:flex md:flex-col md:justify-center">
-                                        <Label>
-                                            Start Time <span className="text-red-500">*</span>
-                                        </Label>
-                                        <div className="relative">
-                                            <input
-                                                type="time"
+                                            <div className="space-y-2">
+                                                <Label>
+                                                    Day <span className="text-red-500">*</span>
+                                                </Label>
+                                                <select
+                                                    className={cn(
+                                                        selectBase,
+                                                        serviceTimeError(index, 'serviceDay')
+                                                            ? 'border-red-500'
+                                                            : '',
+                                                    )}
+                                                    value={service.serviceDay}
+                                                    onChange={(event) =>
+                                                        updateServiceTime(
+                                                            index,
+                                                            'serviceDay',
+                                                            event.target
+                                                                .value as ServiceDayOption,
+                                                        )
+                                                    }
+                                                >
+                                                    <option value="">Select an Option</option>
+                                                    <option value="good_friday">Good Friday</option>
+                                                    <option value="easter_sunday">Easter Sunday</option>
+                                                </select>
+                                                {serviceTimeError(index, 'serviceDay') ? (
+                                                    <p className="text-xs text-red-600">
+                                                        {serviceTimeError(index, 'serviceDay')}
+                                                    </p>
+                                                ) : null}
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-2 md:max-w-sm">
+                                            <Label>
+                                                Start Time <span className="text-red-500">*</span>
+                                            </Label>
+                                            <select
                                                 value={service.startTime}
                                                 onChange={(event) =>
                                                     updateServiceTime(
@@ -689,22 +730,70 @@ export function EasterServiceTimesForm() {
                                                         event.target.value,
                                                     )
                                                 }
-                                                aria-invalid={Boolean(
-                                                    serviceTimeError(
-                                                        index,
-                                                        'startTime',
-                                                    ),
+                                                aria-invalid={Boolean(serviceTimeError(index, 'startTime'))}
+                                                className={cn(
+                                                    inputBase,
+                                                    serviceTimeError(index, 'startTime')
+                                                        ? 'border-red-500'
+                                                        : '',
                                                 )}
-                                                className={inlineDateInputBase}
-                                            />
+                                            >
+                                                <option value="">Select time</option>
+                                                {serviceTimeOptions.map((timeOption) => (
+                                                    <option
+                                                        key={`${formSlug}-service-${index}-time-${timeOption.value}`}
+                                                        value={timeOption.value}
+                                                    >
+                                                        {timeOption.label}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            {serviceTimeError(index, 'startTime') ? (
+                                                <p className="text-xs text-red-600">
+                                                    {serviceTimeError(index, 'startTime')}
+                                                </p>
+                                            ) : null}
                                         </div>
+                                    </>
+                                ) : (
+                                    <div className="space-y-2">
+                                        <Label>
+                                            Start Time <span className="text-red-500">*</span>
+                                        </Label>
+                                        <select
+                                            value={service.startTime}
+                                            onChange={(event) =>
+                                                updateServiceTime(
+                                                    index,
+                                                    'startTime',
+                                                    event.target.value,
+                                                )
+                                            }
+                                            aria-invalid={Boolean(serviceTimeError(index, 'startTime'))}
+                                            className={cn(
+                                                inputBase,
+                                                serviceTimeError(index, 'startTime')
+                                                    ? 'border-red-500'
+                                                    : '',
+                                            )}
+                                        >
+                                            <option value="">Select time</option>
+                                            {serviceTimeOptions.map((timeOption) => (
+                                                <option
+                                                    key={`${formSlug}-service-${index}-time-${timeOption.value}`}
+                                                    value={timeOption.value}
+                                                >
+                                                    {timeOption.label}
+                                                </option>
+                                            ))}
+                                        </select>
                                         {serviceTimeError(index, 'startTime') ? (
                                             <p className="text-xs text-red-600">
                                                 {serviceTimeError(index, 'startTime')}
                                             </p>
                                         ) : null}
                                     </div>
-                                </div>
+                                )}
 
                                 <div className="space-y-2">
                                     <Label>
@@ -808,15 +897,9 @@ export function EasterServiceTimesForm() {
                                                         : '',
                                                 )}
                                             />
-                                            {serviceTimeError(
-                                                index,
-                                                'otherVenueName',
-                                            ) ? (
+                                            {serviceTimeError(index, 'otherVenueName') ? (
                                                 <p className="text-xs text-red-600">
-                                                    {serviceTimeError(
-                                                        index,
-                                                        'otherVenueName',
-                                                    )}
+                                                    {serviceTimeError(index, 'otherVenueName')}
                                                 </p>
                                             ) : null}
                                         </div>
@@ -898,135 +981,225 @@ export function EasterServiceTimesForm() {
                                     ) : null}
                                 </div>
 
-                                <div className="space-y-2">
-                                    <Label>
-                                        Graphics Language{' '}
-                                        <span className="text-red-500">*</span>
-                                    </Label>
-                                    <div className="grid gap-2 md:grid-cols-2">
-                                        {languageOptions.map((language) => (
-                                            <label
-                                                key={`${formSlug}-service-${index}-lang-${language}`}
-                                                className="flex items-center gap-2 rounded-lg border-2 border-slate-200 bg-slate-100/50 px-3 py-2 text-sm shadow-sm transition hover:border-slate-300"
-                                            >
-                                                <Checkbox
-                                                    checked={service.graphicsLanguages.includes(
-                                                        language,
-                                                    )}
-                                                    onCheckedChange={(checked) =>
-                                                        toggleServiceArrayValue(
-                                                            index,
-                                                            'graphicsLanguages',
-                                                            language,
-                                                            checked,
-                                                        )
-                                                    }
-                                                />
-                                                <span>{language}</span>
-                                            </label>
-                                        ))}
-                                    </div>
-                                    {serviceTimeError(index, 'graphicsLanguages') ? (
-                                        <p className="text-xs text-red-600">
-                                            {serviceTimeError(
-                                                index,
-                                                'graphicsLanguages',
-                                            )}
-                                        </p>
-                                    ) : null}
-                                </div>
+                                {isCustomService ? (
+                                    <>
+                                        <div className="space-y-2">
+                                            <Label>
+                                                Do you need a separate graphic for this event?{' '}
+                                                <span className="text-red-500">*</span>
+                                            </Label>
+                                            <div className="grid gap-2 md:grid-cols-2">
+                                                {(['Yes', 'No'] as const).map((value) => (
+                                                    <label
+                                                        key={`${formSlug}-service-${index}-separate-graphic-${value}`}
+                                                        className={cn(
+                                                            radioTileBase,
+                                                            service.needsSeparateGraphic === value
+                                                                ? radioTileSelected
+                                                                : 'text-slate-700 hover:border-slate-300',
+                                                        )}
+                                                    >
+                                                        <input
+                                                            type="radio"
+                                                            name={`${formSlug}-service-${index}-separate-graphic`}
+                                                            value={value}
+                                                            checked={service.needsSeparateGraphic === value}
+                                                            className="sr-only"
+                                                            onChange={(event) =>
+                                                                updateServiceTime(
+                                                                    index,
+                                                                    'needsSeparateGraphic',
+                                                                    event.target.value as ThemeOption,
+                                                                )
+                                                            }
+                                                        />
+                                                        {value}
+                                                    </label>
+                                                ))}
+                                            </div>
+                                            {serviceTimeError(index, 'needsSeparateGraphic') ? (
+                                                <p className="text-xs text-red-600">
+                                                    {serviceTimeError(index, 'needsSeparateGraphic')}
+                                                </p>
+                                            ) : null}
+                                        </div>
 
-                                <div className="space-y-2">
-                                    <Label>
-                                        Does this service have a specific theme other than the generic slide?{' '}
-                                        <span className="text-red-500">*</span>
-                                    </Label>
-                                    <div className="grid gap-2 md:grid-cols-2">
-                                        {(['Yes', 'No'] as const).map((value) => (
-                                            <label
-                                                key={`${formSlug}-service-${index}-theme-${value}`}
-                                                className={cn(
-                                                    radioTileBase,
-                                                    service.hasSpecificTheme === value
-                                                        ? radioTileSelected
-                                                        : 'text-slate-700 hover:border-slate-300',
-                                                )}
-                                            >
-                                                <input
-                                                    type="radio"
-                                                    name={`${formSlug}-service-${index}-theme`}
-                                                    value={value}
-                                                    checked={service.hasSpecificTheme === value}
-                                                    className="sr-only"
+                                        {service.needsSeparateGraphic === 'Yes' ? (
+                                            <div className="space-y-2">
+                                                <Label>
+                                                    Do you have a specific theme/topic/heart in mind for the event that will help us create a suitable graphic?{' '}
+                                                    <span className="text-red-500">*</span>
+                                                </Label>
+                                                <textarea
+                                                    className={cn(
+                                                        textareaBase,
+                                                        serviceTimeError(
+                                                            index,
+                                                            'customGraphicThemeDescription',
+                                                        )
+                                                            ? 'border-red-500'
+                                                            : '',
+                                                    )}
+                                                    rows={4}
+                                                    value={service.customGraphicThemeDescription}
                                                     onChange={(event) =>
                                                         updateServiceTime(
                                                             index,
-                                                            'hasSpecificTheme',
-                                                            event.target
-                                                                .value as ThemeOption,
+                                                            'customGraphicThemeDescription',
+                                                            event.target.value,
                                                         )
                                                     }
                                                 />
-                                                {value}
-                                            </label>
-                                        ))}
-                                    </div>
-                                    {serviceTimeError(index, 'hasSpecificTheme') ? (
-                                        <p className="text-xs text-red-600">
-                                            {serviceTimeError(
-                                                index,
-                                                'hasSpecificTheme',
-                                            )}
-                                        </p>
-                                    ) : null}
-                                </div>
-
-                                {service.hasSpecificTheme === 'Yes' ? (
-                                    <div className="space-y-2">
-                                        <Label>
-                                            Theme Description{' '}
-                                            <span className="text-red-500">*</span>
-                                        </Label>
-                                        <textarea
-                                            className={cn(
-                                                textareaBase,
-                                                serviceTimeError(index, 'themeDescription')
-                                                    ? 'border-red-500'
-                                                    : '',
-                                            )}
-                                            rows={4}
-                                            value={service.themeDescription}
-                                            onChange={(event) =>
-                                                updateServiceTime(
-                                                    index,
-                                                    'themeDescription',
-                                                    event.target.value,
-                                                )
-                                            }
-                                            placeholder="Give a detailed description of your event and the theme"
-                                        />
-                                        {serviceTimeError(
-                                            index,
-                                            'themeDescription',
-                                        ) ? (
-                                            <p className="text-xs text-red-600">
                                                 {serviceTimeError(
                                                     index,
-                                                    'themeDescription',
-                                                )}
-                                            </p>
+                                                    'customGraphicThemeDescription',
+                                                ) ? (
+                                                    <p className="text-xs text-red-600">
+                                                        {serviceTimeError(
+                                                            index,
+                                                            'customGraphicThemeDescription',
+                                                        )}
+                                                    </p>
+                                                ) : null}
+                                            </div>
                                         ) : null}
-                                    </div>
-                                ) : null}
+                                    </>
+                                ) : (
+                                    <>
+                                        <div className="space-y-2">
+                                            <Label>
+                                                Graphics Language{' '}
+                                                <span className="text-red-500">*</span>
+                                            </Label>
+                                            <div className="grid gap-2 md:grid-cols-2">
+                                                {languageOptions.map((language) => (
+                                                    <label
+                                                        key={`${formSlug}-service-${index}-lang-${language}`}
+                                                        className="flex items-center gap-2 rounded-lg border-2 border-slate-200 bg-slate-100/50 px-3 py-2 text-sm shadow-sm transition hover:border-slate-300"
+                                                    >
+                                                        <Checkbox
+                                                            checked={service.graphicsLanguages.includes(
+                                                                language,
+                                                            )}
+                                                            onCheckedChange={(checked) =>
+                                                                toggleServiceArrayValue(
+                                                                    index,
+                                                                    'graphicsLanguages',
+                                                                    language,
+                                                                    checked,
+                                                                )
+                                                            }
+                                                        />
+                                                        <span>{language}</span>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                            {serviceTimeError(index, 'graphicsLanguages') ? (
+                                                <p className="text-xs text-red-600">
+                                                    {serviceTimeError(
+                                                        index,
+                                                        'graphicsLanguages',
+                                                    )}
+                                                </p>
+                                            ) : null}
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <Label>
+                                                {fixedThemeQuestion}{' '}
+                                                <span className="text-red-500">*</span>
+                                            </Label>
+                                            <div className="grid gap-2 md:grid-cols-2">
+                                                {(['Yes', 'No'] as const).map((value) => (
+                                                    <label
+                                                        key={`${formSlug}-service-${index}-theme-${value}`}
+                                                        className={cn(
+                                                            radioTileBase,
+                                                            service.hasSpecificTheme === value
+                                                                ? radioTileSelected
+                                                                : 'text-slate-700 hover:border-slate-300',
+                                                        )}
+                                                    >
+                                                        <input
+                                                            type="radio"
+                                                            name={`${formSlug}-service-${index}-theme`}
+                                                            value={value}
+                                                            checked={service.hasSpecificTheme === value}
+                                                            className="sr-only"
+                                                            onChange={(event) =>
+                                                                updateServiceTime(
+                                                                    index,
+                                                                    'hasSpecificTheme',
+                                                                    event.target.value as ThemeOption,
+                                                                )
+                                                            }
+                                                        />
+                                                        {value}
+                                                    </label>
+                                                ))}
+                                            </div>
+                                            {serviceTimeError(index, 'hasSpecificTheme') ? (
+                                                <p className="text-xs text-red-600">
+                                                    {serviceTimeError(index, 'hasSpecificTheme')}
+                                                </p>
+                                            ) : null}
+                                        </div>
+
+                                        {service.hasSpecificTheme === 'Yes' ? (
+                                            <div className="space-y-2">
+                                                <Label>
+                                                    Theme Description{' '}
+                                                    <span className="text-red-500">*</span>
+                                                </Label>
+                                                <textarea
+                                                    className={cn(
+                                                        textareaBase,
+                                                        serviceTimeError(index, 'themeDescription')
+                                                            ? 'border-red-500'
+                                                            : '',
+                                                    )}
+                                                    rows={4}
+                                                    value={service.themeDescription}
+                                                    onChange={(event) =>
+                                                        updateServiceTime(
+                                                            index,
+                                                            'themeDescription',
+                                                            event.target.value,
+                                                        )
+                                                    }
+                                                    placeholder="Give a detailed description of your event and the theme"
+                                                />
+                                                {serviceTimeError(index, 'themeDescription') ? (
+                                                    <p className="text-xs text-red-600">
+                                                        {serviceTimeError(index, 'themeDescription')}
+                                                    </p>
+                                                ) : null}
+                                            </div>
+                                        ) : null}
+                                    </>
+                                )}
                             </div>
                         );
                     })}
                 </div>
+
+                <div className="flex justify-end">
+                    <Button type="button" variant="outline" onClick={addCustomService}>
+                        <Plus className="size-4" />
+                        Additional Easter Event
+                    </Button>
+                </div>
             </div>
 
-            <div className="flex justify-end">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+                <Button variant="outline" asChild>
+                    <Link href="/forms">
+                        <ArrowLeft className="size-4" />
+                        Back to forms
+                    </Link>
+                </Button>
                 <Button type="submit" disabled={processing}>
-                    {processing ? 'Submitting...' : 'Submit Service Times'}
+                    {processing ? 'Submitting...' : 'Submit Service Request'}
                 </Button>
             </div>
         </form>

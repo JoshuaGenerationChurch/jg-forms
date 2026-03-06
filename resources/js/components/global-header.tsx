@@ -21,7 +21,7 @@ export function GlobalHeader({
             className={cn(
                 'px-6',
                 isPublic
-                    ? 'sticky top-0 z-30'
+                    ? 'sticky top-0 z-30 border-b border-slate-200 bg-gradient-to-r from-[#0077C0] via-[#0D89CF] to-[#0077C0]'
                     : 'border-b border-slate-200 bg-white py-4',
             )}
         >
@@ -29,7 +29,7 @@ export function GlobalHeader({
                 className={cn(
                     'mx-auto flex w-full max-w-6xl items-center justify-between',
                     isPublic &&
-                        'border-x border-slate-200 bg-gradient-to-r from-[#0077C0] via-[#0D89CF] to-[#0077C0] px-6 py-4 shadow-sm',
+                        'px-6 py-4',
                 )}
             >
                 <Link href={homeHref}>

@@ -74,12 +74,14 @@ class AdminInvitationController extends Controller
             expiresInDays: (int) $validated['expiresInDays'],
         );
 
-        Mail::to((string) $validated['email'])->queue(new AdminInvitationMail(
+        $mailQueueConnection = trim((string) config('workforms.mail_queue_connection', 'background'));
+
+        Mail::to((string) $validated['email'])->queue((new AdminInvitationMail(
             recipientEmail: (string) $validated['email'],
             roleName: (string) $result['invitation']->role_name,
             registrationUrl: (string) $result['registrationUrl'],
             expiresAt: $result['invitation']->expiresAtHuman(),
-        ));
+        ))->onConnection($mailQueueConnection !== '' ? $mailQueueConnection : 'background'));
 
         return back()->with([
             'success' => 'Invitation created and queued for delivery.',

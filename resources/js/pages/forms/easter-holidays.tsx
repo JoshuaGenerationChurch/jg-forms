@@ -1,9 +1,7 @@
-import { Head, Link } from '@inertiajs/react';
-import { ArrowLeft } from 'lucide-react';
+import { Head } from '@inertiajs/react';
 import { EasterServiceTimesForm } from '@/components/forms/easter-service-times-form';
 import { GlobalFooter } from '@/components/global-footer';
 import { GlobalHeader } from '@/components/global-header';
-import { Button } from '@/components/ui/button';
 
 export default function EasterHolidaysFormPage() {
     return (
@@ -23,15 +21,6 @@ export default function EasterHolidaysFormPage() {
                     <div className="mx-auto w-full max-w-5xl py-8">
                         <div className="rounded-md border border-slate-200 bg-white p-8 shadow-sm">
                             <EasterServiceTimesForm />
-
-                            <div className="mt-6">
-                                <Button variant="outline" asChild>
-                                    <Link href="/forms">
-                                        <ArrowLeft className="size-4" />
-                                        Back to forms
-                                    </Link>
-                                </Button>
-                            </div>
                         </div>
                     </div>
                 </main>

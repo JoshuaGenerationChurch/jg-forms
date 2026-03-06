@@ -24,18 +24,11 @@ export function GlobalFooter({
             className={cn(
                 'px-6',
                 isPublic
-                    ? 'mt-auto'
+                    ? 'mt-auto border-t border-slate-200 bg-white'
                     : 'mt-auto border-t border-slate-200 bg-white py-6',
             )}
         >
-            <div
-                className={cn(
-                    'mx-auto w-full max-w-6xl px-6 py-6',
-                    isPublic
-                        ? 'border-x border-t border-slate-200 bg-white'
-                        : '',
-                )}
-            >
+            <div className="mx-auto w-full max-w-6xl px-6 py-6">
                 <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-center text-sm text-slate-700">
                     <a
                         href="https://za.joshgen.org/terms-and-conditions/"

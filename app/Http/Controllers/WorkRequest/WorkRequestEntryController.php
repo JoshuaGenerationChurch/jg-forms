@@ -407,6 +407,7 @@ class WorkRequestEntryController extends Controller
                 'serviceTimes' => ['required', 'array', 'min:2'],
                 'serviceTimes.*.serviceNameOption' => ['required', Rule::in(['good_friday', 'easter_sunday', 'custom'])],
                 'serviceTimes.*.customServiceName' => ['nullable', 'string', 'max:255'],
+                'serviceTimes.*.serviceDay' => ['nullable', Rule::in(['good_friday', 'easter_sunday'])],
                 'serviceTimes.*.startTime' => ['required', 'date_format:H:i'],
                 'serviceTimes.*.venueType' => ['required', Rule::in(['JG Venue', 'Other'])],
                 'serviceTimes.*.jgVenue' => ['nullable', 'string', 'max:255'],
@@ -414,10 +415,12 @@ class WorkRequestEntryController extends Controller
                 'serviceTimes.*.otherVenueAddress' => ['nullable', 'string', 'max:500'],
                 'serviceTimes.*.congregationsInvolved' => ['required', 'array', 'min:1'],
                 'serviceTimes.*.congregationsInvolved.*' => ['string', 'max:255'],
-                'serviceTimes.*.graphicsLanguages' => ['required', 'array', 'min:1'],
+                'serviceTimes.*.graphicsLanguages' => ['nullable', 'array'],
                 'serviceTimes.*.graphicsLanguages.*' => ['string', Rule::in(['English', 'Afrikaans'])],
-                'serviceTimes.*.hasSpecificTheme' => ['required', Rule::in(['Yes', 'No'])],
+                'serviceTimes.*.hasSpecificTheme' => ['nullable', Rule::in(['Yes', 'No'])],
                 'serviceTimes.*.themeDescription' => ['nullable', 'string', 'max:2000'],
+                'serviceTimes.*.needsSeparateGraphic' => ['nullable', Rule::in(['Yes', 'No'])],
+                'serviceTimes.*.customGraphicThemeDescription' => ['nullable', 'string', 'max:2000'],
             ]
             : [
                 'congregation' => ['required', 'string', 'max:255'],
@@ -465,15 +468,23 @@ class WorkRequestEntryController extends Controller
             foreach ($validatedServiceTimes as $index => $service) {
                 $serviceNameOption = (string) ($service['serviceNameOption'] ?? '');
                 $customServiceName = trim((string) ($service['customServiceName'] ?? ''));
+                $serviceDay = trim((string) ($service['serviceDay'] ?? ''));
                 $venueType = (string) ($service['venueType'] ?? '');
                 $jgVenue = trim((string) ($service['jgVenue'] ?? ''));
                 $otherVenueName = trim((string) ($service['otherVenueName'] ?? ''));
                 $otherVenueAddress = trim((string) ($service['otherVenueAddress'] ?? ''));
+                $graphicsLanguages = $this->normalizeStringList($service['graphicsLanguages'] ?? []);
                 $hasSpecificTheme = (string) ($service['hasSpecificTheme'] ?? '');
                 $themeDescription = trim((string) ($service['themeDescription'] ?? ''));
+                $needsSeparateGraphic = (string) ($service['needsSeparateGraphic'] ?? '');
+                $customGraphicThemeDescription = trim((string) ($service['customGraphicThemeDescription'] ?? ''));
 
                 if ($serviceNameOption === 'custom' && $customServiceName === '') {
                     $errors["serviceTimes.$index.customServiceName"] = 'Please provide a custom service name';
+                }
+
+                if ($serviceNameOption === 'custom' && $serviceDay === '') {
+                    $errors["serviceTimes.$index.serviceDay"] = 'Please select the day for this event';
                 }
 
                 if ($venueType === 'JG Venue' && $jgVenue === '') {
@@ -490,8 +501,26 @@ class WorkRequestEntryController extends Controller
                     }
                 }
 
-                if ($hasSpecificTheme === 'Yes' && $themeDescription === '') {
-                    $errors["serviceTimes.$index.themeDescription"] = 'Please provide a theme description';
+                if ($serviceNameOption === 'custom') {
+                    if ($needsSeparateGraphic === '') {
+                        $errors["serviceTimes.$index.needsSeparateGraphic"] = 'Please indicate if a separate graphic is needed';
+                    }
+
+                    if ($needsSeparateGraphic === 'Yes' && $customGraphicThemeDescription === '') {
+                        $errors["serviceTimes.$index.customGraphicThemeDescription"] = 'Please provide details for the separate graphic';
+                    }
+                } else {
+                    if (count($graphicsLanguages) === 0) {
+                        $errors["serviceTimes.$index.graphicsLanguages"] = 'Please select at least one graphics language';
+                    }
+
+                    if ($hasSpecificTheme === '') {
+                        $errors["serviceTimes.$index.hasSpecificTheme"] = 'Please indicate whether this service has a specific theme';
+                    }
+
+                    if ($hasSpecificTheme === 'Yes' && $themeDescription === '') {
+                        $errors["serviceTimes.$index.themeDescription"] = 'Please provide a theme description';
+                    }
                 }
             }
 
@@ -519,13 +548,18 @@ class WorkRequestEntryController extends Controller
                 ->map(function (array $service) use ($serviceNameMeta): array {
                     $serviceNameOption = (string) ($service['serviceNameOption'] ?? '');
                     $customServiceName = trim((string) ($service['customServiceName'] ?? ''));
+                    $serviceDay = trim((string) ($service['serviceDay'] ?? ''));
+                    $resolvedServiceDay = $serviceNameOption === 'custom'
+                        ? $serviceDay
+                        : $serviceNameOption;
                     $serviceName = $serviceNameOption === 'custom'
                         ? $customServiceName
                         : (string) ($serviceNameMeta[$serviceNameOption]['name'] ?? '');
-                    $serviceDate = $serviceNameMeta[$serviceNameOption]['date'] ?? null;
+                    $serviceDate = $serviceNameMeta[$resolvedServiceDay]['date'] ?? null;
 
                     return [
                         'serviceNameOption' => $serviceNameOption,
+                        'serviceDay' => $resolvedServiceDay,
                         'serviceName' => $serviceName,
                         'serviceDate' => $serviceDate,
                         'customServiceName' => $customServiceName,
@@ -538,6 +572,8 @@ class WorkRequestEntryController extends Controller
                         'graphicsLanguages' => $this->normalizeStringList($service['graphicsLanguages'] ?? []),
                         'hasSpecificTheme' => trim((string) ($service['hasSpecificTheme'] ?? '')),
                         'themeDescription' => trim((string) ($service['themeDescription'] ?? '')),
+                        'needsSeparateGraphic' => trim((string) ($service['needsSeparateGraphic'] ?? '')),
+                        'customGraphicThemeDescription' => trim((string) ($service['customGraphicThemeDescription'] ?? '')),
                     ];
                 })
                 ->values()
@@ -625,7 +661,7 @@ class WorkRequestEntryController extends Controller
                     'Contact Last Name',
                     'Contact Email',
                     'Cellphone',
-                    'Primary Congregation',
+                    "Contact's Congregation",
                     'Service Type',
                     'Service Name',
                     'Service Date',
@@ -765,6 +801,7 @@ class WorkRequestEntryController extends Controller
 
         foreach ($serviceTimes as $service) {
             $serviceNameOption = trim((string) ($service['serviceNameOption'] ?? ''));
+            $serviceDay = trim((string) ($service['serviceDay'] ?? ''));
             $serviceName = trim((string) ($service['serviceName'] ?? ''));
             $serviceDate = trim((string) ($service['serviceDate'] ?? ''));
             $startTime = trim((string) ($service['startTime'] ?? ''));
@@ -776,6 +813,8 @@ class WorkRequestEntryController extends Controller
             $graphicsLanguages = $this->normalizeStringList($service['graphicsLanguages'] ?? []);
             $hasSpecificTheme = trim((string) ($service['hasSpecificTheme'] ?? ''));
             $themeDescription = trim((string) ($service['themeDescription'] ?? ''));
+            $needsSeparateGraphic = trim((string) ($service['needsSeparateGraphic'] ?? ''));
+            $customGraphicThemeDescription = trim((string) ($service['customGraphicThemeDescription'] ?? ''));
 
             $serviceIdentity = strtolower(
                 $serviceNameOption === 'custom' ? $serviceName : $serviceNameOption,
@@ -787,6 +826,8 @@ class WorkRequestEntryController extends Controller
             );
             $mergeKey = implode('||', [
                 $serviceIdentity,
+                strtolower($serviceDay),
+                strtolower($serviceDate),
                 strtolower($startTime),
                 strtolower($venueType),
                 $venueIdentity,
@@ -795,6 +836,7 @@ class WorkRequestEntryController extends Controller
             if (! isset($mergedServices[$mergeKey])) {
                 $mergedServices[$mergeKey] = [
                     'serviceNameOption' => $serviceNameOption,
+                    'serviceDay' => $serviceDay,
                     'serviceName' => $serviceName,
                     'serviceDate' => $serviceDate,
                     'customServiceName' => trim((string) ($service['customServiceName'] ?? '')),
@@ -807,6 +849,8 @@ class WorkRequestEntryController extends Controller
                     'graphicsLanguages' => $graphicsLanguages,
                     'hasSpecificTheme' => $hasSpecificTheme,
                     'themeDescription' => $themeDescription,
+                    'needsSeparateGraphic' => $needsSeparateGraphic,
+                    'customGraphicThemeDescription' => $customGraphicThemeDescription,
                 ];
                 continue;
             }
@@ -852,6 +896,32 @@ class WorkRequestEntryController extends Controller
                 ) {
                     $mergedServices[$mergeKey]['themeDescription'] =
                         $existingThemeDescription.' | '.$themeDescription;
+                }
+            }
+
+            if ($needsSeparateGraphic === 'Yes') {
+                $mergedServices[$mergeKey]['needsSeparateGraphic'] = 'Yes';
+            }
+
+            if ($customGraphicThemeDescription !== '') {
+                $existingGraphicDescription = trim((string) ($existing['customGraphicThemeDescription'] ?? ''));
+                if ($existingGraphicDescription === '') {
+                    $mergedServices[$mergeKey]['customGraphicThemeDescription'] = $customGraphicThemeDescription;
+                } elseif (
+                    ! in_array(
+                        strtolower($customGraphicThemeDescription),
+                        array_map(
+                            static fn (string $value): string => strtolower(trim($value)),
+                            array_filter(
+                                array_map('trim', explode(' | ', $existingGraphicDescription)),
+                                static fn (string $value): bool => $value !== '',
+                            ),
+                        ),
+                        true,
+                    )
+                ) {
+                    $mergedServices[$mergeKey]['customGraphicThemeDescription'] =
+                        $existingGraphicDescription.' | '.$customGraphicThemeDescription;
                 }
             }
         }
@@ -1137,7 +1207,8 @@ class WorkRequestEntryController extends Controller
                     : new Address($email);
 
                 Mail::to($recipientAddress)->queue(
-                    new WorkFormSubmissionNotificationMail($entry, $form),
+                    (new WorkFormSubmissionNotificationMail($entry, $form))
+                        ->onConnection($this->mailQueueConnection()),
                 );
             } catch (Throwable $exception) {
                 report($exception);
@@ -1285,14 +1356,21 @@ class WorkRequestEntryController extends Controller
                 $pendingMail->bcc($this->mapRecipientsToAddresses($bccRecipients));
             }
 
-            $pendingMail->queue(new WorkFormTemplateNotificationMail(
+            $pendingMail->queue((new WorkFormTemplateNotificationMail(
                 $subject,
                 $heading,
                 $body,
-            ));
+            ))->onConnection($this->mailQueueConnection()));
         } catch (Throwable $exception) {
             report($exception);
         }
+    }
+
+    private function mailQueueConnection(): string
+    {
+        $mailQueueConnection = trim((string) config('workforms.mail_queue_connection', 'background'));
+
+        return $mailQueueConnection !== '' ? $mailQueueConnection : 'background';
     }
 
     /**

@@ -38,6 +38,7 @@ class ContactUsController extends Controller
             'message' => trim((string) $validated['message']),
         ]);
 
+        $mailQueueConnection = trim((string) config('workforms.mail_queue_connection', 'background'));
         $recipients = $emailTemplateService->defaultRecipients();
 
         foreach ($recipients as $recipient) {
@@ -54,7 +55,10 @@ class ContactUsController extends Controller
                     : new Address($email);
 
                 Mail::to($recipientAddress)
-                    ->queue(new ContactSubmissionNotificationMail($submission));
+                    ->queue(
+                        (new ContactSubmissionNotificationMail($submission))
+                            ->onConnection($mailQueueConnection !== '' ? $mailQueueConnection : 'background')
+                    );
             } catch (Throwable $exception) {
                 report($exception);
             }

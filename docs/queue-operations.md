@@ -76,6 +76,42 @@ sudo supervisorctl update
 sudo supervisorctl status
 ```
 
+### 4.1 Cloudways quick setup (this project)
+
+If your app path is:
+
+`/home/1197962.cloudwaysapps.com/hczbsjjmgr/public_html`
+
+use this worker command:
+
+```bash
+php /home/1197962.cloudwaysapps.com/hczbsjjmgr/public_html/artisan queue:work database --queue=default --sleep=3 --tries=1 --timeout=120 --max-time=3600
+```
+
+If you have root/sudo access, use Supervisor with:
+
+```ini
+[program:jg-forms-queue]
+process_name=%(program_name)s_%(process_num)02d
+command=php /home/1197962.cloudwaysapps.com/hczbsjjmgr/public_html/artisan queue:work database --queue=default --sleep=3 --tries=1 --timeout=120 --max-time=3600
+autostart=true
+autorestart=true
+stopasgroup=true
+killasgroup=true
+numprocs=1
+redirect_stderr=true
+stdout_logfile=/home/1197962.cloudwaysapps.com/hczbsjjmgr/public_html/storage/logs/queue-worker.log
+stopwaitsecs=3600
+```
+
+If you do not have root/sudo, use cron fallback:
+
+```cron
+* * * * * cd /home/1197962.cloudwaysapps.com/hczbsjjmgr/public_html && php artisan queue:work database --queue=default --stop-when-empty --sleep=3 --tries=1 --timeout=120 >> /home/1197962.cloudwaysapps.com/hczbsjjmgr/public_html/storage/logs/queue-worker-cron.log 2>&1
+```
+
+This runs every minute and drains queued jobs even without Supervisor.
+
 ## 5. systemd alternative
 
 Create `/etc/systemd/system/jg-forms-queue.service`:
@@ -131,4 +167,12 @@ php artisan queue:restart
 
 ```bash
 php artisan queue:flush
+```
+
+## 7. Monitoring command to use in production
+
+Use strict thresholds so any backlog is visible immediately:
+
+```bash
+php artisan queue:health-check --warn-backlog=0 --warn-failed=0
 ```
