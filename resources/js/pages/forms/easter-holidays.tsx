@@ -7,7 +7,7 @@ import { PublicFormContainer } from '@/components/public-form-container';
 export default function EasterHolidaysFormPage() {
     return (
         <>
-            <Head title="Easter Holidays Service Times">
+            <Head title="Easter Weekend Service Times">
                 <meta name="robots" content="noindex,nofollow" />
             </Head>
 

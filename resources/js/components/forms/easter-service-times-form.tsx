@@ -492,7 +492,7 @@ export function EasterServiceTimesForm() {
         <form onSubmit={submit} className="space-y-8">
             <div>
                 <h1 className="text-2xl font-semibold text-slate-900">
-                    Easter Holidays Service Times
+                    Easter Weekend Service Times
                 </h1>
                 <p className="mt-2 text-sm text-slate-600">
                     Add congregation service details for Good Friday and Easter Sunday.
@@ -639,7 +639,7 @@ export function EasterServiceTimesForm() {
                                 className="space-y-4 rounded-lg border border-slate-200 bg-slate-50 p-4"
                             >
                                 <div className="flex items-center justify-between gap-2">
-                                    <p className="text-sm font-medium text-slate-800">
+                                    <p className="text-lg font-semibold text-slate-900">
                                         {serviceHeading}
                                     </p>
                                     <Button
@@ -800,7 +800,10 @@ export function EasterServiceTimesForm() {
                                         Venue <span className="text-red-500">*</span>
                                     </Label>
                                     <div className="grid gap-2 md:grid-cols-2">
-                                        {(['JG Venue', 'Other'] as const).map((value) => (
+                                        {([
+                                            { value: 'JG Venue', label: 'JoshGen Venue' },
+                                            { value: 'Other', label: 'Other Venue' },
+                                        ] as const).map(({ value, label }) => (
                                             <label
                                                 key={`${formSlug}-service-${index}-venue-${value}`}
                                                 className={cn(
@@ -824,7 +827,7 @@ export function EasterServiceTimesForm() {
                                                         )
                                                     }
                                                 />
-                                                {value}
+                                                {label}
                                             </label>
                                         ))}
                                     </div>
@@ -838,7 +841,7 @@ export function EasterServiceTimesForm() {
                                 {service.venueType === 'JG Venue' ? (
                                     <div className="space-y-2">
                                         <Label>
-                                            JG Venue <span className="text-red-500">*</span>
+                                            JoshGen Venue <span className="text-red-500">*</span>
                                         </Label>
                                         <select
                                             className={cn(
