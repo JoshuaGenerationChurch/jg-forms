@@ -28,7 +28,10 @@ type AdminEntry = {
     createdAt: string | null;
     firstName: string | null;
     lastName: string | null;
+    eventName?: string | null;
     requestTypes: string[];
+    canManage?: boolean;
+    sourceEntryCount?: number;
 };
 
 type Props = {
@@ -482,7 +485,14 @@ export default function AdminFormEntries({ form, entries }: Props) {
                                     {filteredEntries.map((entry) => (
                                         <tr key={entry.id}>
                                             <td className="px-4 py-4 align-middle text-sm text-slate-900">
-                                                {entry.firstName?.trim() || 'N/A'}
+                                                <div className="space-y-1">
+                                                    <span>{entry.firstName?.trim() || 'N/A'}</span>
+                                                    {entry.eventName?.trim() ? (
+                                                        <p className="text-xs text-slate-500">
+                                                            {entry.eventName}
+                                                        </p>
+                                                    ) : null}
+                                                </div>
                                             </td>
                                             <td className="px-4 py-4 align-middle text-sm text-slate-900">
                                                 {entry.lastName?.trim() || 'N/A'}
@@ -492,6 +502,11 @@ export default function AdminFormEntries({ form, entries }: Props) {
                                             </td>
                                             <td className="py-4 pr-2 pl-4 align-middle">
                                                 <div className="grid grid-cols-3 gap-2">
+                                                    {(entry.sourceEntryCount ?? 1) > 1 ? (
+                                                        <span className="rounded-full border border-amber-200 bg-amber-100 px-2 py-1 text-center text-xs whitespace-nowrap text-amber-900">
+                                                            {`Merged ${entry.sourceEntryCount} submissions`}
+                                                        </span>
+                                                    ) : null}
                                                     {entry.requestTypes.length >
                                                     0 ? (
                                                         entry.requestTypes.map(
@@ -512,35 +527,41 @@ export default function AdminFormEntries({ form, entries }: Props) {
                                                 </div>
                                             </td>
                                             <td className="px-4 py-4 align-middle">
-                                                <div className="flex flex-nowrap items-center gap-2">
-                                                    <Button className="whitespace-nowrap" variant="outline" asChild>
-                                                        <Link
-                                                            href={`/admin/forms/entries/${form.slug}/${entry.id}`}
+                                                {entry.canManage === false ? (
+                                                    <span className="text-xs font-medium text-slate-500">
+                                                        Merged row
+                                                    </span>
+                                                ) : (
+                                                    <div className="flex flex-nowrap items-center gap-2">
+                                                        <Button className="whitespace-nowrap" variant="outline" asChild>
+                                                            <Link
+                                                                href={`/admin/forms/entries/${form.slug}/${entry.id}`}
+                                                            >
+                                                                <Eye className="size-4" />
+                                                                View
+                                                            </Link>
+                                                        </Button>
+                                                        <Button className="whitespace-nowrap" variant="outline" asChild>
+                                                            <Link
+                                                                href={`/admin/forms/entries/${form.slug}/${entry.id}/edit`}
+                                                            >
+                                                                <Pencil className="size-4" />
+                                                                Edit
+                                                            </Link>
+                                                        </Button>
+                                                        <Button
+                                                            className="whitespace-nowrap"
+                                                            variant="destructive"
+                                                            type="button"
+                                                            onClick={() =>
+                                                                setEntryToDelete(entry)
+                                                            }
                                                         >
-                                                            <Eye className="size-4" />
-                                                            View
-                                                        </Link>
-                                                    </Button>
-                                                    <Button className="whitespace-nowrap" variant="outline" asChild>
-                                                        <Link
-                                                            href={`/admin/forms/entries/${form.slug}/${entry.id}/edit`}
-                                                        >
-                                                            <Pencil className="size-4" />
-                                                            Edit
-                                                        </Link>
-                                                    </Button>
-                                                    <Button
-                                                        className="whitespace-nowrap"
-                                                        variant="destructive"
-                                                        type="button"
-                                                        onClick={() =>
-                                                            setEntryToDelete(entry)
-                                                        }
-                                                    >
-                                                        <Trash2 className="size-4" />
-                                                        Delete
-                                                    </Button>
-                                                </div>
+                                                            <Trash2 className="size-4" />
+                                                            Delete
+                                                        </Button>
+                                                    </div>
+                                                )}
                                             </td>
                                         </tr>
                                     ))}

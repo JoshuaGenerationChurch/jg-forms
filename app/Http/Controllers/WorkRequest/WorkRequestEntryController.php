@@ -654,8 +654,10 @@ class WorkRequestEntryController extends Controller
             fwrite($output, "\xEF\xBB\xBF");
 
             if ($formSlug === 'easter-holidays') {
+                $aggregatedRows = $this->aggregateEasterServicesAcrossEntries($entries);
+
                 fputcsv($output, [
-                    'Entry ID',
+                    'Entry IDs',
                     'Submitted At',
                     'Contact First Name',
                     'Contact Last Name',
@@ -681,72 +683,33 @@ class WorkRequestEntryController extends Controller
                     'Custom Graphic Theme Details',
                 ]);
 
-                foreach ($entries as $entry) {
-                    $payload = is_array($entry->payload) ? $entry->payload : [];
-                    $serviceTimes = Arr::get($payload, 'serviceTimes', []);
-
-                    if (! is_array($serviceTimes) || count($serviceTimes) === 0) {
-                        fputcsv($output, [
-                            $entry->id,
-                            $entry->created_at?->format('Y-m-d H:i:s') ?? '',
-                            $entry->first_name ?? '',
-                            $entry->last_name ?? '',
-                            $entry->email ?? '',
-                            $entry->cellphone ?? '',
-                            $entry->congregation ?? '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                            '',
-                        ]);
-                        continue;
-                    }
-
-                    foreach ($serviceTimes as $service) {
-                        if (! is_array($service)) {
-                            continue;
-                        }
-
-                        fputcsv($output, [
-                            $entry->id,
-                            $entry->created_at?->format('Y-m-d H:i:s') ?? '',
-                            $entry->first_name ?? '',
-                            $entry->last_name ?? '',
-                            $entry->email ?? '',
-                            $entry->cellphone ?? '',
-                            $entry->congregation ?? '',
-                            (string) ($service['serviceNameOption'] ?? ''),
-                            (string) ($service['serviceDay'] ?? ''),
-                            (string) ($service['serviceName'] ?? ''),
-                            (string) ($service['customServiceName'] ?? ''),
-                            (string) ($service['serviceDate'] ?? ''),
-                            (string) ($service['startTime'] ?? ''),
-                            (string) ($service['venueType'] ?? ''),
-                            $this->formatEasterServiceVenueForExport($service),
-                            (string) ($service['jgVenue'] ?? ''),
-                            (string) ($service['otherVenueName'] ?? ''),
-                            (string) ($service['otherVenueAddress'] ?? ''),
-                            implode(', ', $this->normalizeStringList($service['congregationsInvolved'] ?? [])),
-                            implode(', ', $this->normalizeStringList($service['graphicsLanguages'] ?? [])),
-                            (string) ($service['hasSpecificTheme'] ?? ''),
-                            (string) ($service['themeDescription'] ?? ''),
-                            (string) ($service['needsSeparateGraphic'] ?? ''),
-                            (string) ($service['customGraphicThemeDescription'] ?? ''),
-                        ]);
-                    }
+                foreach ($aggregatedRows as $row) {
+                    fputcsv($output, [
+                        implode(', ', $row['sourceEntryIds']),
+                        $row['createdAt'],
+                        $row['firstName'],
+                        $row['lastName'],
+                        $row['email'],
+                        $row['cellphone'],
+                        $row['congregation'],
+                        $row['serviceNameOption'],
+                        $row['serviceDay'],
+                        $row['serviceName'],
+                        $row['customServiceName'],
+                        $row['serviceDate'],
+                        $row['startTime'],
+                        $row['venueType'],
+                        $this->formatEasterServiceVenueForExport($row),
+                        $row['jgVenue'],
+                        $row['otherVenueName'],
+                        $row['otherVenueAddress'],
+                        implode(', ', $row['congregationsInvolved']),
+                        implode(', ', $row['graphicsLanguages']),
+                        $row['hasSpecificTheme'],
+                        $row['themeDescription'],
+                        $row['needsSeparateGraphic'],
+                        $row['customGraphicThemeDescription'],
+                    ]);
                 }
 
                 fclose($output);
@@ -969,6 +932,342 @@ class WorkRequestEntryController extends Controller
         ], static fn (string $value): bool => $value !== '')));
     }
 
+    /**
+     * @param  iterable<int, WorkRequestEntry>  $entries
+     * @return array<int, array{
+     *   id:int,
+     *   formSlug:string,
+     *   createdAt:string|null,
+     *   firstName:string,
+     *   lastName:string,
+     *   email:string,
+     *   cellphone:string,
+     *   congregation:string,
+     *   eventName:string,
+     *   requestTypes:array<int,string>,
+     *   canManage:bool,
+     *   sourceEntryCount:int,
+     *   sourceEntryIds:array<int,int>,
+     *   serviceNameOption:string,
+     *   serviceDay:string,
+     *   serviceName:string,
+     *   customServiceName:string,
+     *   serviceDate:string,
+     *   startTime:string,
+     *   venueType:string,
+     *   jgVenue:string,
+     *   otherVenueName:string,
+     *   otherVenueAddress:string,
+     *   congregationsInvolved:array<int,string>,
+     *   graphicsLanguages:array<int,string>,
+     *   hasSpecificTheme:string,
+     *   themeDescription:string,
+     *   needsSeparateGraphic:string,
+     *   customGraphicThemeDescription:string
+     * }>
+     */
+    private function aggregateEasterServicesAcrossEntries(iterable $entries): array
+    {
+        /** @var array<string, array<string, mixed>> $grouped */
+        $grouped = [];
+
+        foreach ($entries as $entry) {
+            $payload = is_array($entry->payload) ? $entry->payload : [];
+            $serviceTimes = Arr::get($payload, 'serviceTimes', []);
+            if (! is_array($serviceTimes)) {
+                continue;
+            }
+
+            foreach ($serviceTimes as $service) {
+                if (! is_array($service)) {
+                    continue;
+                }
+
+                $serviceNameOption = trim((string) ($service['serviceNameOption'] ?? ''));
+                $serviceDay = $this->resolveEasterServiceDay($service);
+                $serviceName = trim((string) ($service['serviceName'] ?? ''));
+                $customServiceName = trim((string) ($service['customServiceName'] ?? ''));
+                $serviceDate = trim((string) ($service['serviceDate'] ?? ''));
+                $startTime = trim((string) ($service['startTime'] ?? ''));
+                $venueType = trim((string) ($service['venueType'] ?? ''));
+                $jgVenue = trim((string) ($service['jgVenue'] ?? ''));
+                $otherVenueName = trim((string) ($service['otherVenueName'] ?? ''));
+                $otherVenueAddress = trim((string) ($service['otherVenueAddress'] ?? ''));
+                $congregationsInvolved = $this->normalizeStringList($service['congregationsInvolved'] ?? []);
+                $graphicsLanguages = $this->normalizeStringList($service['graphicsLanguages'] ?? []);
+                $hasSpecificTheme = trim((string) ($service['hasSpecificTheme'] ?? ''));
+                $themeDescription = trim((string) ($service['themeDescription'] ?? ''));
+                $needsSeparateGraphic = trim((string) ($service['needsSeparateGraphic'] ?? ''));
+                $customGraphicThemeDescription = trim((string) ($service['customGraphicThemeDescription'] ?? ''));
+
+                $mergeKey = $this->buildEasterCrossEntryMergeKey([
+                    'serviceNameOption' => $serviceNameOption,
+                    'serviceDay' => $serviceDay,
+                    'serviceName' => $serviceName,
+                    'customServiceName' => $customServiceName,
+                    'startTime' => $startTime,
+                    'venueType' => $venueType,
+                    'jgVenue' => $jgVenue,
+                    'otherVenueName' => $otherVenueName,
+                    'otherVenueAddress' => $otherVenueAddress,
+                ]);
+
+                if (! isset($grouped[$mergeKey])) {
+                    $grouped[$mergeKey] = [
+                        'sourceEntryIds' => [$entry->id],
+                        'createdAt' => $entry->created_at?->format('Y-m-d H:i:s'),
+                        'createdAtTimestamp' => $entry->created_at?->getTimestamp() ?? 0,
+                        'firstNames' => $this->normalizeStringList([$entry->first_name]),
+                        'lastNames' => $this->normalizeStringList([$entry->last_name]),
+                        'emails' => $this->normalizeStringList([$entry->email]),
+                        'cellphones' => $this->normalizeStringList([$entry->cellphone]),
+                        'contactCongregations' => $this->normalizeStringList([$entry->congregation]),
+                        'serviceNameOption' => $serviceNameOption,
+                        'serviceDay' => $serviceDay,
+                        'serviceName' => $serviceName,
+                        'customServiceName' => $customServiceName,
+                        'serviceDate' => $serviceDate,
+                        'startTime' => $startTime,
+                        'venueType' => $venueType,
+                        'jgVenue' => $jgVenue,
+                        'otherVenueName' => $otherVenueName,
+                        'otherVenueAddress' => $otherVenueAddress,
+                        'congregationsInvolved' => $congregationsInvolved,
+                        'graphicsLanguages' => $graphicsLanguages,
+                        'hasSpecificTheme' => $hasSpecificTheme,
+                        'themeDescription' => $themeDescription,
+                        'needsSeparateGraphic' => $needsSeparateGraphic,
+                        'customGraphicThemeDescription' => $customGraphicThemeDescription,
+                    ];
+
+                    continue;
+                }
+
+                $currentTimestamp = $entry->created_at?->getTimestamp() ?? 0;
+                if ($currentTimestamp > (int) $grouped[$mergeKey]['createdAtTimestamp']) {
+                    $grouped[$mergeKey]['createdAtTimestamp'] = $currentTimestamp;
+                    $grouped[$mergeKey]['createdAt'] = $entry->created_at?->format('Y-m-d H:i:s');
+                }
+
+                $grouped[$mergeKey]['sourceEntryIds'] = array_values(array_unique(array_merge(
+                    is_array($grouped[$mergeKey]['sourceEntryIds'] ?? null)
+                        ? $grouped[$mergeKey]['sourceEntryIds']
+                        : [],
+                    [$entry->id],
+                )));
+                $grouped[$mergeKey]['firstNames'] = $this->normalizeStringList(array_merge(
+                    is_array($grouped[$mergeKey]['firstNames'] ?? null)
+                        ? $grouped[$mergeKey]['firstNames']
+                        : [],
+                    [$entry->first_name],
+                ));
+                $grouped[$mergeKey]['lastNames'] = $this->normalizeStringList(array_merge(
+                    is_array($grouped[$mergeKey]['lastNames'] ?? null)
+                        ? $grouped[$mergeKey]['lastNames']
+                        : [],
+                    [$entry->last_name],
+                ));
+                $grouped[$mergeKey]['emails'] = $this->normalizeStringList(array_merge(
+                    is_array($grouped[$mergeKey]['emails'] ?? null)
+                        ? $grouped[$mergeKey]['emails']
+                        : [],
+                    [$entry->email],
+                ));
+                $grouped[$mergeKey]['cellphones'] = $this->normalizeStringList(array_merge(
+                    is_array($grouped[$mergeKey]['cellphones'] ?? null)
+                        ? $grouped[$mergeKey]['cellphones']
+                        : [],
+                    [$entry->cellphone],
+                ));
+                $grouped[$mergeKey]['contactCongregations'] = $this->normalizeStringList(array_merge(
+                    is_array($grouped[$mergeKey]['contactCongregations'] ?? null)
+                        ? $grouped[$mergeKey]['contactCongregations']
+                        : [],
+                    [$entry->congregation],
+                ));
+                $grouped[$mergeKey]['congregationsInvolved'] = $this->normalizeStringList(array_merge(
+                    is_array($grouped[$mergeKey]['congregationsInvolved'] ?? null)
+                        ? $grouped[$mergeKey]['congregationsInvolved']
+                        : [],
+                    $congregationsInvolved,
+                ));
+                $grouped[$mergeKey]['graphicsLanguages'] = $this->normalizeStringList(array_merge(
+                    is_array($grouped[$mergeKey]['graphicsLanguages'] ?? null)
+                        ? $grouped[$mergeKey]['graphicsLanguages']
+                        : [],
+                    $graphicsLanguages,
+                ));
+
+                if ($hasSpecificTheme === 'Yes') {
+                    $grouped[$mergeKey]['hasSpecificTheme'] = 'Yes';
+                }
+
+                if ($needsSeparateGraphic === 'Yes') {
+                    $grouped[$mergeKey]['needsSeparateGraphic'] = 'Yes';
+                }
+
+                if ($themeDescription !== '') {
+                    $grouped[$mergeKey]['themeDescription'] = $this->appendUniquePipeSeparatedValue(
+                        trim((string) ($grouped[$mergeKey]['themeDescription'] ?? '')),
+                        $themeDescription,
+                    );
+                }
+
+                if ($customGraphicThemeDescription !== '') {
+                    $grouped[$mergeKey]['customGraphicThemeDescription'] = $this->appendUniquePipeSeparatedValue(
+                        trim((string) ($grouped[$mergeKey]['customGraphicThemeDescription'] ?? '')),
+                        $customGraphicThemeDescription,
+                    );
+                }
+            }
+        }
+
+        $aggregatedRows = array_values(array_map(function (array $row): array {
+            $sourceEntryIds = array_values(array_map(
+                static fn (mixed $value): int => (int) $value,
+                is_array($row['sourceEntryIds'] ?? null) ? $row['sourceEntryIds'] : [],
+            ));
+            sort($sourceEntryIds);
+
+            $serviceName = (string) ($row['serviceName'] ?? '');
+            $startTime = (string) ($row['startTime'] ?? '');
+            $venueSummary = $this->formatEasterServiceVenueForExport($row);
+            $eventSummaryParts = array_values(array_filter([
+                $serviceName,
+                $startTime,
+                $venueSummary,
+            ], static fn (string $value): bool => trim($value) !== ''));
+
+            return [
+                'id' => count($sourceEntryIds) > 0 ? $sourceEntryIds[0] : 0,
+                'formSlug' => 'easter-holidays',
+                'createdAt' => (string) ($row['createdAt'] ?? ''),
+                'firstName' => implode(', ', $this->normalizeStringList($row['firstNames'] ?? [])),
+                'lastName' => implode(', ', $this->normalizeStringList($row['lastNames'] ?? [])),
+                'email' => implode(', ', $this->normalizeStringList($row['emails'] ?? [])),
+                'cellphone' => implode(', ', $this->normalizeStringList($row['cellphones'] ?? [])),
+                'congregation' => implode(', ', $this->normalizeStringList($row['contactCongregations'] ?? [])),
+                'eventName' => implode(' | ', $eventSummaryParts),
+                'requestTypes' => ['Easter service times'],
+                'canManage' => false,
+                'sourceEntryCount' => count($sourceEntryIds),
+                'sourceEntryIds' => $sourceEntryIds,
+                'serviceNameOption' => (string) ($row['serviceNameOption'] ?? ''),
+                'serviceDay' => (string) ($row['serviceDay'] ?? ''),
+                'serviceName' => (string) ($row['serviceName'] ?? ''),
+                'customServiceName' => (string) ($row['customServiceName'] ?? ''),
+                'serviceDate' => (string) ($row['serviceDate'] ?? ''),
+                'startTime' => (string) ($row['startTime'] ?? ''),
+                'venueType' => (string) ($row['venueType'] ?? ''),
+                'jgVenue' => (string) ($row['jgVenue'] ?? ''),
+                'otherVenueName' => (string) ($row['otherVenueName'] ?? ''),
+                'otherVenueAddress' => (string) ($row['otherVenueAddress'] ?? ''),
+                'congregationsInvolved' => $this->normalizeStringList($row['congregationsInvolved'] ?? []),
+                'graphicsLanguages' => $this->normalizeStringList($row['graphicsLanguages'] ?? []),
+                'hasSpecificTheme' => (string) ($row['hasSpecificTheme'] ?? ''),
+                'themeDescription' => (string) ($row['themeDescription'] ?? ''),
+                'needsSeparateGraphic' => (string) ($row['needsSeparateGraphic'] ?? ''),
+                'customGraphicThemeDescription' => (string) ($row['customGraphicThemeDescription'] ?? ''),
+                'createdAtTimestamp' => (int) ($row['createdAtTimestamp'] ?? 0),
+            ];
+        }, $grouped));
+
+        usort($aggregatedRows, static function (array $a, array $b): int {
+            return (int) ($b['createdAtTimestamp'] ?? 0) <=> (int) ($a['createdAtTimestamp'] ?? 0);
+        });
+
+        return array_values(array_map(static function (array $row): array {
+            unset($row['createdAtTimestamp']);
+
+            return $row;
+        }, $aggregatedRows));
+    }
+
+    /**
+     * @param  array<string, mixed>  $service
+     */
+    private function resolveEasterServiceDay(array $service): string
+    {
+        $serviceDay = trim((string) ($service['serviceDay'] ?? ''));
+        if (in_array($serviceDay, ['good_friday', 'easter_sunday'], true)) {
+            return $serviceDay;
+        }
+
+        $serviceNameOption = trim((string) ($service['serviceNameOption'] ?? ''));
+        if (in_array($serviceNameOption, ['good_friday', 'easter_sunday'], true)) {
+            return $serviceNameOption;
+        }
+
+        $serviceDate = trim((string) ($service['serviceDate'] ?? ''));
+        if ($serviceDate === '2026-04-03') {
+            return 'good_friday';
+        }
+        if ($serviceDate === '2026-04-05') {
+            return 'easter_sunday';
+        }
+
+        return '';
+    }
+
+    /**
+     * @param  array<string, mixed>  $service
+     */
+    private function buildEasterCrossEntryMergeKey(array $service): string
+    {
+        $serviceNameOption = trim((string) ($service['serviceNameOption'] ?? ''));
+        $serviceDay = trim((string) ($service['serviceDay'] ?? ''));
+        $serviceName = trim((string) ($service['serviceName'] ?? ''));
+        $customServiceName = trim((string) ($service['customServiceName'] ?? ''));
+        $startTime = trim((string) ($service['startTime'] ?? ''));
+        $venueType = trim((string) ($service['venueType'] ?? ''));
+        $jgVenue = trim((string) ($service['jgVenue'] ?? ''));
+        $otherVenueName = trim((string) ($service['otherVenueName'] ?? ''));
+        $otherVenueAddress = trim((string) ($service['otherVenueAddress'] ?? ''));
+
+        $serviceTypeIdentity = $serviceNameOption === 'custom'
+            ? strtolower($customServiceName !== '' ? $customServiceName : $serviceName)
+            : strtolower($serviceNameOption);
+
+        $venueIdentity = strtolower($venueType === 'JG Venue'
+            ? $jgVenue
+            : $otherVenueName.'|'.$otherVenueAddress);
+
+        return implode('||', [
+            $serviceTypeIdentity,
+            strtolower($serviceDay),
+            strtolower($startTime),
+            strtolower($venueType),
+            $venueIdentity,
+        ]);
+    }
+
+    private function appendUniquePipeSeparatedValue(string $existing, string $incoming): string
+    {
+        $incoming = trim($incoming);
+        if ($incoming === '') {
+            return $existing;
+        }
+
+        if ($existing === '') {
+            return $incoming;
+        }
+
+        $existingValues = array_filter(
+            array_map('trim', explode(' | ', $existing)),
+            static fn (string $value): bool => $value !== '',
+        );
+        $existingValuesLower = array_map(
+            static fn (string $value): string => strtolower($value),
+            $existingValues,
+        );
+
+        if (in_array(strtolower($incoming), $existingValuesLower, true)) {
+            return $existing;
+        }
+
+        return $existing.' | '.$incoming;
+    }
+
     public function adminFormsEntriesIndex(): Response
     {
         $forms = collect($this->formsConfig())
@@ -997,12 +1296,16 @@ class WorkRequestEntryController extends Controller
         $form = $this->findForm($formSlug);
         abort_if($form === null, 404);
 
-        $entries = WorkRequestEntry::query()
+        $entryCollection = WorkRequestEntry::query()
             ->where('form_slug', $formSlug)
             ->latest()
-            ->get()
-            ->map(fn (WorkRequestEntry $entry): array => $this->entrySummary($entry))
-            ->values();
+            ->get();
+
+        $entries = $formSlug === 'easter-holidays'
+            ? collect($this->aggregateEasterServicesAcrossEntries($entryCollection))->values()
+            : $entryCollection
+                ->map(fn (WorkRequestEntry $entry): array => $this->entrySummary($entry))
+                ->values();
 
         return Inertia::render('admin/forms/entries', [
             'form' => $form,
@@ -1723,7 +2026,7 @@ class WorkRequestEntryController extends Controller
     }
 
     /**
-     * @return array{id:int,formSlug:string,createdAt:string|null,firstName:string|null,lastName:string|null,email:string|null,eventName:string|null,requestTypes:array<int,string>}
+     * @return array{id:int,formSlug:string,createdAt:string|null,firstName:string|null,lastName:string|null,email:string|null,eventName:string|null,requestTypes:array<int,string>,canManage:bool,sourceEntryCount:int}
      */
     private function entrySummary(WorkRequestEntry $entry): array
     {
@@ -1736,6 +2039,8 @@ class WorkRequestEntryController extends Controller
             'email' => $entry->email,
             'eventName' => $entry->event_name,
             'requestTypes' => $this->requestTypes($entry),
+            'canManage' => true,
+            'sourceEntryCount' => 1,
         ];
     }
 
