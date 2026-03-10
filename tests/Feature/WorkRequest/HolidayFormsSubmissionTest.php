@@ -131,7 +131,7 @@ test('guest can submit easter holidays service times and admin can view entry', 
         ->assertInertia(fn (Assert $page) => $page
             ->component('admin/forms/entries')
             ->where('form.slug', 'easter-holidays')
-            ->has('entries', 1)
+            ->has('entries', 2)
         );
 
     $exportResponse = $this->actingAs($admin)
