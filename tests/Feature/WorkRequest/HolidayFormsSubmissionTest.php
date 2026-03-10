@@ -34,10 +34,11 @@ test('guest can submit easter holidays service times and admin can view entry', 
     $admin = User::factory()->create(['email' => 'admin@example.com']);
     config(['services.recaptcha.enabled' => false]);
     grantHolidayFormsAdminAccess($admin);
-    config(['workforms.notification_recipients' => [
+    config(['workforms.easter_notification_recipients' => [
         ['email' => 'notify@example.com', 'name' => null],
         ['email' => 'trello@example.com', 'name' => 'JG Design'],
     ]]);
+    config(['workforms.easter_notification_recipient_emails' => ['notify@example.com']]);
     Mail::fake();
 
     $payload = [
@@ -121,7 +122,7 @@ test('guest can submit easter holidays service times and admin can view entry', 
             && $mail->entry->form_slug === 'easter-holidays';
     });
 
-    Mail::assertQueued(WorkFormSubmissionNotificationMail::class, function (WorkFormSubmissionNotificationMail $mail): bool {
+    Mail::assertNotQueued(WorkFormSubmissionNotificationMail::class, function (WorkFormSubmissionNotificationMail $mail): bool {
         return $mail->hasTo('trello@example.com')
             && $mail->entry->form_slug === 'easter-holidays';
     });
@@ -129,7 +130,7 @@ test('guest can submit easter holidays service times and admin can view entry', 
         return $mail->hasTo('sam@example.com')
             && str_contains($mail->subjectLine, 'Easter');
     });
-    Mail::assertQueuedCount(3);
+    Mail::assertQueuedCount(2);
 
     $this->actingAs($admin)
         ->get(route('admin.forms.entries.show', 'easter-holidays'))

@@ -1740,7 +1740,14 @@ class WorkRequestEntryController extends Controller
             }
         }
 
-        $recipients = config('workforms.notification_recipients', []);
+        $recipients = $entry->form_slug === 'easter-holidays'
+            ? config('workforms.easter_notification_recipients', [])
+            : config('workforms.notification_recipients', []);
+
+        if ($entry->form_slug === 'easter-holidays' && is_array($recipients)) {
+            $recipients = $this->filterEasterNotificationRecipients($recipients);
+        }
+
         if (! is_array($recipients) || count($recipients) === 0) {
             return;
         }
@@ -1940,6 +1947,10 @@ class WorkRequestEntryController extends Controller
         WorkFormEmailTemplate $template,
         array $templateTags,
     ): array {
+        if ($entry->form_slug === 'easter-holidays') {
+            return $this->filterEasterNotificationRecipients($recipients);
+        }
+
         if ($entry->form_slug !== 'work-request') {
             return $recipients;
         }
@@ -1976,6 +1987,48 @@ class WorkRequestEntryController extends Controller
         }
 
         return $filteredRecipients;
+    }
+
+    /**
+     * @param  array<int, mixed>  $recipients
+     * @return array<int, array{email:string,name:string|null}>
+     */
+    private function filterEasterNotificationRecipients(array $recipients): array
+    {
+        $allowedEmails = $this->configuredRecipientEmails('workforms.easter_notification_recipient_emails');
+        if ($allowedEmails === []) {
+            return [];
+        }
+
+        $filteredRecipients = [];
+
+        foreach ($recipients as $recipient) {
+            if (! is_array($recipient)) {
+                continue;
+            }
+
+            $email = strtolower(trim((string) ($recipient['email'] ?? '')));
+            if ($email === '' || filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
+                continue;
+            }
+
+            if (str_contains($email, 'boards.trello.com')) {
+                continue;
+            }
+
+            if (! in_array($email, $allowedEmails, true)) {
+                continue;
+            }
+
+            $name = trim((string) ($recipient['name'] ?? ''));
+
+            $filteredRecipients[$email] = [
+                'email' => $email,
+                'name' => $name !== '' ? $name : null,
+            ];
+        }
+
+        return array_values($filteredRecipients);
     }
 
     /**
