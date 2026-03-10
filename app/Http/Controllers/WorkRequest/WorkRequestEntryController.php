@@ -1137,13 +1137,12 @@ class WorkRequestEntryController extends Controller
         }
 
         try {
-            $editUrl = $this->publicEasterEntryEditUrl($entry);
+            $contactUrl = route('contact-us');
             $subject = sprintf('[JG Forms] We received your %s request', $formTitle);
             $heading = 'Your service request was submitted';
             $body = sprintf(
-                "Thank you for your submission.<br><br>You can review and edit your response here:<br><a href=\"%s\">%s</a>",
-                e($editUrl),
-                e($editUrl),
+                'Thank you for your submission.<br><br>If you need to change any of the information you just submitted, please <a href="%s">contact us</a>.',
+                e($contactUrl),
             );
 
             Mail::to(new Address($email))->queue(
