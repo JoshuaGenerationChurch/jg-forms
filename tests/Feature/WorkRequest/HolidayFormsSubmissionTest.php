@@ -1,6 +1,7 @@
 <?php
 
 use App\Mail\WorkFormSubmissionNotificationMail;
+use App\Mail\WorkFormTemplateNotificationMail;
 use App\Models\User;
 use App\Models\WorkRequestEntry;
 use Illuminate\Support\Facades\Mail;
@@ -45,6 +46,7 @@ test('guest can submit easter holidays service times and admin can view entry', 
         'lastName' => 'Leader',
         'email' => 'sam@example.com',
         'cellphone' => '+27820000000',
+        'selectedServiceTypes' => ['good_friday', 'easter_sunday'],
         'serviceTimes' => [
             [
                 'serviceNameOption' => 'good_friday',
@@ -123,7 +125,11 @@ test('guest can submit easter holidays service times and admin can view entry', 
         return $mail->hasTo('trello@example.com')
             && $mail->entry->form_slug === 'easter-holidays';
     });
-    Mail::assertQueuedCount(2);
+    Mail::assertQueued(WorkFormTemplateNotificationMail::class, function (WorkFormTemplateNotificationMail $mail): bool {
+        return $mail->hasTo('sam@example.com')
+            && str_contains($mail->subjectLine, 'Easter');
+    });
+    Mail::assertQueuedCount(3);
 
     $this->actingAs($admin)
         ->get(route('admin.forms.entries.show', 'easter-holidays'))

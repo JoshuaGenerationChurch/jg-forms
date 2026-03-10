@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\WorkForm;
 use App\Models\WorkRequestEntry;
+use Illuminate\Support\Facades\URL;
 
 class WorkFormEmailTemplateService
 {
@@ -133,6 +134,7 @@ class WorkFormEmailTemplateService
             'entry.created_at' => (string) ($entry->created_at?->toDateTimeString() ?? ''),
             'entry.updated_at' => (string) ($entry->updated_at?->toDateTimeString() ?? ''),
             'entry.request_types' => implode(', ', $this->requestTypes($entry)),
+            'entry.public_edit_url' => $this->publicEditUrlForEntry($entry),
         ];
 
         if (($form['slug'] ?? $entry->form_slug) === 'work-request') {
@@ -178,6 +180,7 @@ class WorkFormEmailTemplateService
             ['key' => 'entry.created_at', 'sample' => now()->toDateTimeString()],
             ['key' => 'entry.request_types', 'sample' => 'Event logistics, Digital media'],
             ['key' => 'entry.auto_subject', 'sample' => 'Youth Night - Congregations - '.now()->toDateString()],
+            ['key' => 'entry.public_edit_url', 'sample' => $form->slug === 'easter-holidays' ? 'https://office.joshgen.org/forms/easter-holidays/entries/123/edit?...' : ''],
         ];
 
         if ($form->slug === 'work-request') {
@@ -1338,5 +1341,20 @@ class WorkFormEmailTemplateService
         }
 
         return $types;
+    }
+
+    private function publicEditUrlForEntry(WorkRequestEntry $entry): string
+    {
+        if ($entry->form_slug !== 'easter-holidays') {
+            return '';
+        }
+
+        $expiryDays = max((int) config('workforms.public_entry_edit_link_expiry_days', 30), 1);
+
+        return URL::temporarySignedRoute(
+            'forms.easter-holidays.entries.edit',
+            now()->addDays($expiryDays),
+            ['entry' => $entry->id],
+        );
     }
 }

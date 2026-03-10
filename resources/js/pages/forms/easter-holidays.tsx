@@ -1,10 +1,22 @@
 import { Head } from '@inertiajs/react';
-import { EasterServiceTimesForm } from '@/components/forms/easter-service-times-form';
+import {
+    EasterServiceTimesForm,
+    type EasterServiceTimesFormData,
+} from '@/components/forms/easter-service-times-form';
 import { GlobalFooter } from '@/components/global-footer';
 import { GlobalHeader } from '@/components/global-header';
 import { PublicFormContainer } from '@/components/public-form-container';
 
-export default function EasterHolidaysFormPage() {
+type EasterHolidaysPageProps = {
+    editEntry?: {
+        id: number;
+        formData: EasterServiceTimesFormData;
+    } | null;
+};
+
+export default function EasterHolidaysFormPage({
+    editEntry = null,
+}: EasterHolidaysPageProps) {
     return (
         <>
             <Head title="Easter Weekend Service Times">
@@ -13,13 +25,18 @@ export default function EasterHolidaysFormPage() {
 
             <div className="flex min-h-screen flex-col bg-[#f3f5f7]">
                 <GlobalHeader
-                    homeHref="/forms"
+                    homeHref={null}
+                    logoClickable={false}
                     showContactUs
                     variant="public"
                 />
 
                 <PublicFormContainer>
-                    <EasterServiceTimesForm />
+                    <EasterServiceTimesForm
+                        isEditMode={Boolean(editEntry)}
+                        entryId={editEntry?.id ?? null}
+                        initialData={editEntry?.formData}
+                    />
                 </PublicFormContainer>
 
                 <GlobalFooter

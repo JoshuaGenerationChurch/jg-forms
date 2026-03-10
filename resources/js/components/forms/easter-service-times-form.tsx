@@ -1,4 +1,4 @@
-import { router, useForm } from '@inertiajs/react';
+import { useForm } from '@inertiajs/react';
 import { Minus, Plus } from 'lucide-react';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
@@ -25,7 +25,7 @@ type VenueType = 'JG Venue' | 'Other';
 type ThemeOption = 'Yes' | 'No';
 type ServiceDayOption = 'good_friday' | 'easter_sunday';
 
-type ServiceTime = {
+export type EasterServiceTime = {
     serviceNameOption: ServiceNameOption;
     customServiceName: string;
     serviceDay: '' | ServiceDayOption;
@@ -42,13 +42,20 @@ type ServiceTime = {
     customGraphicThemeDescription: string;
 };
 
-type EasterServiceTimesFormData = {
+export type EasterServiceTimesFormData = {
     congregation: string;
     firstName: string;
     lastName: string;
     email: string;
     cellphone: string;
-    serviceTimes: ServiceTime[];
+    selectedServiceTypes: ServiceDayOption[];
+    serviceTimes: EasterServiceTime[];
+};
+
+type EasterServiceTimesFormProps = {
+    initialData?: EasterServiceTimesFormData;
+    isEditMode?: boolean;
+    entryId?: number | null;
 };
 
 type DirectoryResponse = {
@@ -116,7 +123,7 @@ function sanitizeDirectoryList(values: unknown): string[] {
     return Array.from(new Set(cleanValues));
 }
 
-function makeServiceBlock(serviceNameOption: ServiceNameOption): ServiceTime {
+function makeServiceBlock(serviceNameOption: ServiceNameOption): EasterServiceTime {
     return {
         serviceNameOption,
         customServiceName: '',
@@ -133,6 +140,58 @@ function makeServiceBlock(serviceNameOption: ServiceNameOption): ServiceTime {
         needsSeparateGraphic: '',
         customGraphicThemeDescription: '',
     };
+}
+
+function defaultEasterServiceTimesFormData(): EasterServiceTimesFormData {
+    return {
+        congregation: '',
+        firstName: '',
+        lastName: '',
+        email: '',
+        cellphone: '',
+        selectedServiceTypes: [],
+        serviceTimes: [],
+    };
+}
+
+function normalizeSelectedServiceTypes(
+    selectedServiceTypes: ServiceDayOption[],
+): ServiceDayOption[] {
+    const set = new Set(selectedServiceTypes);
+
+    return (['good_friday', 'easter_sunday'] as const).filter((serviceType) =>
+        set.has(serviceType),
+    );
+}
+
+function syncServiceTimesForSelectedServiceTypes(
+    serviceTimes: EasterServiceTime[],
+    selectedServiceTypes: ServiceDayOption[],
+): EasterServiceTime[] {
+    const orderedSelectedServiceTypes = normalizeSelectedServiceTypes(
+        selectedServiceTypes,
+    );
+    const customServices = serviceTimes.filter(
+        (service) => service.serviceNameOption === 'custom',
+    );
+
+    const serviceMap = new Map<ServiceDayOption, EasterServiceTime>();
+    for (const serviceType of orderedSelectedServiceTypes) {
+        const existingService = serviceTimes.find(
+            (service) => service.serviceNameOption === serviceType,
+        );
+        serviceMap.set(
+            serviceType,
+            existingService ?? makeServiceBlock(serviceType),
+        );
+    }
+
+    return [
+        ...orderedSelectedServiceTypes.map(
+            (serviceType) => serviceMap.get(serviceType) as EasterServiceTime,
+        ),
+        ...customServices,
+    ];
 }
 
 function VenueAddressAutocompleteInput({
@@ -237,9 +296,14 @@ function VenueAddressAutocompleteInput({
     );
 }
 
-export function EasterServiceTimesForm() {
+export function EasterServiceTimesForm({
+    initialData,
+    isEditMode = false,
+    entryId = null,
+}: EasterServiceTimesFormProps) {
     const formSlug = 'easter-holidays';
     const [recaptchaClientError, setRecaptchaClientError] = useState('');
+    const [successMessage, setSuccessMessage] = useState<string | null>(null);
     const [directoryOptions, setDirectoryOptions] = useState<DirectoryOptions>(
         emptyDirectoryOptions,
     );
@@ -252,35 +316,17 @@ export function EasterServiceTimesForm() {
         data,
         setData,
         post,
+        put,
         processing,
         errors,
-        recentlySuccessful,
         transform,
+        setError,
+        clearErrors,
     } = useForm<EasterServiceTimesFormData>({
-        congregation: '',
-        firstName: '',
-        lastName: '',
-        email: '',
-        cellphone: '',
-        serviceTimes: [
-            makeServiceBlock('good_friday'),
-            makeServiceBlock('easter_sunday'),
-        ],
+        ...(initialData ?? defaultEasterServiceTimesFormData()),
     });
 
     const recaptchaError = (errors as Record<string, string>)['recaptcha'];
-
-    useEffect(() => {
-        if (!recentlySuccessful) {
-            return;
-        }
-
-        const timeout = window.setTimeout(() => {
-            router.visit('/forms');
-        }, 1500);
-
-        return () => window.clearTimeout(timeout);
-    }, [recentlySuccessful]);
 
     useEffect(() => {
         let cancelled = false;
@@ -345,8 +391,34 @@ export function EasterServiceTimesForm() {
         setData('serviceTimes', [...data.serviceTimes, makeServiceBlock('custom')]);
     };
 
+    const toggleSelectedServiceType = (
+        selectedServiceType: ServiceDayOption,
+        checked: boolean | 'indeterminate',
+    ) => {
+        const shouldInclude = checked === true;
+        const selectedServiceTypes = shouldInclude
+            ? normalizeSelectedServiceTypes([
+                  ...data.selectedServiceTypes,
+                  selectedServiceType,
+              ])
+            : normalizeSelectedServiceTypes(
+                  data.selectedServiceTypes.filter(
+                      (serviceType) => serviceType !== selectedServiceType,
+                  ),
+              );
+
+        setData('selectedServiceTypes', selectedServiceTypes);
+        setData(
+            'serviceTimes',
+            syncServiceTimesForSelectedServiceTypes(
+                data.serviceTimes,
+                selectedServiceTypes,
+            ),
+        );
+    };
+
     const removeServiceTime = (index: number) => {
-        if (index < 2) {
+        if (data.serviceTimes[index]?.serviceNameOption !== 'custom') {
             return;
         }
 
@@ -356,10 +428,10 @@ export function EasterServiceTimesForm() {
         );
     };
 
-    const updateServiceTime = <K extends keyof ServiceTime>(
+    const updateServiceTime = <K extends keyof EasterServiceTime>(
         index: number,
         field: K,
-        value: ServiceTime[K],
+        value: EasterServiceTime[K],
     ) => {
         const nextServiceTimes = data.serviceTimes.map((item, itemIndex) => {
                 if (itemIndex !== index) {
@@ -396,24 +468,6 @@ export function EasterServiceTimesForm() {
 
                 return nextItem;
             });
-
-        if (field === 'serviceNameOption') {
-            const nextServiceNameOption = value as ServiceNameOption;
-
-            // Keep the first two services paired: selecting one auto-sets the other.
-            if (index === 0 && nextServiceNameOption !== 'custom' && nextServiceTimes[1]) {
-                const pairedOption: ServiceNameOption =
-                    nextServiceNameOption === 'good_friday'
-                        ? 'easter_sunday'
-                        : 'good_friday';
-
-                nextServiceTimes[1] = {
-                    ...nextServiceTimes[1],
-                    serviceNameOption: pairedOption,
-                    customServiceName: '',
-                };
-            }
-        }
 
         setData('serviceTimes', nextServiceTimes);
     };
@@ -454,12 +508,13 @@ export function EasterServiceTimesForm() {
         );
     };
 
-    const serviceTimeError = (index: number, field: keyof ServiceTime) => {
+    const serviceTimeError = (index: number, field: keyof EasterServiceTime) => {
         return errors[`serviceTimes.${index}.${field}`];
     };
 
     const submit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
+        setSuccessMessage(null);
         setRecaptchaClientError('');
 
         let recaptchaToken: string | null = null;
@@ -480,8 +535,38 @@ export function EasterServiceTimesForm() {
             recaptchaToken,
         }));
 
-        post('/forms/easter-holidays/entries', {
+        if (isEditMode && !entryId) {
+            setError('serviceTimes', 'This edit link is invalid. Please request a new one.');
+            return;
+        }
+
+        const signedQuery =
+            typeof window !== 'undefined' ? window.location.search : '';
+        const submitUrl =
+            isEditMode && entryId
+                ? `/forms/easter-holidays/entries/${entryId}${signedQuery}`
+                : '/forms/easter-holidays/entries';
+
+        const requestAction =
+            isEditMode && entryId
+                ? put
+                : post;
+
+        requestAction(submitUrl, {
             preserveScroll: true,
+            onSuccess: () => {
+                clearErrors();
+                if (isEditMode) {
+                    setSuccessMessage('Service request updated successfully.');
+                    return;
+                }
+
+                setSuccessMessage('Service request submitted successfully.');
+                setData(defaultEasterServiceTimesFormData());
+            },
+            onError: () => {
+                setSuccessMessage(null);
+            },
             onFinish: () => {
                 transform((values) => values);
             },
@@ -497,9 +582,9 @@ export function EasterServiceTimesForm() {
                 <p className="mt-2 text-sm text-slate-600">
                     Add congregation service details for Good Friday and Easter Sunday.
                 </p>
-                {recentlySuccessful ? (
+                {successMessage ? (
                     <p className="mt-3 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
-                        Submitted successfully.
+                        {successMessage}
                     </p>
                 ) : null}
                 {recaptchaClientError !== '' ? (
@@ -602,6 +687,46 @@ export function EasterServiceTimesForm() {
                     />
                     {errors.email ? (
                         <p className="text-xs text-red-600">{errors.email}</p>
+                    ) : null}
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                    <Label>
+                        Which Easter Weekend services will you be having?{' '}
+                        <span className="text-red-500">*</span>{' '}
+                        <span className="text-slate-500">
+                            (Additional Easter Weekend services can be added at the bottom.)
+                        </span>
+                    </Label>
+                    <div className="grid gap-2 md:grid-cols-2">
+                        {([
+                            {
+                                value: 'good_friday',
+                                label: 'Good Friday (3 April 2026)',
+                            },
+                            {
+                                value: 'easter_sunday',
+                                label: 'Easter Sunday (5 April 2026)',
+                            },
+                        ] as const).map((option) => (
+                            <label
+                                key={`${formSlug}-selected-service-${option.value}`}
+                                className="flex items-center gap-2 rounded-lg border-2 border-slate-200 bg-slate-100/50 px-3 py-2 text-sm shadow-sm transition hover:border-slate-300"
+                            >
+                                <Checkbox
+                                    checked={data.selectedServiceTypes.includes(option.value)}
+                                    onCheckedChange={(checked) =>
+                                        toggleSelectedServiceType(option.value, checked)
+                                    }
+                                />
+                                <span>{option.label}</span>
+                            </label>
+                        ))}
+                    </div>
+                    {(errors as Record<string, string>).selectedServiceTypes ? (
+                        <p className="text-xs text-red-600">
+                            {(errors as Record<string, string>).selectedServiceTypes}
+                        </p>
                     ) : null}
                 </div>
             </div>

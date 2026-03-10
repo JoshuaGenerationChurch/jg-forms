@@ -2,10 +2,11 @@ import { Link } from '@inertiajs/react';
 import { cn } from '@/lib/utils';
 
 type GlobalHeaderProps = {
-    homeHref?: string;
+    homeHref?: string | null;
     contactHref?: string;
     showContactUs?: boolean;
     variant?: 'default' | 'public';
+    logoClickable?: boolean;
 };
 
 export function GlobalHeader({
@@ -13,8 +14,21 @@ export function GlobalHeader({
     contactHref = '/contact-us',
     showContactUs = true,
     variant = 'default',
+    logoClickable = true,
 }: GlobalHeaderProps) {
     const isPublic = variant === 'public';
+    const logo = (
+        <img
+            src="/brand/JG-Logo-WEB-1260x120px.png"
+            alt="Joshua Generation Church"
+            className={cn(
+                'w-auto object-contain',
+                isPublic
+                    ? 'h-14 max-w-[320px]'
+                    : 'h-11 max-w-[260px]',
+            )}
+        />
+    );
 
     return (
         <header
@@ -32,18 +46,11 @@ export function GlobalHeader({
                         'px-6 py-4',
                 )}
             >
-                <Link href={homeHref}>
-                    <img
-                        src="/brand/JG-Logo-WEB-1260x120px.png"
-                        alt="Joshua Generation Church"
-                        className={cn(
-                            'w-auto object-contain',
-                            isPublic
-                                ? 'h-14 max-w-[320px]'
-                                : 'h-11 max-w-[260px]',
-                        )}
-                    />
-                </Link>
+                {logoClickable && homeHref ? (
+                    <Link href={homeHref}>{logo}</Link>
+                ) : (
+                    <div>{logo}</div>
+                )}
 
                 {showContactUs ? (
                     <Link

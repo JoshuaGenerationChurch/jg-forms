@@ -14,6 +14,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
@@ -380,6 +381,33 @@ class WorkRequestEntryController extends Controller
         return $this->storePublicHolidayEntryBySlug($request, 'easter-holidays', $recaptcha);
     }
 
+    public function editPublicEasterHolidayEntry(WorkRequestEntry $entry): Response
+    {
+        abort_if($entry->form_slug !== 'easter-holidays', 404);
+
+        return Inertia::render('forms/easter-holidays', [
+            'editEntry' => [
+                'id' => $entry->id,
+                'formData' => $this->easterEditFormData($entry),
+            ],
+        ]);
+    }
+
+    public function updatePublicEasterHolidayEntry(
+        Request $request,
+        WorkRequestEntry $entry,
+        RecaptchaEnterpriseService $recaptcha,
+    ): RedirectResponse {
+        abort_if($entry->form_slug !== 'easter-holidays', 404);
+
+        return $this->storePublicHolidayEntryBySlug(
+            $request,
+            'easter-holidays',
+            $recaptcha,
+            $entry,
+        );
+    }
+
     public function storePublicChristmasHolidayEntry(
         Request $request,
         RecaptchaEnterpriseService $recaptcha,
@@ -391,6 +419,7 @@ class WorkRequestEntryController extends Controller
         Request $request,
         string $formSlug,
         RecaptchaEnterpriseService $recaptcha,
+        ?WorkRequestEntry $entryToUpdate = null,
     ): RedirectResponse {
         $form = $this->findForm($formSlug);
         abort_if($form === null, 404);
@@ -404,7 +433,9 @@ class WorkRequestEntryController extends Controller
                 'lastName' => ['required', 'string', 'max:255'],
                 'email' => ['required', 'email', 'max:255'],
                 'cellphone' => ['nullable', 'string', 'max:255'],
-                'serviceTimes' => ['required', 'array', 'min:2'],
+                'selectedServiceTypes' => ['required', 'array', 'min:1'],
+                'selectedServiceTypes.*' => ['string', Rule::in(['good_friday', 'easter_sunday'])],
+                'serviceTimes' => ['required', 'array', 'min:1'],
                 'serviceTimes.*.serviceNameOption' => ['required', Rule::in(['good_friday', 'easter_sunday', 'custom'])],
                 'serviceTimes.*.customServiceName' => ['nullable', 'string', 'max:255'],
                 'serviceTimes.*.serviceDay' => ['nullable', Rule::in(['good_friday', 'easter_sunday'])],
@@ -459,6 +490,11 @@ class WorkRequestEntryController extends Controller
 
             /** @var array<int, array<string, mixed>> $validatedServiceTimes */
             $validatedServiceTimes = $validated['serviceTimes'];
+            $selectedServiceTypes = collect($validated['selectedServiceTypes'] ?? [])
+                ->map(static fn (mixed $serviceType): string => trim((string) $serviceType))
+                ->filter(static fn (string $serviceType): bool => in_array($serviceType, ['good_friday', 'easter_sunday'], true))
+                ->values()
+                ->all();
             $serviceNameOptions = collect($validatedServiceTimes)
                 ->map(static fn (array $service): string => (string) ($service['serviceNameOption'] ?? ''))
                 ->all();
@@ -478,6 +514,13 @@ class WorkRequestEntryController extends Controller
                 $themeDescription = trim((string) ($service['themeDescription'] ?? ''));
                 $needsSeparateGraphic = (string) ($service['needsSeparateGraphic'] ?? '');
                 $customGraphicThemeDescription = trim((string) ($service['customGraphicThemeDescription'] ?? ''));
+
+                if (
+                    in_array($serviceNameOption, ['good_friday', 'easter_sunday'], true) &&
+                    ! in_array($serviceNameOption, $selectedServiceTypes, true)
+                ) {
+                    $errors["serviceTimes.$index.serviceNameOption"] = 'This service was not selected above';
+                }
 
                 if ($serviceNameOption === 'custom' && $customServiceName === '') {
                     $errors["serviceTimes.$index.customServiceName"] = 'Please provide a custom service name';
@@ -524,13 +567,15 @@ class WorkRequestEntryController extends Controller
                 }
             }
 
+            $serviceLabels = [
+                'good_friday' => 'Good Friday',
+                'easter_sunday' => 'Easter Sunday',
+            ];
             $missingRequiredServices = [];
-            if (! in_array('good_friday', $serviceNameOptions, true)) {
-                $missingRequiredServices[] = 'Good Friday';
-            }
-
-            if (! in_array('easter_sunday', $serviceNameOptions, true)) {
-                $missingRequiredServices[] = 'Easter Sunday';
+            foreach ($selectedServiceTypes as $selectedServiceType) {
+                if (! in_array($selectedServiceType, $serviceNameOptions, true)) {
+                    $missingRequiredServices[] = $serviceLabels[$selectedServiceType] ?? $selectedServiceType;
+                }
             }
 
             if ($missingRequiredServices !== []) {
@@ -586,6 +631,7 @@ class WorkRequestEntryController extends Controller
                 'lastName' => trim((string) $validated['lastName']),
                 'email' => trim((string) $validated['email']),
                 'cellphone' => trim((string) ($validated['cellphone'] ?? '')),
+                'selectedServiceTypes' => $selectedServiceTypes,
                 'serviceTimes' => $serviceTimes,
             ];
         } else {
@@ -612,7 +658,7 @@ class WorkRequestEntryController extends Controller
             ];
         }
 
-        $entry = WorkRequestEntry::query()->create([
+        $attributes = [
             'user_id' => null,
             'form_slug' => $formSlug,
             'first_name' => $payload['firstName'],
@@ -622,9 +668,22 @@ class WorkRequestEntryController extends Controller
             'congregation' => $payload['congregation'],
             'event_name' => sprintf('%s - %s', (string) $payload['congregation'], (string) ($form['title'] ?? 'Service Times')),
             'payload' => $payload,
-        ]);
+        ];
 
-        $this->sendSubmissionNotifications($entry, $form);
+        if ($entryToUpdate) {
+            $entryToUpdate->update($attributes);
+            $entry = $entryToUpdate->fresh() ?? $entryToUpdate;
+        } else {
+            $entry = WorkRequestEntry::query()->create($attributes);
+        }
+
+        if (! $entryToUpdate) {
+            $this->sendSubmissionNotifications($entry, $form);
+        }
+
+        if ($isEasterForm && ! $entryToUpdate) {
+            $this->sendEasterSubmitterConfirmation($entry, (string) ($form['title'] ?? 'Easter Weekend Service Times'));
+        }
 
         return back();
     }
@@ -930,6 +989,184 @@ class WorkRequestEntryController extends Controller
             $otherVenueName,
             $otherVenueAddress,
         ], static fn (string $value): bool => $value !== '')));
+    }
+
+    /**
+     * @return array{
+     *   congregation:string,
+     *   firstName:string,
+     *   lastName:string,
+     *   email:string,
+     *   cellphone:string,
+     *   selectedServiceTypes:array<int, 'good_friday'|'easter_sunday'>,
+     *   serviceTimes:array<int, array{
+     *      serviceNameOption:'good_friday'|'easter_sunday'|'custom',
+     *      customServiceName:string,
+     *      serviceDay:''|'good_friday'|'easter_sunday',
+     *      startTime:string,
+     *      venueType:''|'JG Venue'|'Other',
+     *      jgVenue:string,
+     *      otherVenueName:string,
+     *      otherVenueAddress:string,
+     *      congregationsInvolved:array<int, string>,
+     *      graphicsLanguages:array<int, string>,
+     *      hasSpecificTheme:''|'Yes'|'No',
+     *      themeDescription:string,
+     *      needsSeparateGraphic:''|'Yes'|'No',
+     *      customGraphicThemeDescription:string
+     *   }>
+     * }
+     */
+    private function easterEditFormData(WorkRequestEntry $entry): array
+    {
+        $payload = is_array($entry->payload) ? $entry->payload : [];
+        $rawServiceTimes = Arr::get($payload, 'serviceTimes', []);
+        $normalizedServices = [];
+
+        if (is_array($rawServiceTimes)) {
+            foreach ($rawServiceTimes as $service) {
+                if (! is_array($service)) {
+                    continue;
+                }
+
+                $serviceNameOption = (string) ($service['serviceNameOption'] ?? '');
+                $resolvedServiceDay = $this->resolveEasterServiceDay($service);
+
+                if (! in_array($serviceNameOption, ['good_friday', 'easter_sunday', 'custom'], true)) {
+                    $serviceNameOption = in_array($resolvedServiceDay, ['good_friday', 'easter_sunday'], true)
+                        ? $resolvedServiceDay
+                        : 'custom';
+                }
+
+                $customServiceName = trim((string) ($service['customServiceName'] ?? ''));
+                if ($customServiceName === '' && $serviceNameOption === 'custom') {
+                    $customServiceName = trim((string) ($service['serviceName'] ?? ''));
+                }
+
+                $normalizedServices[] = [
+                    'serviceNameOption' => $serviceNameOption,
+                    'customServiceName' => $customServiceName,
+                    'serviceDay' => in_array($resolvedServiceDay, ['good_friday', 'easter_sunday'], true)
+                        ? $resolvedServiceDay
+                        : '',
+                    'startTime' => trim((string) ($service['startTime'] ?? '')),
+                    'venueType' => in_array(($service['venueType'] ?? ''), ['JG Venue', 'Other'], true)
+                        ? (string) $service['venueType']
+                        : '',
+                    'jgVenue' => trim((string) ($service['jgVenue'] ?? '')),
+                    'otherVenueName' => trim((string) ($service['otherVenueName'] ?? '')),
+                    'otherVenueAddress' => trim((string) ($service['otherVenueAddress'] ?? '')),
+                    'congregationsInvolved' => $this->normalizeStringList($service['congregationsInvolved'] ?? []),
+                    'graphicsLanguages' => $this->normalizeStringList($service['graphicsLanguages'] ?? []),
+                    'hasSpecificTheme' => in_array(($service['hasSpecificTheme'] ?? ''), ['Yes', 'No'], true)
+                        ? (string) $service['hasSpecificTheme']
+                        : '',
+                    'themeDescription' => trim((string) ($service['themeDescription'] ?? '')),
+                    'needsSeparateGraphic' => in_array(($service['needsSeparateGraphic'] ?? ''), ['Yes', 'No'], true)
+                        ? (string) $service['needsSeparateGraphic']
+                        : '',
+                    'customGraphicThemeDescription' => trim((string) ($service['customGraphicThemeDescription'] ?? '')),
+                ];
+            }
+        }
+
+        $goodFriday = collect($normalizedServices)
+            ->first(fn (array $service): bool => $service['serviceNameOption'] === 'good_friday');
+        $easterSunday = collect($normalizedServices)
+            ->first(fn (array $service): bool => $service['serviceNameOption'] === 'easter_sunday');
+        $customServices = collect($normalizedServices)
+            ->filter(fn (array $service): bool => $service['serviceNameOption'] === 'custom')
+            ->values()
+            ->all();
+
+        $defaultService = static function (string $serviceNameOption): array {
+            return [
+                'serviceNameOption' => $serviceNameOption,
+                'customServiceName' => '',
+                'serviceDay' => '',
+                'startTime' => '',
+                'venueType' => '',
+                'jgVenue' => '',
+                'otherVenueName' => '',
+                'otherVenueAddress' => '',
+                'congregationsInvolved' => [],
+                'graphicsLanguages' => [],
+                'hasSpecificTheme' => '',
+                'themeDescription' => '',
+                'needsSeparateGraphic' => '',
+                'customGraphicThemeDescription' => '',
+            ];
+        };
+
+        $serviceTimes = [
+            is_array($goodFriday) ? $goodFriday : $defaultService('good_friday'),
+            is_array($easterSunday) ? $easterSunday : $defaultService('easter_sunday'),
+            ...$customServices,
+        ];
+
+        $selectedServiceTypes = collect($payload['selectedServiceTypes'] ?? [])
+            ->map(static fn (mixed $serviceType): string => trim((string) $serviceType))
+            ->filter(static fn (string $serviceType): bool => in_array($serviceType, ['good_friday', 'easter_sunday'], true))
+            ->values()
+            ->all();
+
+        if ($selectedServiceTypes === []) {
+            $selectedServiceTypes = collect($serviceTimes)
+                ->map(static fn (array $service): string => trim((string) ($service['serviceNameOption'] ?? '')))
+                ->filter(static fn (string $serviceType): bool => in_array($serviceType, ['good_friday', 'easter_sunday'], true))
+                ->values()
+                ->all();
+        }
+
+        return [
+            'congregation' => trim((string) ($payload['congregation'] ?? $entry->congregation ?? '')),
+            'firstName' => trim((string) ($payload['firstName'] ?? $entry->first_name ?? '')),
+            'lastName' => trim((string) ($payload['lastName'] ?? $entry->last_name ?? '')),
+            'email' => trim((string) ($payload['email'] ?? $entry->email ?? '')),
+            'cellphone' => trim((string) ($payload['cellphone'] ?? $entry->cellphone ?? '')),
+            'selectedServiceTypes' => $selectedServiceTypes,
+            'serviceTimes' => $serviceTimes,
+        ];
+    }
+
+    private function sendEasterSubmitterConfirmation(WorkRequestEntry $entry, string $formTitle): void
+    {
+        $email = strtolower(trim((string) ($entry->email ?? '')));
+        if ($email === '') {
+            return;
+        }
+
+        try {
+            $editUrl = $this->publicEasterEntryEditUrl($entry);
+            $subject = sprintf('[JG Forms] We received your %s request', $formTitle);
+            $heading = 'Your service request was submitted';
+            $body = sprintf(
+                "Thank you for your submission.<br><br>You can review and edit your response here:<br><a href=\"%s\">%s</a>",
+                e($editUrl),
+                e($editUrl),
+            );
+
+            Mail::to(new Address($email))->queue(
+                (new WorkFormTemplateNotificationMail(
+                    $subject,
+                    $heading,
+                    $body,
+                ))->onConnection($this->mailQueueConnection()),
+            );
+        } catch (Throwable $exception) {
+            report($exception);
+        }
+    }
+
+    private function publicEasterEntryEditUrl(WorkRequestEntry $entry): string
+    {
+        $expiryDays = max((int) config('workforms.public_entry_edit_link_expiry_days', 30), 1);
+
+        return URL::temporarySignedRoute(
+            'forms.easter-holidays.entries.edit',
+            now()->addDays($expiryDays),
+            ['entry' => $entry->id],
+        );
     }
 
     /**

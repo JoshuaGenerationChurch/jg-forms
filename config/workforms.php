@@ -51,6 +51,7 @@ return [
     'invite_only_registration' => (bool) env('WORK_FORMS_INVITE_ONLY_REGISTRATION', true),
     'default_invitation_role' => (string) env('WORK_FORMS_DEFAULT_INVITED_ROLE', 'forms-admin'),
     'invitation_expiry_days' => (int) env('WORK_FORMS_INVITATION_EXPIRY_DAYS', 7),
+    'public_entry_edit_link_expiry_days' => (int) env('WORK_FORMS_PUBLIC_ENTRY_EDIT_LINK_EXPIRY_DAYS', 30),
     'mail_queue_connection' => (string) env('WORK_FORMS_MAIL_QUEUE_CONNECTION', 'background'),
     'notification_recipients' => array_values($notificationRecipientsByEmail),
     'trello_dev_recipient_emails' => $trelloDevRecipientEmails,

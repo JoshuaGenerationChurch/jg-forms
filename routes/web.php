@@ -34,6 +34,14 @@ Route::prefix('forms')->name('forms.')->group(function () {
     Route::post('easter-holidays/entries', [WorkRequestEntryController::class, 'storePublicEasterHolidayEntry'])
         ->name('easter-holidays.entries.store');
 
+    Route::get('easter-holidays/entries/{entry}/edit', [WorkRequestEntryController::class, 'editPublicEasterHolidayEntry'])
+        ->middleware('signed')
+        ->name('easter-holidays.entries.edit');
+
+    Route::put('easter-holidays/entries/{entry}', [WorkRequestEntryController::class, 'updatePublicEasterHolidayEntry'])
+        ->middleware('signed')
+        ->name('easter-holidays.entries.update');
+
     Route::post('christmas-holidays/entries', [WorkRequestEntryController::class, 'storePublicChristmasHolidayEntry'])
         ->name('christmas-holidays.entries.store');
 });
