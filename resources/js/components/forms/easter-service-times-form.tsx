@@ -1,5 +1,5 @@
-import { Link, router, useForm } from '@inertiajs/react';
-import { ArrowLeft, Minus, Plus } from 'lucide-react';
+import { router, useForm } from '@inertiajs/react';
+import { Minus, Plus } from 'lucide-react';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -1195,12 +1195,6 @@ export function EasterServiceTimesForm() {
             </div>
 
             <div className="flex flex-wrap items-center justify-center gap-3">
-                <Button variant="outline" asChild>
-                    <Link href="/forms">
-                        <ArrowLeft className="size-4" />
-                        Back to forms
-                    </Link>
-                </Button>
                 <Button type="submit" disabled={processing}>
                     {processing ? 'Submitting...' : 'Submit Service Request'}
                 </Button>

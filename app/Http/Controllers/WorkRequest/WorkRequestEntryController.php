@@ -1296,16 +1296,12 @@ class WorkRequestEntryController extends Controller
         $form = $this->findForm($formSlug);
         abort_if($form === null, 404);
 
-        $entryCollection = WorkRequestEntry::query()
+        $entries = WorkRequestEntry::query()
             ->where('form_slug', $formSlug)
             ->latest()
-            ->get();
-
-        $entries = $formSlug === 'easter-holidays'
-            ? collect($this->aggregateEasterServicesAcrossEntries($entryCollection))->values()
-            : $entryCollection
-                ->map(fn (WorkRequestEntry $entry): array => $this->entrySummary($entry))
-                ->values();
+            ->get()
+            ->map(fn (WorkRequestEntry $entry): array => $this->entrySummary($entry))
+            ->values();
 
         return Inertia::render('admin/forms/entries', [
             'form' => $form,
